@@ -324,43 +324,6 @@ def ColorInput(
         <input type="color" name="{name}" value="{value}"
             class="w-16 h-10 border border-gray-300 rounded-lg cursor-pointer"/>
     </div>'''
-        {req}
-        {dis}
-    >'''
-
-
-def PasswordInput(
-    name: str = "",
-    placeholder: str = "",
-    value: str = "",
-    required: bool = False,
-    **kwargs
-) -> str:
-    """Password input component"""
-    return Input(
-        name=name,
-        type="password",
-        placeholder=placeholder,
-        value=value,
-        required=required
-    )
-
-
-def EmailInput(
-    name: str = "",
-    placeholder: str = "Enter email",
-    value: str = "",
-    required: bool = True,
-    **kwargs
-) -> str:
-    """Email input component"""
-    return Input(
-        name=name,
-        type="email",
-        placeholder=placeholder,
-        value=value,
-        required=required
-    )
 
 
 def NumberInput(
