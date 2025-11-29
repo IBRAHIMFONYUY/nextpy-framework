@@ -27,7 +27,8 @@ class HotReloadHandler(FileSystemEventHandler):
         if event.is_directory:
             return
             
-        if event.src_path.endswith((".py", ".html", ".jinja2", ".css", ".js")):
+        extensions = (".py", ".html", ".jinja2", ".css", ".js")
+        if event.src_path.endswith(extensions):
             self._trigger_reload()
             
     def on_created(self, event):
