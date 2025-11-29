@@ -17,3 +17,4 @@ pyjwt>=2.8.0
 websockets>=11.0
 PyJWT>=2.8.0
 websockets>=11.0
+PyJWT
