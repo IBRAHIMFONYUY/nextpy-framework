@@ -121,49 +121,68 @@
     
     <!-- NextPy Loading Bar Script -->
     <script>
-        const loadingBar = document.getElementById('nextpy-loading');
+        window._nextpyLoadingInit = window._nextpyLoadingInit || false;
         
-        document.addEventListener('htmx:sendXHR', () => {
-            loadingBar.classList.add('active');
-            loadingBar.style.width = '30%';
+        if (!window._nextpyLoadingInit) {
+            window._nextpyLoadingInit = true;
             
-            setTimeout(() => {
-                loadingBar.style.width = '60%';
-            }, 200);
-        });
-        
-        document.addEventListener('htmx:responseEnd', () => {
-            loadingBar.classList.remove('active');
-            loadingBar.classList.add('complete');
-            loadingBar.style.width = '100%';
+            const initLoadingBar = () => {
+                const bar = document.getElementById('nextpy-loading');
+                if (!bar) return;
+                
+                document.addEventListener('htmx:sendXHR', () => {
+                    bar.classList.add('active');
+                    bar.style.width = '30%';
+                    setTimeout(() => {
+                        bar.style.width = '60%';
+                    }, 200);
+                });
+                
+                document.addEventListener('htmx:responseEnd', () => {
+                    bar.classList.remove('active');
+                    bar.classList.add('complete');
+                    bar.style.width = '100%';
+                    setTimeout(() => {
+                        bar.classList.remove('complete');
+                        bar.style.width = '0';
+                    }, 500);
+                });
+            };
             
-            setTimeout(() => {
-                loadingBar.classList.remove('complete');
-                loadingBar.style.width = '0';
-            }, 500);
-        });
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initLoadingBar);
+            } else {
+                initLoadingBar();
+            }
+        }
     </script>
     
     <!-- NextPy Dev Tools -->
     {% if debug %}
     <script>
-        const indicator = document.createElement('div');
-        indicator.id = 'nextpy-reload-indicator';
-        indicator.innerHTML = '<span style="display: flex; gap: 4px;"><span style="width: 6px; height: 6px; background: white; border-radius: 50%; animation: pulse 1.5s infinite;"></span><span style="width: 6px; height: 6px; background: white; border-radius: 50%; animation: pulse 1.5s infinite; animation-delay: 0.2s;"></span><span style="width: 6px; height: 6px; background: white; border-radius: 50%; animation: pulse 1.5s infinite; animation-delay: 0.4s;"></span></span> Reloading...';
-        indicator.style.cssText = 'position: fixed; top: 16px; right: 16px; z-index: 9999; display: none; align-items: center; gap: 8px; padding: 8px 12px; background: rgb(37, 99, 235); color: white; border-radius: 8px; font-size: 14px; font-family: system-ui; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); font-weight: 500;';
-        document.body.appendChild(indicator);
-
-        const eventSource = new EventSource('/__nextpy__/reload');
-        eventSource.onmessage = () => {
-            indicator.style.display = 'flex';
-            setTimeout(() => window.location.reload(), 500);
-        };
+        window._nextpyDevInit = window._nextpyDevInit || false;
         
-        document.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'r') {
-                window.location.reload();
-            }
-        });
+        if (!window._nextpyDevInit) {
+            window._nextpyDevInit = true;
+            
+            const indicator = document.createElement('div');
+            indicator.id = 'nextpy-reload-indicator';
+            indicator.innerHTML = '<span style="display: flex; gap: 4px;"><span style="width: 6px; height: 6px; background: white; border-radius: 50%; animation: pulse 1.5s infinite;"></span><span style="width: 6px; height: 6px; background: white; border-radius: 50%; animation: pulse 1.5s infinite; animation-delay: 0.2s;"></span><span style="width: 6px; height: 6px; background: white; border-radius: 50%; animation: pulse 1.5s infinite; animation-delay: 0.4s;"></span></span> Reloading...';
+            indicator.style.cssText = 'position: fixed; top: 16px; right: 16px; z-index: 9999; display: none; align-items: center; gap: 8px; padding: 8px 12px; background: rgb(37, 99, 235); color: white; border-radius: 8px; font-size: 14px; font-family: system-ui; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); font-weight: 500;';
+            document.body.appendChild(indicator);
+
+            const eventSource = new EventSource('/__nextpy__/reload');
+            eventSource.onmessage = () => {
+                indicator.style.display = 'flex';
+                setTimeout(() => window.location.reload(), 500);
+            };
+            
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'r') {
+                    window.location.reload();
+                }
+            });
+        }
     </script>
     {% endif %}
 </body>

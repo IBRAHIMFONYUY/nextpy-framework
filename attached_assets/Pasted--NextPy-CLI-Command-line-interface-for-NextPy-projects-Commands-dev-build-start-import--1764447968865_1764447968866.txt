@@ -28,7 +28,7 @@ class HotReloadHandler(FileSystemEventHandler):
             return
             
         extensions = (".py", ".html", ".jinja2", ".css", ".js")
-        if isinstance(event.src_path, str) and any(event.src_path.endswith(ext) for ext in extensions):
+        if event.src_path.endswith(extensions):
             self._trigger_reload()
             
     def on_created(self, event):
@@ -53,7 +53,7 @@ def cli():
 
 @cli.command()
 @click.option("--port", "-p", default=5000, help="Port to run the server on")
-@click.option("--host", "-h", default="0.0.0.0", help="Host to bind to")
+@click.option("--host", "-h", default="localhost", help="Host to bind to")
 @click.option("--reload/--no-reload", default=True, help="Enable hot reload")
 @click.option("--debug/--no-debug", default=True, help="Enable debug mode")
 def dev(port: int, host: str, reload: bool, debug: bool):
@@ -64,13 +64,10 @@ def dev(port: int, host: str, reload: bool, debug: bool):
     _ensure_project_structure()
     
     click.echo(f"  - Mode:     {'Development' if debug else 'Production'}")
-    click.echo(f"  - Host:     {host} (accessible at http://localhost:{port})")
+    click.echo(f"  - Host:     {host}")
     click.echo(f"  - Port:     {port}")
     click.echo(f"  - Reload:   {'Enabled' if reload else 'Disabled'}")
-    click.echo(f"\n  ✨ Server ready at http://0.0.0.0:{port}")
-    click.echo(f"  🌐 Open http://localhost:{port} in your browser\n")
-    
-    os.chdir(Path.cwd())
+    click.echo(f"\n  Ready on http://{host}:{port}\n")
     
     if reload:
         uvicorn.run(
@@ -123,12 +120,9 @@ def start(port: int, host: str):
     click.echo(click.style("  ========================\n", fg="green"))
     
     click.echo(f"  - Mode:     Production")
-    click.echo(f"  - Host:     {host} (accessible at http://localhost:{port})")
+    click.echo(f"  - Host:     {host}")
     click.echo(f"  - Port:     {port}")
-    click.echo(f"\n  ✨ Server ready at http://0.0.0.0:{port}")
-    click.echo(f"  🌐 Open http://localhost:{port} in your browser\n")
-    
-    os.chdir(Path.cwd())
+    click.echo(f"\n  Ready on http://{host}:{port}\n")
     
     uvicorn.run(
         "main:app",
@@ -288,4 +282,7 @@ httpx>=0.24.0
 
 
 if __name__ == "__main__":
-    cli()
+    cli(), INFO:     Will watch for changes in these directories: ['/home/ibrahim-fonyuy/Desktop/projects/NextPyVision/myapp/pages', '/home/ibrahim-fonyuy/Desktop/projects/NextPyVision/myapp/templates']
+INFO:     Uvicorn running on http://localhost:5000 (Press CTRL+C to quit)
+INFO:     Started reloader process [51910] using StatReload
+ERROR:    Error loading ASGI app. Could not import module "main".
