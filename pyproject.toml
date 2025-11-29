@@ -1,8 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "repl-nix-workspace"
-version = "0.1.0"
-description = "Add your description here"
+name = "nextpy-framework"
+version = "1.0.0"
+description = "A Python web framework inspired by Next.js with file-based routing, SSR, and SSG"
+readme = "README.md"
 requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "NextPy Team"}
+]
+keywords = [
+    "web framework",
+    "nextjs",
+    "fastapi",
+    "ssr",
+    "ssg",
+    "file-based routing",
+    "htmx",
+    "jinja2"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
 dependencies = [
     "aiofiles>=25.1.0",
     "click>=8.3.1",
@@ -15,3 +45,26 @@ dependencies = [
     "uvicorn>=0.38.0",
     "watchdog>=6.0.0",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0",
+    "mypy>=1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/nextpy/nextpy-framework"
+Documentation = "https://nextpy-framework.readthedocs.io"
+Repository = "https://github.com/nextpy/nextpy-framework"
+
+[project.scripts]
+nextpy = "nextpy.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nextpy*"]
+
+[tool.setuptools.package-data]
+nextpy = ["py.typed"]
