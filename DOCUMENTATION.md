@@ -1,26 +1,18 @@
-# NextPy Complete Guide
-
-Comprehensive documentation for all NextPy features, with examples for each.
+# NextPy - Complete Documentation
 
 ## Table of Contents
 
 1. [Getting Started](#getting-started)
 2. [File-Based Routing](#file-based-routing)
-3. [Pages & Components](#pages--components)
-4. [Data Fetching](#data-fetching)
-5. [API Routes](#api-routes)
-6. [Built-in Components](#built-in-components)
-7. [Images & Media](#images--media)
-8. [Layouts & Nesting](#layouts--nesting)
-9. [SEO & Meta Tags](#seo--meta-tags)
-10. [Environment Variables](#environment-variables)
-11. [Error Handling](#error-handling)
-12. [Middleware](#middleware)
-13. [Static Generation](#static-generation)
-14. [Redirects & Rewrites](#redirects--rewrites)
-15. [Forms & Validation](#forms--validation)
-16. [Authentication](#authentication)
-17. [Deployment](#deployment)
+3. [Pages & Data Fetching](#pages--data-fetching)
+4. [API Routes](#api-routes)
+5. [Database Integration](#database-integration)
+6. [Authentication](#authentication)
+7. [Components & Templates](#components--templates)
+8. [Built-in Utilities](#built-in-utilities)
+9. [Configuration](#configuration)
+10. [Deployment](#deployment)
+11. [API Reference](#api-reference)
 
 ---
 
@@ -29,51 +21,40 @@ Comprehensive documentation for all NextPy features, with examples for each.
 ### Installation
 
 ```bash
-# Via pip
 pip install nextpy-framework
-
-# Or from source
-git clone https://github.com/nextpy/nextpy-framework.git
-cd nextpy-framework
-pip install -e .
-```
-
-### Create Your First Project
-
-```bash
-nextpy create my-blog
-cd my-blog
+nextpy create my-app
+cd my-app
 nextpy dev
 ```
 
-Visit `http://localhost:5000` - your app is running with hot reload!
+Visit `http://localhost:5000` - your app runs with hot reload!
 
 ### Project Structure
 
 ```
-my-blog/
-├── pages/                    # Routes & API endpoints
-│   ├── index.py             # Home page (/)
-│   ├── about.py             # About page (/about)
+my-app/
+├── pages/                      # File-based routes
+│   ├── index.py               # Home (/)
+│   ├── about.py               # About (/about)
 │   ├── blog/
-│   │   ├── index.py         # Blog listing (/blog)
-│   │   └── [slug].py        # Dynamic posts (/blog/:slug)
+│   │   ├── index.py          # Blog listing (/blog)
+│   │   └── [slug].py         # Dynamic posts (/blog/post-name)
 │   └── api/
-│       ├── posts.py         # GET /api/posts
-│       └── health.py        # GET /api/health
-├── templates/               # Jinja2 templates
-│   ├── _base.html          # Root layout
-│   ├── components/         # Reusable components
-│   │   ├── button.html
-│   │   ├── card.html
-│   │   └── image.html
-│   └── *.html              # Page templates
-├── public/                 # Static files
-│   ├── css/
-│   ├── js/
-│   └── images/
-├── main.py                 # Entry point
-└── requirements.txt        # Dependencies
+│       ├── posts.py          # GET /api/posts
+│       ├── posts.py (POST)   # POST /api/posts
+│       └── users/[id].py     # GET /api/users/123
+├── templates/
+│   ├── _base.html            # Root layout
+│   ├── index.html            # Home template
+│   └── components/
+│       ├── button.html       # Reusable components
+│       ├── card.html
+│       └── modal.html
+├── models/                    # Database models
+│   └── user.py
+├── nextpy.config.py          # Framework config
+├── main.py                   # Entry point
+└── .env                      # Secrets
 ```
 
 ---
@@ -82,19 +63,18 @@ my-blog/
 
 ### Basic Routes
 
-Create Python files in `pages/` - they automatically become routes:
+Files in `pages/` automatically become HTTP routes:
 
 | File | Route |
 |------|-------|
 | `pages/index.py` | `/` |
 | `pages/about.py` | `/about` |
-| `pages/contact.py` | `/contact` |
 | `pages/blog/index.py` | `/blog` |
-| `pages/blog/news.py` | `/blog/news` |
+| `pages/contact.py` | `/contact` |
 
 ### Dynamic Routes
 
-Use brackets `[param]` for dynamic segments:
+Use `[param]` for dynamic segments:
 
 ```python
 # pages/blog/[slug].py
@@ -107,516 +87,542 @@ async def get_server_side_props(context):
     return {"props": {"post": post}}
 ```
 
-Access at `/blog/hello-world`, `/blog/my-first-post`, etc.
+Access: `/blog/hello-world` → `slug = "hello-world"`
 
 ### Catch-All Routes
 
-Use `[...params]` to catch multiple segments:
+Use `[...path]` to capture multiple segments:
 
 ```python
 # pages/docs/[...path].py
 async def get_server_side_props(context):
-    path = context["params"]["path"]  # List of segments
-    # path = ["guides", "setup", "installation"]
+    path = context["params"]["path"]  # ["guides", "setup"]
+    page = await get_docs(path)
+    return {"props": {"page": page}}
 ```
 
-### Optional Routes
-
-Make segments optional with double brackets:
-
-```python
-# pages/[[lang]].py
-# Matches: /, /en, /fr, /es
-```
+Access: `/docs/guides/setup` → `path = ["guides", "setup"]`
 
 ---
 
-## Pages & Components
+## Pages & Data Fetching
 
-### Creating a Page
+### Basic Page
 
 ```python
-# pages/products.py
-
+# pages/hello.py
 def get_template():
-    """Return template filename"""
-    return "products.html"
+    return "hello.html"
 
 async def get_server_side_props(context):
-    """Fetch data per request (SSR)"""
-    products = await fetch_products()
     return {
         "props": {
-            "products": products,
-            "title": "Products",
+            "name": "NextPy",
+            "year": 2025
         }
     }
 ```
 
+Template (`templates/hello.html`):
 ```html
-<!-- templates/products.html -->
 {% extends "_base.html" %}
-
-{% block title %}{{ title }}{% endblock %}
-
 {% block content %}
-<div class="container">
-    <h1>{{ title }}</h1>
-    <div class="grid">
-        {% for product in products %}
-            <div class="card">
-                <h3>{{ product.name }}</h3>
-                <p>${{ product.price }}</p>
-            </div>
-        {% endfor %}
-    </div>
-</div>
+<h1>Hello {{ name }}!</h1>
+<p>Year: {{ year }}</p>
 {% endblock %}
 ```
 
----
-
-## Data Fetching
-
 ### Server-Side Rendering (SSR)
 
-Fetch on every request:
+Data fetched **per request**:
 
 ```python
-# pages/index.py
 async def get_server_side_props(context):
-    data = await fetch_latest_data()
-    return {"props": {"data": data}}
-```
-
-**When to use**: Real-time data, user-specific content, frequent updates
-
-### Static Site Generation (SSG)
-
-Fetch once at build time:
-
-```python
-# pages/blog/[slug].py
-async def get_static_props(context):
-    slug = context["params"]["slug"]
-    post = await fetch_post(slug)
-    return {"props": {"post": post}}
-
-async def get_static_paths():
-    """Define which paths to pre-render"""
-    posts = await fetch_all_posts()
-    return {
-        "paths": [
-            {"params": {"slug": post.slug}}
-            for post in posts
-        ]
-    }
-```
-
-**When to use**: Blog posts, product pages, documentation
-
-### Incremental Static Regeneration (ISR)
-
-Revalidate SSG at intervals:
-
-```python
-async def get_static_props(context):
-    data = await fetch_data()
+    # Fetch fresh data on every request
+    data = await fetch_from_database()
     return {
         "props": {"data": data},
-        "revalidate": 3600  # Revalidate every hour
+        "revalidate": 60  # Cache for 60 seconds
     }
 ```
 
-### Context Object
+### Static Generation (SSG)
 
-Access request info in data fetching:
+Data fetched **at build time**:
 
 ```python
-async def get_server_side_props(context):
-    # context["params"] - Dynamic route params
-    # context["query"] - Query string params
-    # context["headers"] - HTTP headers
-    # context["cookies"] - Cookies
-    slug = context["params"]["slug"]
-    page = context["query"].get("page", "1")
-    return {"props": {"slug": slug, "page": page}}
+async def get_static_props():
+    posts = await get_all_posts()
+    return {
+        "props": {"posts": posts},
+        "revalidate": 3600  # Regenerate every hour
+    }
+
+async def get_static_paths():
+    # Generate paths at build time
+    posts = await get_all_posts()
+    return ["/blog/" + post.slug for post in posts]
 ```
+
+Build static site: `nextpy build`
 
 ---
 
 ## API Routes
 
-### Basic API Routes
+### Basic GET Request
 
 ```python
-# pages/api/users.py
-
+# pages/api/posts.py
 async def get(request):
-    """GET /api/users"""
-    users = await fetch_users()
-    return {"users": users}
+    posts = await fetch_posts()
+    return {"posts": posts}
+```
+
+Request: `GET /api/posts` → Returns JSON
+
+### POST Request
+
+```python
+# pages/api/posts.py
+from pydantic import BaseModel
+
+class CreatePost(BaseModel):
+    title: str
+    content: str
 
 async def post(request):
-    """POST /api/users"""
-    data = await request.json()
-    user = await create_user(data)
-    return {"created": True, "user": user}
+    body = await request.json()
+    post = CreatePost(**body)
+    
+    # Save to database
+    new_post = await save_post(post)
+    return {"id": new_post.id, "title": new_post.title}, 201
+```
 
-async def put(request):
-    """PUT /api/users"""
-    data = await request.json()
-    result = await update_user(data)
-    return {"updated": result}
-
-async def delete(request):
-    """DELETE /api/users"""
-    await delete_user()
-    return {"deleted": True}
+Request:
+```bash
+curl -X POST http://localhost:5000/api/posts \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Hello", "content": "World"}'
 ```
 
 ### Dynamic API Routes
 
 ```python
 # pages/api/posts/[id].py
-
 async def get(request):
     post_id = request.path_params["id"]
     post = await fetch_post(post_id)
+    if not post:
+        return {"error": "Not found"}, 404
     return {"post": post}
 
 async def put(request):
     post_id = request.path_params["id"]
-    data = await request.json()
-    await update_post(post_id, data)
-    return {"updated": True}
+    body = await request.json()
+    updated = await update_post(post_id, body)
+    return {"post": updated}
+
+async def delete(request):
+    post_id = request.path_params["id"]
+    await delete_post(post_id)
+    return {"message": "Deleted"}, 204
+```
+
+### All HTTP Methods
+
+```python
+# pages/api/resource.py
+
+async def get(request):
+    """GET request handler"""
+    return {"method": "GET"}
+
+async def post(request):
+    """POST request handler"""
+    body = await request.json()
+    return {"method": "POST", "data": body}
+
+async def put(request):
+    """PUT request handler"""
+    body = await request.json()
+    return {"method": "PUT", "data": body}
+
+async def delete(request):
+    """DELETE request handler"""
+    return {"method": "DELETE"}
+
+async def patch(request):
+    """PATCH request handler"""
+    body = await request.json()
+    return {"method": "PATCH", "data": body}
+```
+
+---
+
+## Database Integration
+
+### Setup
+
+```python
+# main.py or config
+from nextpy.db import engine, Base, Session
+from sqlalchemy import Column, String, Integer, DateTime
+from datetime import datetime
+
+# Define model
+class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255))
+    email = Column(String(255), unique=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+```
+
+### Configuration
+
+```python
+# nextpy.config.py or .env
+DATABASE_URL=sqlite:///app.db
+# or
+DATABASE_URL=postgresql://user:pass@localhost/dbname
+# or
+DATABASE_URL=mysql://user:pass@localhost/dbname
+```
+
+### Query Data in Pages
+
+```python
+# pages/users.py
+from nextpy.db import Session
+from models.user import User
+
+async def get_server_side_props(context):
+    with Session() as session:
+        users = session.query(User).all()
+        return {
+            "props": {"users": [{"id": u.id, "name": u.name} for u in users]}
+        }
+```
+
+### Query in API Routes
+
+```python
+# pages/api/users.py
+from nextpy.db import Session
+from models.user import User
+from pydantic import BaseModel
+
+class UserCreate(BaseModel):
+    name: str
+    email: str
+
+async def get(request):
+    with Session() as session:
+        users = session.query(User).all()
+        return {"users": [{"id": u.id, "name": u.name} for u in users]}
+
+async def post(request):
+    body = await request.json()
+    user_data = UserCreate(**body)
+    
+    with Session() as session:
+        user = User(name=user_data.name, email=user_data.email)
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        return {"id": user.id, "name": user.name}, 201
+```
+
+---
+
+## Authentication
+
+### JWT Authentication
+
+```python
+# pages/api/login.py
+from nextpy.auth import AuthManager
+from pydantic import BaseModel
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+async def post(request):
+    body = await request.json()
+    data = LoginRequest(**body)
+    
+    # Verify credentials
+    user = await verify_user(data.username, data.password)
+    if not user:
+        return {"error": "Invalid credentials"}, 401
+    
+    # Create token
+    token = AuthManager.create_token(
+        user_id=user.id,
+        expires_in=3600  # 1 hour
+    )
+    
+    return {"token": token}
+```
+
+### Verify Token
+
+```python
+# pages/api/profile.py
+from nextpy.auth import AuthManager
+
+async def get(request):
+    auth_header = request.headers.get("Authorization", "")
+    token = auth_header.replace("Bearer ", "")
+    
+    try:
+        user_id = AuthManager.verify_token(token)
+        user = await get_user(user_id)
+        return {"user": {"id": user.id, "name": user.name}}
+    except:
+        return {"error": "Unauthorized"}, 401
+```
+
+### Protected Routes Middleware
+
+```python
+# middleware.py
+from nextpy.auth import AuthManager
+
+async def require_auth(request, call_next):
+    auth = request.headers.get("Authorization")
+    if not auth:
+        return {"error": "Unauthorized"}, 401
+    
+    try:
+        token = auth.replace("Bearer ", "")
+        user_id = AuthManager.verify_token(token)
+        request.user_id = user_id
+    except:
+        return {"error": "Invalid token"}, 401
+    
+    return await call_next(request)
+```
+
+---
+
+## Components & Templates
+
+### Built-in Components
+
+#### Button
+
+```html
+{% from 'components/button.html' import button %}
+{{ button('Click me', href='/page', disabled=False, variant='primary') }}
+```
+
+#### Card
+
+```html
+{% from 'components/card.html' import card %}
+{{ card(title='Title', content='Content here', footer='Footer') }}
+```
+
+#### Modal
+
+```html
+{% from 'components/modal.html' import modal %}
+{{ modal(id='myModal', title='Confirm', content='Are you sure?') }}
+```
+
+#### Form
+
+```html
+{% from 'components/form.html' import form_input %}
+{{ form_input('email', type='email', placeholder='Enter email') }}
+```
+
+### Custom Components
+
+Create `templates/components/custom.html`:
+
+```html
+{% macro custom_card(title, items=[]) %}
+<div class="card">
+    <h3>{{ title }}</h3>
+    {% for item in items %}
+    <p>{{ item }}</p>
+    {% endfor %}
+</div>
+{% endmacro %}
+```
+
+Use in templates:
+
+```html
+{% from 'components/custom.html' import custom_card %}
+{{ custom_card('My Title', items=['Item 1', 'Item 2']) }}
+```
+
+### Base Layout
+
+`templates/_base.html`:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}My App{% endblock %}</title>
+</head>
+<body>
+    <nav>Navigation</nav>
+    
+    <div id="main-content">
+        {% block content %}{% endblock %}
+    </div>
+    
+    <footer>Footer</footer>
+</body>
+</html>
+```
+
+---
+
+## Built-in Utilities
+
+### Caching
+
+```python
+from nextpy.utils.cache import Cache
+
+# Simple cache
+cache = Cache()
+cache.set("key", "value", ttl=3600)  # 1 hour
+value = cache.get("key")
+
+# In pages
+from nextpy.utils.cache import cached
+
+@cached(ttl=600)
+async def expensive_operation():
+    return await fetch_data()
+```
+
+### Email
+
+```python
+from nextpy.utils.email import send_email
+
+# Configure in .env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+
+# Send email
+await send_email(
+    to="user@example.com",
+    subject="Welcome!",
+    html="<h1>Hello</h1>"
+)
 ```
 
 ### File Uploads
 
 ```python
 # pages/api/upload.py
-from fastapi import UploadFile, File
+from nextpy.utils.uploads import handle_upload
 
 async def post(request):
-    file: UploadFile = await request.form()["file"]
-    contents = await file.read()
-    # Process file...
-    return {"filename": file.filename, "size": len(contents)}
+    form = await request.form()
+    file = form["file"]
+    
+    filename = await handle_upload(
+        file,
+        upload_dir="public/uploads",
+        max_size=5*1024*1024  # 5MB
+    )
+    
+    return {"filename": filename}
 ```
 
-### Error Responses
+### Search
 
 ```python
-# pages/api/secure.py
-from fastapi import HTTPException
+from nextpy.utils.search import SimpleSearch, FuzzySearch
 
-async def get(request):
-    token = request.headers.get("Authorization")
-    if not token:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    return {"data": "secret"}
+# Simple search
+search = SimpleSearch(["apple", "apricot", "banana"])
+results = search.find("app")  # ["apple", "apricot"]
+
+# Fuzzy search
+fuzzy = FuzzySearch(data_list)
+matches = fuzzy.search("appel", threshold=0.8)  # Matches "apple"
 ```
 
----
-
-## Built-in Components
-
-### Button Component
-
-```html
-{% from "components/button.html" import button %}
-
-<!-- Variants: primary, secondary, outline, ghost, danger -->
-{{ button("Click Me", "/action", "primary") }}
-{{ button("Learn More", "/about", "outline") }}
-
-<!-- Sizes: sm, md, lg -->
-{{ button("Small", "/", "primary", "sm") }}
-{{ button("Large", "/", "primary", "lg") }}
-
-<!-- With icons -->
-{{ button("Submit", "#", "primary", "md", "✓") }}
-```
-
-### Card Component
-
-```html
-{% from "components/card.html" import card %}
-
-{{ card(
-    title="Product Name",
-    content="Description here",
-    image="/images/product.jpg",
-    link="/products/123",
-    variant="default"  # or "featured"
-) }}
-```
-
-### Form Components
-
-```html
-{% from "components/form.html" import input, textarea, select %}
-
-<form method="POST" action="/api/contact">
-    {{ input("name", "Full Name", "text", "John Doe", required=True) }}
-    {{ input("email", "Email", "email", "", required=True) }}
-    {{ select("topic", "Topic", [
-        {"value": "", "label": "Select..."},
-        {"value": "sales", "label": "Sales Inquiry"},
-        {"value": "support", "label": "Support"},
-    ], required=True) }}
-    {{ textarea("message", "Message", "Your message...", required=True) }}
-    {{ button("Send", "#", "primary") }}
-</form>
-```
-
-### Alert Component
-
-```html
-{% from "components/alert.html" import alert %}
-
-{{ alert("Operation successful!", "success") }}
-{{ alert("Please review this", "warning") }}
-{{ alert("An error occurred", "error", dismissible=True) }}
-{{ alert("For your information", "info") }}
-```
-
-### Image Component (Optimized)
-
-```html
-{% from "components/image.html" import image %}
-
-<!-- Auto-optimized, lazy-loaded, responsive -->
-{{ image(
-    src="/images/hero.jpg",
-    alt="Hero image",
-    width=1200,
-    height=600,
-    quality=85
-) }}
-```
-
-### Link Component (with Prefetch)
-
-```html
-{% from "components/link.html" import link %}
-
-<!-- HTMX-powered, prefetches on hover -->
-{{ link("About Us", "/about") }}
-{{ link("Blog", "/blog", class="nav-link") }}
-
-<!-- External links -->
-{{ link("GitHub", "https://github.com", external=True) }}
-```
-
----
-
-## Images & Media
-
-### Image Optimization
-
-```html
-{% from "components/image.html" import image %}
-
-{{ image(
-    src="/images/photo.jpg",
-    alt="Photo",
-    width=800,
-    height=600,
-    quality=85,           # 1-100
-    lazy=True,            # Lazy load
-    responsive=True,      # Responsive sizes
-) }}
-```
-
-### Background Images
-
-```html
-<div style="background-image: url('/images/bg.jpg'); background-size: cover;">
-    Content here
-</div>
-```
-
-### Video Embedding
-
-```html
-<video width="640" height="360" controls>
-    <source src="/videos/demo.mp4" type="video/mp4">
-    Your browser doesn't support HTML5 video.
-</video>
-```
-
----
-
-## Layouts & Nesting
-
-### Base Layout
-
-```html
-<!-- templates/_base.html -->
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>{% block title %}My Site{% endblock %}</title>
-</head>
-<body>
-    <nav>Navigation here</nav>
-    {% block content %}{% endblock %}
-    <footer>Footer here</footer>
-</body>
-</html>
-```
-
-### Nested Layouts
-
-```html
-<!-- templates/_blog-layout.html -->
-{% extends "_base.html" %}
-
-{% block content %}
-<div class="blog-wrapper">
-    <aside class="sidebar">
-        <!-- Blog navigation -->
-    </aside>
-    <main>
-        {% block blog_content %}{% endblock %}
-    </main>
-</div>
-{% endblock %}
-```
-
-### Using Nested Layout
-
-```html
-<!-- templates/blog/post.html -->
-{% extends "_blog-layout.html" %}
-
-{% block blog_content %}
-<article>
-    <h1>{{ title }}</h1>
-    <p>{{ content }}</p>
-</article>
-{% endblock %}
-```
-
-### Multiple Layout Levels
-
-```
-_base.html (root)
-  ├── _dashboard-layout.html
-  │   └── dashboard/profile.html
-  ├── _blog-layout.html
-  │   └── blog/post.html
-  └── _docs-layout.html
-      └── docs/guide.html
-```
-
----
-
-## SEO & Meta Tags
-
-### Using SEO Component
+### Logging
 
 ```python
-# pages/blog/[slug].py
-async def get_server_side_props(context):
-    post = await fetch_post(context["params"]["slug"])
-    return {
-        "props": {
-            "title": post.title,
-            "description": post.excerpt,
-            "image": post.featured_image,
-            "url": f"/blog/{post.slug}",
-            "og_type": "article",
-        }
-    }
+from nextpy.utils.logging import get_logger
+
+logger = get_logger("myapp")
+logger.info("Application started")
+logger.error("An error occurred", exc_info=True)
 ```
 
-```html
-<!-- templates/blog/post.html -->
-{% from "components/head.html" import seo %}
+### Validation
 
-{% block head %}
-    {{ seo(
-        title=title,
-        description=description,
-        image=image,
-        url=url,
-        og_type="article",
-        keywords="python, web, framework"
-    ) }}
-{% endblock %}
-```
+```python
+from nextpy.utils.validators import (
+    validate_email,
+    validate_url,
+    validate_phone
+)
 
-### Manual Meta Tags
-
-```html
-<head>
-    <meta name="description" content="{{ description }}">
-    <meta name="keywords" content="python, web">
-    <meta property="og:title" content="{{ title }}">
-    <meta property="og:description" content="{{ description }}">
-    <meta property="og:image" content="{{ image }}">
-    <meta property="og:type" content="website">
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:title" content="{{ title }}">
-    <meta property="twitter:description" content="{{ description }}">
-    <meta property="twitter:image" content="{{ image }}">
-</head>
-```
-
-### Canonical URLs
-
-```html
-<link rel="canonical" href="https://example.com{{ canonical_url }}" />
+is_valid = validate_email("user@example.com")
+is_valid = validate_url("https://example.com")
+is_valid = validate_phone("+1234567890")
 ```
 
 ---
 
-## Environment Variables
+## Configuration
 
-### Define Variables
+### Environment Variables
 
-```bash
-# .env file
-DATABASE_URL=postgresql://user:pass@localhost/db
+Create `.env`:
+
+```
+DATABASE_URL=sqlite:///app.db
+DEBUG=True
 SECRET_KEY=your-secret-key
-DEBUG=false
-API_KEY=abc123
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-password
 ```
 
-### Access in Python
+Load in code:
 
 ```python
-# pages/api/users.py
-import os
+from nextpy.config import settings
 
-async def get(request):
-    db_url = os.getenv("DATABASE_URL")
-    secret = os.getenv("SECRET_KEY")
-    # Use variables...
-    return {"success": True}
+database_url = settings.database_url
+debug = settings.debug
+secret_key = settings.secret_key
 ```
 
-### Access in Templates
+### Custom Configuration
 
-```html
-<!-- Environment variables are passed as props -->
-<p>App Version: {{ app_version }}</p>
-```
-
-### Type-Safe Environment Variables
+`nextpy.config.py`:
 
 ```python
-# config.py
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    database_url: str
-    secret_key: str
+    app_name: str = "MyApp"
     debug: bool = False
+    database_url: str
     
     class Config:
         env_file = ".env"
@@ -626,280 +632,20 @@ settings = Settings()
 
 ---
 
-## Error Handling
+## Deployment
 
-### 404 Pages
-
-```python
-# pages/_404.py
-def get_template():
-    return "_404.html"
-
-async def get_server_side_props(context):
-    return {"props": {}}
-```
-
-```html
-<!-- templates/_404.html -->
-{% extends "_base.html" %}
-{% block content %}
-<div class="text-center py-20">
-    <h1 class="text-4xl font-bold">404</h1>
-    <p>Page not found</p>
-    <a href="/">Back to home</a>
-</div>
-{% endblock %}
-```
-
-### Error Pages
-
-```python
-# pages/_error.py
-def get_template():
-    return "_error.html"
-
-async def get_server_side_props(context):
-    error = context.get("error", {})
-    return {
-        "props": {
-            "status": error.get("status", 500),
-            "message": error.get("message", "Something went wrong"),
-        }
-    }
-```
-
-### Exception Handling
-
-```python
-# pages/data.py
-async def get_server_side_props(context):
-    try:
-        data = await fetch_data()
-        return {"props": {"data": data}}
-    except Exception as e:
-        return {
-            "redirect": "/error",
-            "props": {}
-        }
-```
-
----
-
-## Middleware
-
-### Custom Middleware
-
-```python
-# middleware.py
-async def request_middleware(request):
-    """Run before request"""
-    request.state.user_id = request.headers.get("X-User-ID")
-
-async def response_middleware(request, response):
-    """Run after response"""
-    response.headers["X-Custom-Header"] = "value"
-    return response
-```
-
-### Register Middleware
-
-```python
-# main.py
-from nextpy.server.app import create_app
-from middleware import request_middleware, response_middleware
-
-app = create_app()
-app.middleware("http")(request_middleware)
-app.middleware("http")(response_middleware)
-```
-
-### Authentication Middleware
-
-```python
-# middleware.py
-async def auth_middleware(request):
-    token = request.headers.get("Authorization", "").replace("Bearer ", "")
-    if not token:
-        request.state.user = None
-    else:
-        request.state.user = await verify_token(token)
-
-# Usage in pages
-async def get_server_side_props(context):
-    user = context.get("state", {}).get("user")
-    if not user:
-        return {"redirect": "/login"}
-    return {"props": {"user": user}}
-```
-
----
-
-## Static Generation
-
-### Building for Production
+### Build for Production
 
 ```bash
 nextpy build
 ```
 
-Creates static HTML files in `out/` directory.
+Creates optimized static files in `out/` directory.
 
-### Deployment
+### Start Production Server
 
 ```bash
-# Start production server
 nextpy start
-
-# With multiple workers
-nextpy start --workers 4
-```
-
----
-
-## Redirects & Rewrites
-
-### Redirect in Page
-
-```python
-# pages/old-page.py
-async def get_server_side_props(context):
-    return {
-        "redirect": {
-            "destination": "/new-page",
-            "permanent": True,  # 301 vs 302
-        }
-    }
-```
-
-### Redirect in API
-
-```python
-# pages/api/login.py
-from fastapi.responses import RedirectResponse
-
-async def post(request):
-    # ... verify credentials ...
-    return RedirectResponse(url="/dashboard", status_code=303)
-```
-
----
-
-## Forms & Validation
-
-### HTML Form
-
-```html
-<form action="/api/contact" method="POST" enctype="multipart/form-data">
-    <input type="text" name="name" required>
-    <input type="email" name="email" required>
-    <textarea name="message"></textarea>
-    <input type="file" name="attachment">
-    <button type="submit">Send</button>
-</form>
-```
-
-### Form Validation
-
-```python
-# pages/api/contact.py
-from pydantic import BaseModel, EmailStr
-
-class ContactForm(BaseModel):
-    name: str
-    email: EmailStr
-    message: str
-
-async def post(request):
-    data = await request.json()
-    try:
-        form = ContactForm(**data)
-        # Process form...
-        return {"success": True}
-    except ValueError as e:
-        return {"error": str(e)}, 400
-```
-
----
-
-## Authentication
-
-### Session-Based Auth
-
-```python
-# pages/api/login.py
-async def post(request):
-    data = await request.json()
-    user = await verify_credentials(data["email"], data["password"])
-    if user:
-        request.session["user_id"] = user.id
-        return {"success": True}
-    return {"error": "Invalid credentials"}, 401
-```
-
-### Protected Routes
-
-```python
-# pages/dashboard.py
-async def get_server_side_props(context):
-    user_id = context.get("session", {}).get("user_id")
-    if not user_id:
-        return {"redirect": "/login"}
-    
-    user = await fetch_user(user_id)
-    return {"props": {"user": user}}
-```
-
-### JWT Tokens
-
-```python
-# utils/jwt.py
-import jwt
-from datetime import datetime, timedelta
-
-def create_token(user_id):
-    payload = {
-        "user_id": user_id,
-        "exp": datetime.utcnow() + timedelta(hours=24)
-    }
-    return jwt.encode(payload, "SECRET_KEY", algorithm="HS256")
-
-def verify_token(token):
-    try:
-        payload = jwt.decode(token, "SECRET_KEY", algorithms=["HS256"])
-        return payload["user_id"]
-    except:
-        return None
-```
-
----
-
-## Deployment
-
-### Deploy to Heroku
-
-```bash
-git push heroku main
-```
-
-### Deploy to Vercel
-
-```bash
-vercel
-```
-
-### Deploy to VPS
-
-```bash
-# SSH into server
-ssh user@server.com
-
-# Install Python & dependencies
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# Run with Gunicorn
-gunicorn -w 4 -b 0.0.0.0:8000 main:app
 ```
 
 ### Docker Deployment
@@ -910,46 +656,202 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 COPY . .
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["nextpy", "start"]
 ```
 
-### Environment Setup for Production
+### Environment Variables
 
-```bash
-export DEBUG=false
-export DATABASE_URL=your-db-url
-export SECRET_KEY=your-secret
-nextpy build
-nextpy start
+Set in production:
+
+```
+DATABASE_URL=postgresql://...
+DEBUG=False
+SECRET_KEY=production-secret-key
 ```
 
 ---
 
-## Tips & Best Practices
+## API Reference
 
-### Performance
+### Core Functions
 
-- ✅ Use SSG for static content
-- ✅ Use image optimization component
-- ✅ Enable HTMX prefetch on navigation
-- ✅ Cache API responses
-- ✅ Minimize template complexity
+#### `get_template()`
 
-### Security
+Returns template filename for page rendering.
 
-- ✅ Validate all form inputs
-- ✅ Use environment variables for secrets
-- ✅ Enable CSRF protection
-- ✅ Sanitize user input
-- ✅ Use HTTPS in production
+```python
+def get_template():
+    return "page.html"
+```
 
-### Code Organization
+#### `get_server_side_props(context)`
 
-- ✅ Keep pages simple (use get_server_side_props for logic)
-- ✅ Extract business logic to utils/
-- ✅ Reuse components via templates
-- ✅ Use type hints (Pydantic)
-- ✅ Structure by feature, not by type
+Fetches data per request (SSR).
+
+```python
+async def get_server_side_props(context):
+    return {
+        "props": {"key": "value"},
+        "revalidate": 60
+    }
+```
+
+#### `get_static_props()`
+
+Fetches data at build time (SSG).
+
+```python
+async def get_static_props():
+    return {
+        "props": {"key": "value"},
+        "revalidate": 3600
+    }
+```
+
+#### `get_static_paths()`
+
+Defines which paths to pre-generate.
+
+```python
+async def get_static_paths():
+    return ["/", "/about", "/blog/post-1"]
+```
+
+### HTTP Handlers
+
+```python
+async def get(request):
+    """Handle GET requests"""
+    
+async def post(request):
+    """Handle POST requests"""
+    
+async def put(request):
+    """Handle PUT requests"""
+    
+async def delete(request):
+    """Handle DELETE requests"""
+    
+async def patch(request):
+    """Handle PATCH requests"""
+```
+
+### Request Object
+
+```python
+request.method      # HTTP method
+request.path        # Request path
+request.headers     # Headers dict
+request.query_params  # Query parameters
+await request.json()  # Parse JSON body
+await request.form()  # Parse form data
+request.cookies     # Cookies dict
+```
+
+### Response
+
+```python
+return {
+    "key": "value"
+}  # Returns JSON (200)
+
+return {"error": "message"}, 400  # Custom status code
+
+return HTMLResponse("<h1>HTML</h1>")  # Return HTML
+```
+
+---
+
+## CLI Commands
+
+```bash
+# Create new project
+nextpy create my-app
+
+# Development server with hot reload
+nextpy dev
+
+# Build static site
+nextpy build
+
+# Start production server
+nextpy start
+
+# Generate new page
+nextpy create page my-page
+
+# Generate new API
+nextpy create api my-endpoint
+
+# Generate new component
+nextpy create component my-component
+
+# Show all routes
+nextpy routes
+```
+
+---
+
+## Examples
+
+### Blog Post Page
+
+```python
+# pages/blog/[slug].py
+async def get_static_paths():
+    posts = await get_all_posts()
+    return [f"/blog/{p.slug}" for p in posts]
+
+async def get_static_props():
+    slug = context["params"]["slug"]
+    post = await get_post(slug)
+    return {
+        "props": {"post": post},
+        "revalidate": 3600
+    }
+
+def get_template():
+    return "blog/post.html"
+```
+
+### Todo API
+
+```python
+# pages/api/todos.py
+from pydantic import BaseModel
+
+class TodoCreate(BaseModel):
+    title: str
+    completed: bool = False
+
+async def get(request):
+    todos = await get_all_todos()
+    return {"todos": todos}
+
+async def post(request):
+    body = await request.json()
+    todo = TodoCreate(**body)
+    new_todo = await create_todo(todo)
+    return {"todo": new_todo.dict()}, 201
+```
+
+### Protected API Route
+
+```python
+# pages/api/user/profile.py
+from nextpy.auth import AuthManager
+
+async def get(request):
+    auth = request.headers.get("Authorization", "")
+    token = auth.replace("Bearer ", "")
+    
+    try:
+        user_id = AuthManager.verify_token(token)
+        user = await get_user(user_id)
+        return {"user": user.dict()}
+    except:
+        return {"error": "Unauthorized"}, 401
+```
 
 ---
 
@@ -957,72 +859,51 @@ nextpy start
 
 ### Hot Reload Not Working
 
-```bash
-# Make sure watchdog is installed
-pip install watchdog
+- Check if watchdog is installed: `pip install watchdog`
+- Ensure `nextpy dev` is running
+- Try manual reload: `Ctrl+Shift+R` in development
 
-# Restart dev server
-nextpy dev --reload
-```
+### Database Connection Error
 
-### Port Already in Use
-
-```bash
-nextpy dev --port 3000
-```
-
-### Template Not Found
-
-Check `templates/` directory and ensure template filename matches `get_template()` return value.
+- Verify DATABASE_URL in .env
+- Check database server is running
+- For PostgreSQL: install `psycopg2` → `pip install psycopg2-binary`
 
 ### Import Errors
 
-Ensure pages directory is in Python path:
+- Ensure package is installed: `pip install nextpy-framework`
+- Check PYTHONPATH includes project directory
+- Restart dev server after new installs
 
-```python
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent))
-```
+### Template Not Found
 
----
-
-## API Reference
-
-### Context Object
-
-```python
-context = {
-    "params": {...},      # Dynamic route params
-    "query": {...},       # Query string params
-    "headers": {...},     # HTTP headers
-    "cookies": {...},     # Cookies
-    "session": {...},     # Session data
-    "state": {...},       # Request state
-}
-```
-
-### Return Values
-
-```python
-# Successful render
-{"props": {...}}
-
-# Redirect
-{"redirect": {"destination": "/path", "permanent": True}}
-
-# Revalidate (SSG only)
-{"props": {...}, "revalidate": 3600}
-
-# Not found
-{"notFound": True}
-```
+- Check template filename in `get_template()`
+- Verify file exists in `templates/` directory
+- Use relative paths: `"page.html"` not `"./page.html"`
 
 ---
 
-## Community & Support
+## Best Practices
 
-- GitHub: https://github.com/nextpy/nextpy-framework
-- Documentation: https://nextpy.dev
-- Discord: https://discord.gg/nextpy
-- Issues: https://github.com/nextpy/nextpy-framework/issues
+1. **Organize routes logically** - Group related pages in directories
+2. **Use SSG for static content** - Improves performance
+3. **Cache expensive operations** - Use `@cached` decorator
+4. **Validate all inputs** - Use Pydantic models in APIs
+5. **Protect sensitive routes** - Use authentication middleware
+6. **Use environment variables** - Don't hardcode secrets
+7. **Write reusable components** - DRY principle
+8. **Handle errors gracefully** - Always return proper status codes
+
+---
+
+## Resources
+
+- **Examples**: `/examples` page on the app
+- **Components**: `/examples` for UI component showcase
+- **Blog**: `/blog` for tutorials
+- **GitHub**: [NextPy Framework](https://github.com/nextpy)
+- **Community**: Join our Discord
+
+---
+
+**NextPy v1.0.0** - The Python web framework inspired by Next.js

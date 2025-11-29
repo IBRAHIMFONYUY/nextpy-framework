@@ -4,8 +4,8 @@
 <!-- Header -->
 <div class="bg-gradient-to-br from-blue-50 to-indigo-50 py-16 px-4 mb-12">
     <div class="max-w-6xl mx-auto">
-        <h1 class="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">Documentation</h1>
-        <p class="text-xl text-gray-600">Everything you need to build amazing apps with NextPy</p>
+        <h1 class="text-5xl font-bold text-gray-900 mb-4">Complete Documentation</h1>
+        <p class="text-xl text-gray-600">Learn everything about NextPy with detailed guides and examples</p>
     </div>
 </div>
 
@@ -22,6 +22,7 @@
                         <li><a href="#installation" class="hover:text-blue-600 hover:underline">Installation</a></li>
                         <li><a href="#quickstart" class="hover:text-blue-600 hover:underline">Quick Start</a></li>
                         <li><a href="#project-structure" class="hover:text-blue-600 hover:underline">Project Structure</a></li>
+                        <li><a href="#cli-commands" class="hover:text-blue-600 hover:underline">CLI Commands</a></li>
                     </ul>
                 </div>
 
@@ -30,9 +31,9 @@
                         <span class="text-lg">📄</span> Core Concepts
                     </h3>
                     <ul class="space-y-3 text-gray-600">
-                        <li><a href="#routing" class="hover:text-blue-600 hover:underline">File-based Routing</a></li>
-                        <li><a href="#pages" class="hover:text-blue-600 hover:underline">Pages & Rendering</a></li>
-                        <li><a href="#data-fetching" class="hover:text-blue-600 hover:underline">Data Fetching</a></li>
+                        <li><a href="#file-based-routing" class="hover:text-blue-600 hover:underline">File-based Routing</a></li>
+                        <li><a href="#pages-rendering" class="hover:text-blue-600 hover:underline">Pages & Rendering</a></li>
+                        <li><a href="#data-fetching" class="hover:text-blue-600 hover:underline">Data Fetching (SSR/SSG)</a></li>
                         <li><a href="#api-routes" class="hover:text-blue-600 hover:underline">API Routes</a></li>
                     </ul>
                 </div>
@@ -42,14 +43,26 @@
                         <span class="text-lg">🔧</span> Advanced
                     </h3>
                     <ul class="space-y-3 text-gray-600">
-                        <li><a href="#database" class="hover:text-blue-600 hover:underline">Database</a></li>
-                        <li><a href="#auth" class="hover:text-blue-600 hover:underline">Authentication</a></li>
-                        <li><a href="#websockets" class="hover:text-blue-600 hover:underline">WebSockets</a></li>
+                        <li><a href="#database" class="hover:text-blue-600 hover:underline">Database Integration</a></li>
+                        <li><a href="#authentication" class="hover:text-blue-600 hover:underline">Authentication</a></li>
+                        <li><a href="#components" class="hover:text-blue-600 hover:underline">Components & Templates</a></li>
+                        <li><a href="#utilities" class="hover:text-blue-600 hover:underline">Built-in Utilities</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <span class="text-lg">📚</span> Resources
+                    </h3>
+                    <ul class="space-y-3 text-gray-600">
+                        <li><a href="#deployment" class="hover:text-blue-600 hover:underline">Deployment</a></li>
+                        <li><a href="#troubleshooting" class="hover:text-blue-600 hover:underline">Troubleshooting</a></li>
+                        <li><a href="#best-practices" class="hover:text-blue-600 hover:underline">Best Practices</a></li>
                     </ul>
                 </div>
 
                 <div class="bg-blue-50 rounded-lg p-4">
-                    <p class="text-sm text-gray-700"><strong>Need help?</strong> Check COMPREHENSIVE_GUIDE.md</p>
+                    <p class="text-sm text-gray-700"><strong>📖 Full Reference:</strong> <a href="/documentation" class="text-blue-600 hover:underline">See DOCUMENTATION.md</a></p>
                 </div>
             </nav>
         </aside>
@@ -93,6 +106,15 @@ async def get_server_side_props(context):
     }</code></pre>
                 </div>
 
+                <div class="bg-gray-50 rounded-xl p-6 mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">2. Create Template</h3>
+                    <p class="text-gray-700 mb-4">Create <code class="bg-gray-200 px-2 py-1 rounded text-sm">templates/hello.html</code>:</p>
+                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>{% raw %}{% extends "_base.html" %}
+{% block content %}
+<h1>{{ message }}</h1>
+{% endblock %}{% endraw %}</code></pre>
+                </div>
+
                 <div class="bg-blue-50 rounded-xl p-6 border-l-4 border-blue-600">
                     <h3 class="text-xl font-bold text-gray-900 mb-3">✅ Done!</h3>
                     <p class="text-gray-700">Visit <code class="bg-blue-100 px-2 py-1 rounded">http://localhost:5000/hello</code> - changes auto-reload!</p>
@@ -104,48 +126,158 @@ async def get_server_side_props(context):
                 <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">Project Structure</h2>
                 
                 <pre class="bg-gray-900 text-green-400 p-6 rounded-xl overflow-x-auto text-sm"><code>my-app/
-├── pages/                 # File-based routes
-│   ├── index.py
-│   ├── about.py
+├── pages/                    # File-based routes
+│   ├── index.py             # Homepage (/)
+│   ├── about.py             # About page (/about)
+│   ├── blog/
+│   │   ├── index.py        # Blog listing (/blog)
+│   │   └── [slug].py       # Dynamic posts (/blog/:slug)
 │   └── api/
-├── templates/            # Jinja2 templates
-├── models/               # Database models
-├── main.py              # Application entry
-└── .env                 # Configuration</code></pre>
+│       ├── posts.py        # GET /api/posts
+│       └── users/[id].py   # GET /api/users/123
+├── templates/              # Jinja2 templates
+│   ├── _base.html         # Root layout
+│   ├── index.html         # Home template
+│   └── components/        # Reusable components
+├── models/                 # Database models
+├── main.py                # Application entry
+├── nextpy.config.py       # Configuration
+└── .env                   # Secrets</code></pre>
+            </section>
+
+            <!-- CLI Commands -->
+            <section id="cli-commands">
+                <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">CLI Commands</h2>
+                
+                <div class="space-y-4">
+                    <div class="bg-white border border-gray-200 rounded-lg p-4">
+                        <p class="font-mono text-sm text-gray-900 mb-2"><strong>$ nextpy create my-app</strong></p>
+                        <p class="text-sm text-gray-600">Create new NextPy project</p>
+                    </div>
+                    
+                    <div class="bg-white border border-gray-200 rounded-lg p-4">
+                        <p class="font-mono text-sm text-gray-900 mb-2"><strong>$ nextpy dev</strong></p>
+                        <p class="text-sm text-gray-600">Start development server with hot reload</p>
+                    </div>
+                    
+                    <div class="bg-white border border-gray-200 rounded-lg p-4">
+                        <p class="font-mono text-sm text-gray-900 mb-2"><strong>$ nextpy build</strong></p>
+                        <p class="text-sm text-gray-600">Build static site to out/ directory</p>
+                    </div>
+                    
+                    <div class="bg-white border border-gray-200 rounded-lg p-4">
+                        <p class="font-mono text-sm text-gray-900 mb-2"><strong>$ nextpy start</strong></p>
+                        <p class="text-sm text-gray-600">Start production server</p>
+                    </div>
+                </div>
             </section>
 
             <!-- File-based Routing -->
-            <section id="routing">
+            <section id="file-based-routing">
                 <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">File-based Routing</h2>
-                <p class="text-gray-700 mb-6">Files automatically become routes:</p>
+                <p class="text-gray-700 mb-6">Files in pages/ automatically become routes:</p>
 
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto mb-6">
                     <table class="w-full bg-white rounded-xl shadow-sm">
                         <thead class="bg-gray-100 border-b-2 border-gray-200">
                             <tr>
                                 <th class="text-left px-6 py-4 font-bold">File</th>
                                 <th class="text-left px-6 py-4 font-bold">Route</th>
+                                <th class="text-left px-6 py-4 font-bold">Example</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr class="border-b hover:bg-gray-50">
                                 <td class="px-6 py-4 font-mono text-sm">pages/index.py</td>
                                 <td class="px-6 py-4 text-blue-600">/</td>
+                                <td class="px-6 py-4 text-sm">Home page</td>
                             </tr>
                             <tr class="border-b hover:bg-gray-50">
                                 <td class="px-6 py-4 font-mono text-sm">pages/about.py</td>
                                 <td class="px-6 py-4 text-blue-600">/about</td>
+                                <td class="px-6 py-4 text-sm">About page</td>
                             </tr>
                             <tr class="border-b hover:bg-gray-50">
                                 <td class="px-6 py-4 font-mono text-sm">pages/blog/[slug].py</td>
                                 <td class="px-6 py-4 text-blue-600">/blog/:slug</td>
+                                <td class="px-6 py-4 text-sm">Dynamic posts</td>
                             </tr>
-                            <tr class="hover:bg-gray-50">
+                            <tr class="border-b hover:bg-gray-50">
                                 <td class="px-6 py-4 font-mono text-sm">pages/api/posts.py</td>
                                 <td class="px-6 py-4 text-blue-600">/api/posts</td>
+                                <td class="px-6 py-4 text-sm">API endpoint</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 font-mono text-sm">pages/docs/[...path].py</td>
+                                <td class="px-6 py-4 text-blue-600">/docs/*</td>
+                                <td class="px-6 py-4 text-sm">Catch-all route</td>
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-600">
+                    <p class="text-sm text-gray-700"><strong>💡 Tip:</strong> Files starting with _ (underscore) are not routes - they're templates like _base.html</p>
+                </div>
+            </section>
+
+            <!-- Data Fetching -->
+            <section id="data-fetching">
+                <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">Data Fetching (SSR/SSG)</h2>
+                
+                <div class="bg-gray-50 rounded-xl p-6 mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Server-Side Rendering (SSR)</h3>
+                    <p class="text-gray-700 mb-4">Fetch data <strong>per request</strong>:</p>
+                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>async def get_server_side_props(context):
+    data = await fetch_from_database()
+    return {
+        "props": {"data": data},
+        "revalidate": 60  # Cache 60 seconds
+    }</code></pre>
+                </div>
+
+                <div class="bg-gray-50 rounded-xl p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Static Generation (SSG)</h3>
+                    <p class="text-gray-700 mb-4">Fetch data <strong>at build time</strong>:</p>
+                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>async def get_static_props():
+    posts = await get_all_posts()
+    return {
+        "props": {"posts": posts},
+        "revalidate": 3600  # Regenerate hourly
+    }
+
+async def get_static_paths():
+    posts = await get_all_posts()
+    return ["/blog/" + p.slug for p in posts]</code></pre>
+                </div>
+            </section>
+
+            <!-- API Routes -->
+            <section id="api-routes">
+                <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">API Routes</h2>
+                
+                <p class="text-gray-700 mb-6">Create REST APIs with simple Python functions:</p>
+
+                <div class="bg-gray-50 rounded-xl p-6 mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Basic GET</h3>
+                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>async def get(request):
+    posts = await fetch_posts()
+    return {"posts": posts}</code></pre>
+                </div>
+
+                <div class="bg-gray-50 rounded-xl p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">POST with Validation</h3>
+                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>from pydantic import BaseModel
+
+class CreatePost(BaseModel):
+    title: str
+    content: str
+
+async def post(request):
+    body = await request.json()
+    post = CreatePost(**body)
+    new_post = await save_post(post)
+    return {"id": new_post.id}, 201</code></pre>
                 </div>
             </section>
 
@@ -153,9 +285,9 @@ async def get_server_side_props(context):
             <section id="database">
                 <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">Database Integration</h2>
                 
-                <p class="text-gray-700 mb-6">NextPy uses SQLAlchemy ORM with SQLite, PostgreSQL, and MySQL support.</p>
+                <p class="text-gray-700 mb-6">NextPy uses SQLAlchemy ORM with support for SQLite, PostgreSQL, and MySQL.</p>
 
-                <div class="bg-gray-50 rounded-xl p-6">
+                <div class="bg-gray-50 rounded-xl p-6 mb-6">
                     <h3 class="font-bold mb-3">Define a Model</h3>
                     <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>from nextpy.db import Base
 from sqlalchemy import Column, String, Integer
@@ -167,15 +299,26 @@ class Post(Base):
     title = Column(String(255))
     content = Column(String)</code></pre>
                 </div>
+
+                <div class="bg-gray-50 rounded-xl p-6">
+                    <h3 class="font-bold mb-3">Query Data</h3>
+                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>from nextpy.db import Session
+from models.post import Post
+
+async def get_server_side_props(context):
+    with Session() as session:
+        posts = session.query(Post).all()
+        return {"props": {"posts": posts}}</code></pre>
+                </div>
             </section>
 
             <!-- Authentication -->
-            <section id="auth">
+            <section id="authentication">
                 <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">Authentication</h2>
                 
-                <p class="text-gray-700 mb-6">Built-in JWT authentication:</p>
+                <p class="text-gray-700 mb-6">Built-in JWT authentication for secure API endpoints.</p>
 
-                <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>from nextpy.auth import AuthManager
+                <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm mb-6"><code>from nextpy.auth import AuthManager
 
 # Create token
 token = AuthManager.create_token(user_id=123)
@@ -183,54 +326,165 @@ token = AuthManager.create_token(user_id=123)
 # Verify token  
 user_id = AuthManager.verify_token(token)</code></pre>
 
-                <p class="text-gray-600 mt-6 p-4 bg-blue-50 rounded-lg">
-                    📖 See <strong>AUTHENTICATION.md</strong> for complete guide
+                <p class="text-gray-600 p-4 bg-blue-50 rounded-lg">
+                    📖 See <strong>AUTHENTICATION.md</strong> for complete guide with login examples
                 </p>
             </section>
 
-            <!-- WebSockets -->
-            <section id="websockets">
-                <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">Real-Time with WebSockets</h2>
+            <!-- Components -->
+            <section id="components">
+                <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">Components & Templates</h2>
                 
-                <p class="text-gray-700 mb-6">NextPy supports WebSocket connections for real-time features.</p>
+                <div class="bg-gray-50 rounded-xl p-6 mb-6">
+                    <h3 class="font-bold mb-3">Use Built-in Components</h3>
+                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>{% raw %}{% from 'components/button.html' import button %}
+{{ button('Click me', href='/page', variant='primary') }}
 
-                <div class="bg-gray-50 rounded-xl p-6">
-                    <h3 class="font-bold mb-3">Client-Side</h3>
-                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>const ws = new WebSocket('ws://localhost:5000/ws');
-ws.onmessage = (e) => console.log(JSON.parse(e.data));
-ws.send(JSON.stringify({type: 'message', text: 'Hi!'}))</code></pre>
+{% from 'components/card.html' import card %}
+{{ card(title='Title', content='Content') }}{% endraw %}</code></pre>
                 </div>
 
-                <p class="text-gray-600 mt-6 p-4 bg-blue-50 rounded-lg">
-                    📖 See <strong>WEBSOCKETS.md</strong> for complete guide
-                </p>
+                <div class="bg-gray-50 rounded-xl p-6">
+                    <h3 class="font-bold mb-3">Create Custom Components</h3>
+                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>{% raw %}{% macro custom_card(title) %}
+<div class="card">
+    <h3>{{ title }}</h3>
+    {{ caller() }}
+</div>
+{% endmacro %}{% endraw %}</code></pre>
+                </div>
+            </section>
+
+            <!-- Utilities -->
+            <section id="utilities">
+                <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">Built-in Utilities</h2>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white border border-gray-200 rounded-lg p-6">
+                        <h3 class="font-bold text-gray-900 mb-3">💾 Caching</h3>
+                        <pre class="bg-gray-100 text-gray-900 p-3 rounded text-xs overflow-x-auto"><code>from nextpy.utils.cache import cached
+
+@cached(ttl=3600)
+async def fetch_data():
+    return await db.get_data()</code></pre>
+                    </div>
+                    
+                    <div class="bg-white border border-gray-200 rounded-lg p-6">
+                        <h3 class="font-bold text-gray-900 mb-3">📧 Email</h3>
+                        <pre class="bg-gray-100 text-gray-900 p-3 rounded text-xs overflow-x-auto"><code>from nextpy.utils.email import send_email
+
+await send_email(
+    to="user@example.com",
+    subject="Hello",
+    html="<p>Welcome</p>"
+)</code></pre>
+                    </div>
+                    
+                    <div class="bg-white border border-gray-200 rounded-lg p-6">
+                        <h3 class="font-bold text-gray-900 mb-3">📁 File Uploads</h3>
+                        <pre class="bg-gray-100 text-gray-900 p-3 rounded text-xs overflow-x-auto"><code>from nextpy.utils.uploads import handle_upload
+
+file_name = await handle_upload(
+    file,
+    upload_dir="public/uploads"
+)</code></pre>
+                    </div>
+                    
+                    <div class="bg-white border border-gray-200 rounded-lg p-6">
+                        <h3 class="font-bold text-gray-900 mb-3">🔍 Search</h3>
+                        <pre class="bg-gray-100 text-gray-900 p-3 rounded text-xs overflow-x-auto"><code>from nextpy.utils.search import FuzzySearch
+
+search = FuzzySearch(data)
+results = search.search("query")</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Deployment -->
+            <section id="deployment">
+                <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">Deployment</h2>
+                
+                <div class="bg-gray-50 rounded-xl p-6 mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Build for Production</h3>
+                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>$ nextpy build
+# Creates optimized static files in out/</code></pre>
+                </div>
+
+                <div class="bg-gray-50 rounded-xl p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Environment Variables</h3>
+                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>DATABASE_URL=postgresql://user:pass@host/db
+DEBUG=False
+SECRET_KEY=your-secret-key</code></pre>
+                </div>
+            </section>
+
+            <!-- Troubleshooting -->
+            <section id="troubleshooting">
+                <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">Troubleshooting</h2>
+                
+                <div class="space-y-4">
+                    <div class="bg-red-50 border-l-4 border-red-600 rounded-lg p-6">
+                        <h3 class="font-bold text-gray-900 mb-2">Hot Reload Not Working</h3>
+                        <p class="text-sm text-gray-700">Check if watchdog is installed: <code class="bg-red-100 px-2 py-1 rounded">pip install watchdog</code></p>
+                    </div>
+                    
+                    <div class="bg-red-50 border-l-4 border-red-600 rounded-lg p-6">
+                        <h3 class="font-bold text-gray-900 mb-2">Database Connection Error</h3>
+                        <p class="text-sm text-gray-700">Verify DATABASE_URL in .env and database server is running</p>
+                    </div>
+                    
+                    <div class="bg-red-50 border-l-4 border-red-600 rounded-lg p-6">
+                        <h3 class="font-bold text-gray-900 mb-2">Template Not Found</h3>
+                        <p class="text-sm text-gray-700">Check template filename in get_template() and file exists in templates/</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Best Practices -->
+            <section id="best-practices">
+                <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">Best Practices</h2>
+                
+                <ul class="space-y-3 text-gray-700">
+                    <li class="flex gap-3">
+                        <span class="text-green-600 font-bold">✓</span>
+                        <span><strong>Use SSG for static content</strong> - Improves performance significantly</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="text-green-600 font-bold">✓</span>
+                        <span><strong>Cache expensive operations</strong> - Use @cached decorator</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="text-green-600 font-bold">✓</span>
+                        <span><strong>Validate all inputs</strong> - Use Pydantic models in APIs</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="text-green-600 font-bold">✓</span>
+                        <span><strong>Use environment variables</strong> - Never hardcode secrets</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="text-green-600 font-bold">✓</span>
+                        <span><strong>Create reusable components</strong> - Follow DRY principle</span>
+                    </li>
+                </ul>
             </section>
 
             <!-- Next Steps -->
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-12 border-2 border-blue-200">
-                <h2 class="text-3xl font-bold mb-6">What's Next?</h2>
-                <div class="grid md:grid-cols-3 gap-6">
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-12 border-2 border-blue-200 mt-16">
+                <h2 class="text-3xl font-bold mb-6">Ready to Build?</h2>
+                <div class="grid md:grid-cols-2 gap-6">
                     <a href="/examples" class="group">
                         <div class="bg-white p-6 rounded-xl hover:shadow-lg transition">
                             <div class="text-4xl mb-4">🎨</div>
-                            <h3 class="font-bold">Components</h3>
-                            <p class="text-sm text-gray-600">20+ pre-built UI components</p>
+                            <h3 class="font-bold text-gray-900">Components</h3>
+                            <p class="text-sm text-gray-600">Explore 20+ pre-built UI components</p>
                         </div>
                     </a>
                     
                     <a href="/blog" class="group">
                         <div class="bg-white p-6 rounded-xl hover:shadow-lg transition">
                             <div class="text-4xl mb-4">📚</div>
-                            <h3 class="font-bold">Blog</h3>
-                            <p class="text-sm text-gray-600">Tutorials & best practices</p>
-                        </div>
-                    </a>
-                    
-                    <a href="/db_example" class="group">
-                        <div class="bg-white p-6 rounded-xl hover:shadow-lg transition">
-                            <div class="text-4xl mb-4">🗄️</div>
-                            <h3 class="font-bold">Database</h3>
-                            <p class="text-sm text-gray-600">Database examples</p>
+                            <h3 class="font-bold text-gray-900">Blog</h3>
+                            <p class="text-sm text-gray-600">Tutorials and best practices</p>
                         </div>
                     </a>
                 </div>
