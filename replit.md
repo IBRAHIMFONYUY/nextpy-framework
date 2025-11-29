@@ -3,6 +3,8 @@
 ## Overview
 NextPy is a Python web framework inspired by Next.js, providing file-based routing, server-side rendering (SSR), static site generation (SSG), and more using FastAPI + Jinja2.
 
+**Status**: Complete and working
+
 ## Project Structure
 ```
 nextpy/                 # Core framework
@@ -24,7 +26,7 @@ nextpy/                 # Core framework
 pages/                  # User pages (file-based routing)
 ├── index.py            # Homepage (/)
 ├── about.py            # About page (/about)
-├── docs.py             # Documentation (/docs)
+├── documentation.py    # Documentation (/documentation)
 ├── blog/
 │   ├── index.py        # Blog listing (/blog)
 │   └── [slug].py       # Dynamic blog post (/blog/:slug)
@@ -33,13 +35,13 @@ pages/                  # User pages (file-based routing)
     └── health.py       # Health check (/api/health)
 
 templates/              # Jinja2 templates
-├── _base.html          # Base layout
+├── _base.html          # Base layout with navigation
 ├── _page.html          # Generic page template
 ├── _404.html           # 404 error page
 ├── _error.html         # Error page
 ├── index.html          # Homepage template
 ├── about.html          # About template
-├── docs.html           # Documentation template
+├── documentation.html  # Documentation template
 └── blog/
     ├── index.html      # Blog listing template
     └── [slug].html     # Blog post template
