@@ -1,163 +1,241 @@
 {% extends "_base.html" %}
 
-{% block title %}Documentation - NextPy{% endblock %}
-
 {% block content %}
-<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+<!-- Header -->
+<div class="bg-gradient-to-br from-blue-50 to-indigo-50 py-16 px-4 mb-12">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">Documentation</h1>
+        <p class="text-xl text-gray-600">Everything you need to build amazing apps with NextPy</p>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-4 pb-16">
     <div class="grid lg:grid-cols-4 gap-12">
+        <!-- Sidebar Navigation -->
         <aside class="lg:col-span-1">
-            <nav class="sticky top-8">
-                <h3 class="font-semibold text-gray-900 mb-4">Getting Started</h3>
-                <ul class="space-y-2 text-gray-600">
-                    <li><a href="#installation" class="hover:text-blue-600">Installation</a></li>
-                    <li><a href="#project-structure" class="hover:text-blue-600">Project Structure</a></li>
-                    <li><a href="#routing" class="hover:text-blue-600">Routing</a></li>
-                </ul>
-                
-                <h3 class="font-semibold text-gray-900 mt-8 mb-4">Core Concepts</h3>
-                <ul class="space-y-2 text-gray-600">
-                    <li><a href="#pages" class="hover:text-blue-600">Pages</a></li>
-                    <li><a href="#data-fetching" class="hover:text-blue-600">Data Fetching</a></li>
-                    <li><a href="#api-routes" class="hover:text-blue-600">API Routes</a></li>
-                    <li><a href="#layouts" class="hover:text-blue-600">Layouts</a></li>
-                </ul>
-                
-                <h3 class="font-semibold text-gray-900 mt-8 mb-4">Components</h3>
-                <ul class="space-y-2 text-gray-600">
-                    <li><a href="#head" class="hover:text-blue-600">Head</a></li>
-                    <li><a href="#link" class="hover:text-blue-600">Link</a></li>
-                    <li><a href="#image" class="hover:text-blue-600">Image</a></li>
-                </ul>
+            <nav class="sticky top-20 space-y-8 text-sm">
+                <div>
+                    <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <span class="text-lg">🚀</span> Getting Started
+                    </h3>
+                    <ul class="space-y-3 text-gray-600">
+                        <li><a href="#installation" class="hover:text-blue-600 hover:underline">Installation</a></li>
+                        <li><a href="#quickstart" class="hover:text-blue-600 hover:underline">Quick Start</a></li>
+                        <li><a href="#project-structure" class="hover:text-blue-600 hover:underline">Project Structure</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <span class="text-lg">📄</span> Core Concepts
+                    </h3>
+                    <ul class="space-y-3 text-gray-600">
+                        <li><a href="#routing" class="hover:text-blue-600 hover:underline">File-based Routing</a></li>
+                        <li><a href="#pages" class="hover:text-blue-600 hover:underline">Pages & Rendering</a></li>
+                        <li><a href="#data-fetching" class="hover:text-blue-600 hover:underline">Data Fetching</a></li>
+                        <li><a href="#api-routes" class="hover:text-blue-600 hover:underline">API Routes</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <span class="text-lg">🔧</span> Advanced
+                    </h3>
+                    <ul class="space-y-3 text-gray-600">
+                        <li><a href="#database" class="hover:text-blue-600 hover:underline">Database</a></li>
+                        <li><a href="#auth" class="hover:text-blue-600 hover:underline">Authentication</a></li>
+                        <li><a href="#websockets" class="hover:text-blue-600 hover:underline">WebSockets</a></li>
+                    </ul>
+                </div>
+
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <p class="text-sm text-gray-700"><strong>Need help?</strong> Check COMPREHENSIVE_GUIDE.md</p>
+                </div>
             </nav>
         </aside>
-        
-        <div class="lg:col-span-3">
-            <h1 class="text-4xl font-bold text-gray-900 mb-8">NextPy Documentation</h1>
-            
-            <section id="installation" class="mb-16">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Installation</h2>
-                <div class="bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-sm mb-4">
-                    <code>pip install nextpy</code>
-                </div>
-                <p class="text-gray-600">Or create a new project:</p>
-                <div class="bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-sm mt-2">
-                    <code>nextpy create my-app</code>
-                </div>
-            </section>
-            
-            <section id="project-structure" class="mb-16">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Project Structure</h2>
-                <div class="bg-gray-100 rounded-lg p-4 font-mono text-sm">
-<pre>my-app/
-├── pages/              # Page routes
-│   ├── index.py        # Home page (/)
-│   ├── about.py        # About page (/about)
-│   ├── blog/
-│   │   ├── index.py    # Blog listing (/blog)
-│   │   └── [slug].py   # Dynamic blog post (/blog/:slug)
-│   └── api/
-│       └── posts.py    # API route (/api/posts)
-├── templates/          # Jinja2 templates
-│   ├── _base.html      # Base layout
-│   ├── index.html      # Home template
-│   └── ...
-├── public/             # Static files
-│   ├── css/
-│   ├── js/
-│   └── images/
-├── main.py             # App entry point
-└── nextpy.config.py    # Configuration</pre>
-                </div>
-            </section>
-            
-            <section id="routing" class="mb-16">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">File-based Routing</h2>
-                <p class="text-gray-600 mb-4">NextPy uses file-based routing similar to Next.js. Files in the <code class="bg-gray-100 px-1 rounded">pages/</code> directory automatically become routes.</p>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-3 space-y-16">
+            <!-- Installation -->
+            <section id="installation">
+                <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">Installation</h2>
+                <p class="text-gray-700 mb-6">Get NextPy running in seconds:</p>
                 
-                <div class="bg-gray-100 rounded-lg p-4 overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="border-b">
-                                <th class="text-left py-2">File</th>
-                                <th class="text-left py-2">Route</th>
+                <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 text-gray-100 font-mono text-sm mb-6 overflow-x-auto">
+                    <code class="text-green-400">$ pip install nextpy-framework</code>
+                </div>
+
+                <p class="text-gray-700 mb-4">Or create a new project:</p>
+                <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 text-gray-100 font-mono text-sm overflow-x-auto">
+                    <code class="text-green-400">$ nextpy create my-awesome-app<br/>$ cd my-awesome-app<br/>$ nextpy dev</code>
+                </div>
+
+                <p class="text-gray-600 mt-6 p-4 bg-green-50 rounded-lg border-l-4 border-green-600">
+                    ✨ Your app is now running at <code class="bg-green-100 px-2 py-1 rounded">http://localhost:5000</code>
+                </p>
+            </section>
+
+            <!-- Quick Start -->
+            <section id="quickstart">
+                <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">Quick Start</h2>
+                
+                <div class="bg-gray-50 rounded-xl p-6 mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">1. Create Your First Page</h3>
+                    <p class="text-gray-700 mb-4">Create <code class="bg-gray-200 px-2 py-1 rounded text-sm">pages/hello.py</code>:</p>
+                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>def get_template():
+    return "hello.html"
+
+async def get_server_side_props(context):
+    return {
+        "props": {
+            "message": "Hello, NextPy!"
+        }
+    }</code></pre>
+                </div>
+
+                <div class="bg-blue-50 rounded-xl p-6 border-l-4 border-blue-600">
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">✅ Done!</h3>
+                    <p class="text-gray-700">Visit <code class="bg-blue-100 px-2 py-1 rounded">http://localhost:5000/hello</code> - changes auto-reload!</p>
+                </div>
+            </section>
+
+            <!-- Project Structure -->
+            <section id="project-structure">
+                <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">Project Structure</h2>
+                
+                <pre class="bg-gray-900 text-green-400 p-6 rounded-xl overflow-x-auto text-sm"><code>my-app/
+├── pages/                 # File-based routes
+│   ├── index.py
+│   ├── about.py
+│   └── api/
+├── templates/            # Jinja2 templates
+├── models/               # Database models
+├── main.py              # Application entry
+└── .env                 # Configuration</code></pre>
+            </section>
+
+            <!-- File-based Routing -->
+            <section id="routing">
+                <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">File-based Routing</h2>
+                <p class="text-gray-700 mb-6">Files automatically become routes:</p>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full bg-white rounded-xl shadow-sm">
+                        <thead class="bg-gray-100 border-b-2 border-gray-200">
+                            <tr>
+                                <th class="text-left px-6 py-4 font-bold">File</th>
+                                <th class="text-left px-6 py-4 font-bold">Route</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr class="border-b">
-                                <td class="py-2 font-mono">pages/index.py</td>
-                                <td class="py-2">/</td>
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="px-6 py-4 font-mono text-sm">pages/index.py</td>
+                                <td class="px-6 py-4 text-blue-600">/</td>
                             </tr>
-                            <tr class="border-b">
-                                <td class="py-2 font-mono">pages/about.py</td>
-                                <td class="py-2">/about</td>
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="px-6 py-4 font-mono text-sm">pages/about.py</td>
+                                <td class="px-6 py-4 text-blue-600">/about</td>
                             </tr>
-                            <tr class="border-b">
-                                <td class="py-2 font-mono">pages/blog/[slug].py</td>
-                                <td class="py-2">/blog/:slug</td>
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="px-6 py-4 font-mono text-sm">pages/blog/[slug].py</td>
+                                <td class="px-6 py-4 text-blue-600">/blog/:slug</td>
                             </tr>
-                            <tr>
-                                <td class="py-2 font-mono">pages/[...path].py</td>
-                                <td class="py-2">/* (catch-all)</td>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 font-mono text-sm">pages/api/posts.py</td>
+                                <td class="px-6 py-4 text-blue-600">/api/posts</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </section>
-            
-            <section id="data-fetching" class="mb-16">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Data Fetching</h2>
-                <p class="text-gray-600 mb-4">NextPy supports two data fetching methods:</p>
-                
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">getServerSideProps (SSR)</h3>
-                <div class="bg-gray-900 rounded-lg p-4 text-sm font-mono mb-6 overflow-x-auto">
-<pre class="text-green-400"><code>from nextpy import get_server_side_props
 
-@get_server_side_props
-async def get_data(context):
-    # Fetch data on every request
-    data = await fetch_from_api()
-    return {"props": {"data": data}}</code></pre>
-                </div>
+            <!-- Database -->
+            <section id="database">
+                <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">Database Integration</h2>
                 
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">getStaticProps (SSG)</h3>
-                <div class="bg-gray-900 rounded-lg p-4 text-sm font-mono overflow-x-auto">
-<pre class="text-green-400"><code>from nextpy import get_static_props
+                <p class="text-gray-700 mb-6">NextPy uses SQLAlchemy ORM with SQLite, PostgreSQL, and MySQL support.</p>
 
-@get_static_props
-async def get_data(context):
-    # Fetch data at build time
-    data = await fetch_from_cms()
-    return {
-        "props": {"data": data},
-        "revalidate": 60  # ISR: regenerate every 60s
-    }</code></pre>
+                <div class="bg-gray-50 rounded-xl p-6">
+                    <h3 class="font-bold mb-3">Define a Model</h3>
+                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>from nextpy.db import Base
+from sqlalchemy import Column, String, Integer
+
+class Post(Base):
+    __tablename__ = "posts"
+    
+    id = Column(Integer, primary_key=True)
+    title = Column(String(255))
+    content = Column(String)</code></pre>
                 </div>
             </section>
-            
-            <section id="api-routes" class="mb-16">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">API Routes</h2>
-                <p class="text-gray-600 mb-4">Create API endpoints in <code class="bg-gray-100 px-1 rounded">pages/api/</code>:</p>
+
+            <!-- Authentication -->
+            <section id="auth">
+                <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">Authentication</h2>
                 
-                <div class="bg-gray-900 rounded-lg p-4 text-sm font-mono overflow-x-auto">
-<pre class="text-green-400"><code># pages/api/posts.py
-from pydantic import BaseModel
+                <p class="text-gray-700 mb-6">Built-in JWT authentication:</p>
 
-class Post(BaseModel):
-    title: str
-    content: str
+                <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>from nextpy.auth import AuthManager
 
-async def get(request, params):
-    """GET /api/posts"""
-    return {"posts": [...]}
+# Create token
+token = AuthManager.create_token(user_id=123)
 
-async def post(request, params):
-    """POST /api/posts"""
-    data = await request.json()
-    post = Post(**data)
-    return {"created": post.dict()}</code></pre>
-                </div>
+# Verify token  
+user_id = AuthManager.verify_token(token)</code></pre>
+
+                <p class="text-gray-600 mt-6 p-4 bg-blue-50 rounded-lg">
+                    📖 See <strong>AUTHENTICATION.md</strong> for complete guide
+                </p>
             </section>
+
+            <!-- WebSockets -->
+            <section id="websockets">
+                <h2 class="text-3xl font-bold mb-6 text-gray-900 pb-4 border-b-2 border-blue-200">Real-Time with WebSockets</h2>
+                
+                <p class="text-gray-700 mb-6">NextPy supports WebSocket connections for real-time features.</p>
+
+                <div class="bg-gray-50 rounded-xl p-6">
+                    <h3 class="font-bold mb-3">Client-Side</h3>
+                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"><code>const ws = new WebSocket('ws://localhost:5000/ws');
+ws.onmessage = (e) => console.log(JSON.parse(e.data));
+ws.send(JSON.stringify({type: 'message', text: 'Hi!'}))</code></pre>
+                </div>
+
+                <p class="text-gray-600 mt-6 p-4 bg-blue-50 rounded-lg">
+                    📖 See <strong>WEBSOCKETS.md</strong> for complete guide
+                </p>
+            </section>
+
+            <!-- Next Steps -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-12 border-2 border-blue-200">
+                <h2 class="text-3xl font-bold mb-6">What's Next?</h2>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <a href="/examples" class="group">
+                        <div class="bg-white p-6 rounded-xl hover:shadow-lg transition">
+                            <div class="text-4xl mb-4">🎨</div>
+                            <h3 class="font-bold">Components</h3>
+                            <p class="text-sm text-gray-600">20+ pre-built UI components</p>
+                        </div>
+                    </a>
+                    
+                    <a href="/blog" class="group">
+                        <div class="bg-white p-6 rounded-xl hover:shadow-lg transition">
+                            <div class="text-4xl mb-4">📚</div>
+                            <h3 class="font-bold">Blog</h3>
+                            <p class="text-sm text-gray-600">Tutorials & best practices</p>
+                        </div>
+                    </a>
+                    
+                    <a href="/db_example" class="group">
+                        <div class="bg-white p-6 rounded-xl hover:shadow-lg transition">
+                            <div class="text-4xl mb-4">🗄️</div>
+                            <h3 class="font-bold">Database</h3>
+                            <p class="text-sm text-gray-600">Database examples</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
-</main>
+</div>
 {% endblock %}

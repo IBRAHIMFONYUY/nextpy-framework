@@ -1,0 +1,113 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<article class="max-w-4xl mx-auto px-4 py-16">
+    <!-- Header -->
+    <div class="mb-12 pb-8 border-b-2 border-gray-200">
+        <h1 class="text-5xl font-bold mb-4 text-gray-900">{{ title }}</h1>
+        <div class="flex items-center gap-6 text-gray-600">
+            <span class="flex items-center gap-2">
+                <span class="text-lg">✍️</span>
+                <strong>{{ author }}</strong>
+            </span>
+            <span class="flex items-center gap-2">
+                <span class="text-lg">📅</span>
+                {{ date }}
+            </span>
+            <span class="flex items-center gap-2">
+                <span class="text-lg">🔖</span>
+                <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">{{ slug }}</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- Excerpt -->
+    <div class="bg-blue-50 border-l-4 border-blue-600 p-6 rounded-lg mb-12">
+        <p class="text-lg text-gray-700 italic">{{ excerpt }}</p>
+    </div>
+
+    <!-- Table of Contents (auto-generated from headings) -->
+    <div class="bg-gray-50 rounded-lg p-6 mb-12">
+        <h3 class="font-bold text-lg mb-4">Quick Navigation</h3>
+        <nav class="space-y-2 text-sm">
+            <ul class="space-y-2 text-blue-600">
+                <li><a href="#getting-started" class="hover:underline">Getting Started</a></li>
+                <li><a href="#setup" class="hover:underline">Setup</a></li>
+                <li><a href="#next-steps" class="hover:underline">Next Steps</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="prose prose-lg max-w-none mb-16">
+        <div class="text-gray-700 leading-relaxed">
+            {% for line in content.split('\n') %}
+                {% if line.startswith('# ') %}
+                    <h2 class="text-3xl font-bold mt-8 mb-4 text-gray-900">{{ line[2:] }}</h2>
+                {% elif line.startswith('## ') %}
+                    <h3 class="text-2xl font-bold mt-6 mb-3 text-gray-900">{{ line[3:] }}</h3>
+                {% elif line.startswith('### ') %}
+                    <h4 class="text-xl font-bold mt-4 mb-2 text-gray-900">{{ line[4:] }}</h4>
+                {% elif line.startswith('```') %}
+                    <div class="bg-gray-900 rounded-lg p-4 mb-4 overflow-x-auto">
+                        <code class="text-green-400 font-mono text-sm">Code block</code>
+                    </div>
+                {% elif line.startswith('- ') %}
+                    <li class="ml-6 my-2">{{ line[2:] }}</li>
+                {% elif line.strip() %}
+                    <p class="my-4">{{ line }}</p>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Author Bio -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-8 mb-12 border-2 border-blue-200">
+        <div class="flex gap-6">
+            <div class="text-4xl">✨</div>
+            <div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">About the Author</h3>
+                <p class="text-gray-700">The NextPy Team creates resources to help developers build amazing applications with Python and modern web frameworks.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl p-12 text-center">
+        <h2 class="text-3xl font-bold mb-4">Ready to Build?</h2>
+        <p class="text-lg mb-8 opacity-90">Start your NextPy journey today and build amazing applications</p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="/documentation" class="px-8 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition">
+                Read Documentation
+            </a>
+            <a href="/examples" class="px-8 py-3 border-2 border-white text-white rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition">
+                See Examples
+            </a>
+        </div>
+    </div>
+
+    <!-- Related Posts -->
+    <div class="mt-16 pt-12 border-t-2 border-gray-200">
+        <h3 class="text-2xl font-bold mb-8">Related Posts</h3>
+        <div class="grid md:grid-cols-3 gap-6">
+            <a href="/blog/getting-started" class="group bg-white p-6 rounded-lg border hover:shadow-lg transition">
+                <div class="text-3xl mb-3">🚀</div>
+                <h4 class="font-bold text-gray-900 group-hover:text-blue-600 mb-2">Getting Started</h4>
+                <p class="text-sm text-gray-600">Build your first app in 5 minutes</p>
+            </a>
+            
+            <a href="/blog/database-guide" class="group bg-white p-6 rounded-lg border hover:shadow-lg transition">
+                <div class="text-3xl mb-3">🗄️</div>
+                <h4 class="font-bold text-gray-900 group-hover:text-blue-600 mb-2">Database Guide</h4>
+                <p class="text-sm text-gray-600">Master SQLAlchemy with NextPy</p>
+            </a>
+            
+            <a href="/documentation" class="group bg-white p-6 rounded-lg border hover:shadow-lg transition">
+                <div class="text-3xl mb-3">📖</div>
+                <h4 class="font-bold text-gray-900 group-hover:text-blue-600 mb-2">Full Documentation</h4>
+                <p class="text-sm text-gray-600">Complete reference guide</p>
+            </a>
+        </div>
+    </div>
+</article>
+{% endblock %}
