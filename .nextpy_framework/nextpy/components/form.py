@@ -228,6 +228,107 @@ def FileInput(
     >'''
 
 
+def NumberInput(
+    name: str = "",
+    label: str = "",
+    value: int = 0,
+    min: int = 0,
+    max: int = 100,
+    step: int = 1,
+    required: bool = False,
+    **kwargs
+) -> str:
+    """Number input component"""
+    req = "required" if required else ""
+    return f'''<div class="mb-4">
+        {f'<label class="block text-sm font-medium mb-1">{label}</label>' if label else ''}
+        <input type="number" name="{name}" value="{value}" min="{min}" max="{max}" step="{step}" {req}
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"/>
+    </div>'''
+
+
+def DateInput(
+    name: str = "",
+    label: str = "",
+    value: str = "",
+    required: bool = False,
+    **kwargs
+) -> str:
+    """Date input component"""
+    req = "required" if required else ""
+    return f'''<div class="mb-4">
+        {f'<label class="block text-sm font-medium mb-1">{label}</label>' if label else ''}
+        <input type="date" name="{name}" value="{value}" {req}
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"/>
+    </div>'''
+
+
+def TimeInput(
+    name: str = "",
+    label: str = "",
+    value: str = "",
+    required: bool = False,
+    **kwargs
+) -> str:
+    """Time input component"""
+    req = "required" if required else ""
+    return f'''<div class="mb-4">
+        {f'<label class="block text-sm font-medium mb-1">{label}</label>' if label else ''}
+        <input type="time" name="{name}" value="{value}" {req}
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"/>
+    </div>'''
+
+
+def PasswordInput(
+    name: str = "",
+    label: str = "",
+    placeholder: str = "",
+    required: bool = False,
+    **kwargs
+) -> str:
+    """Password input component"""
+    req = "required" if required else ""
+    return f'''<div class="mb-4">
+        {f'<label class="block text-sm font-medium mb-1">{label}</label>' if label else ''}
+        <input type="password" name="{name}" placeholder="{placeholder}" {req}
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"/>
+    </div>'''
+
+
+def RangeInput(
+    name: str = "",
+    label: str = "",
+    value: int = 50,
+    min: int = 0,
+    max: int = 100,
+    **kwargs
+) -> str:
+    """Range slider component"""
+    return f'''<div class="mb-4">
+        {f'<label class="block text-sm font-medium mb-1">{label} (<span id="{name}_value">{value}</span>)</label>' if label else ''}
+        <input type="range" name="{name}" value="{value}" min="{min}" max="{max}"
+            onchange="document.getElementById('{name}_value').textContent = this.value"
+            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"/>
+    </div>'''
+
+
+def ColorInput(
+    name: str = "",
+    label: str = "",
+    value: str = "#3b82f6",
+    **kwargs
+) -> str:
+    """Color picker component"""
+    return f'''<div class="mb-4">
+        {f'<label class="block text-sm font-medium mb-1">{label}</label>' if label else ''}
+        <input type="color" name="{name}" value="{value}"
+            class="w-16 h-10 border border-gray-300 rounded-lg cursor-pointer"/>
+    </div>'''
+        {req}
+        {dis}
+    >'''
+
+
 def PasswordInput(
     name: str = "",
     placeholder: str = "",
