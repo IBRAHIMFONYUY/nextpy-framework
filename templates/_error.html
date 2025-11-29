@@ -1,0 +1,16 @@
+{% extends "_base.html" %}
+
+{% block title %}Error{% endblock %}
+
+{% block content %}
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+    <div class="text-center">
+        <h1 class="text-6xl font-bold text-red-500">Error</h1>
+        <h2 class="text-2xl font-bold text-gray-900 mt-4">Something went wrong</h2>
+        <p class="text-lg text-gray-600 mt-4">{{ error | default('An unexpected error occurred.') }}</p>
+        <a href="/" class="inline-block mt-8 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" hx-get="/" hx-target="#main-content" hx-push-url="true">
+            Go Home
+        </a>
+    </div>
+</main>
+{% endblock %}

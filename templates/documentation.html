@@ -1,0 +1,163 @@
+{% extends "_base.html" %}
+
+{% block title %}Documentation - NextPy{% endblock %}
+
+{% block content %}
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="grid lg:grid-cols-4 gap-12">
+        <aside class="lg:col-span-1">
+            <nav class="sticky top-8">
+                <h3 class="font-semibold text-gray-900 mb-4">Getting Started</h3>
+                <ul class="space-y-2 text-gray-600">
+                    <li><a href="#installation" class="hover:text-blue-600">Installation</a></li>
+                    <li><a href="#project-structure" class="hover:text-blue-600">Project Structure</a></li>
+                    <li><a href="#routing" class="hover:text-blue-600">Routing</a></li>
+                </ul>
+                
+                <h3 class="font-semibold text-gray-900 mt-8 mb-4">Core Concepts</h3>
+                <ul class="space-y-2 text-gray-600">
+                    <li><a href="#pages" class="hover:text-blue-600">Pages</a></li>
+                    <li><a href="#data-fetching" class="hover:text-blue-600">Data Fetching</a></li>
+                    <li><a href="#api-routes" class="hover:text-blue-600">API Routes</a></li>
+                    <li><a href="#layouts" class="hover:text-blue-600">Layouts</a></li>
+                </ul>
+                
+                <h3 class="font-semibold text-gray-900 mt-8 mb-4">Components</h3>
+                <ul class="space-y-2 text-gray-600">
+                    <li><a href="#head" class="hover:text-blue-600">Head</a></li>
+                    <li><a href="#link" class="hover:text-blue-600">Link</a></li>
+                    <li><a href="#image" class="hover:text-blue-600">Image</a></li>
+                </ul>
+            </nav>
+        </aside>
+        
+        <div class="lg:col-span-3">
+            <h1 class="text-4xl font-bold text-gray-900 mb-8">NextPy Documentation</h1>
+            
+            <section id="installation" class="mb-16">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Installation</h2>
+                <div class="bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-sm mb-4">
+                    <code>pip install nextpy</code>
+                </div>
+                <p class="text-gray-600">Or create a new project:</p>
+                <div class="bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-sm mt-2">
+                    <code>nextpy create my-app</code>
+                </div>
+            </section>
+            
+            <section id="project-structure" class="mb-16">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Project Structure</h2>
+                <div class="bg-gray-100 rounded-lg p-4 font-mono text-sm">
+<pre>my-app/
+├── pages/              # Page routes
+│   ├── index.py        # Home page (/)
+│   ├── about.py        # About page (/about)
+│   ├── blog/
+│   │   ├── index.py    # Blog listing (/blog)
+│   │   └── [slug].py   # Dynamic blog post (/blog/:slug)
+│   └── api/
+│       └── posts.py    # API route (/api/posts)
+├── templates/          # Jinja2 templates
+│   ├── _base.html      # Base layout
+│   ├── index.html      # Home template
+│   └── ...
+├── public/             # Static files
+│   ├── css/
+│   ├── js/
+│   └── images/
+├── main.py             # App entry point
+└── nextpy.config.py    # Configuration</pre>
+                </div>
+            </section>
+            
+            <section id="routing" class="mb-16">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">File-based Routing</h2>
+                <p class="text-gray-600 mb-4">NextPy uses file-based routing similar to Next.js. Files in the <code class="bg-gray-100 px-1 rounded">pages/</code> directory automatically become routes.</p>
+                
+                <div class="bg-gray-100 rounded-lg p-4 overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b">
+                                <th class="text-left py-2">File</th>
+                                <th class="text-left py-2">Route</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b">
+                                <td class="py-2 font-mono">pages/index.py</td>
+                                <td class="py-2">/</td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-2 font-mono">pages/about.py</td>
+                                <td class="py-2">/about</td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-2 font-mono">pages/blog/[slug].py</td>
+                                <td class="py-2">/blog/:slug</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 font-mono">pages/[...path].py</td>
+                                <td class="py-2">/* (catch-all)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+            <section id="data-fetching" class="mb-16">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Data Fetching</h2>
+                <p class="text-gray-600 mb-4">NextPy supports two data fetching methods:</p>
+                
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">getServerSideProps (SSR)</h3>
+                <div class="bg-gray-900 rounded-lg p-4 text-sm font-mono mb-6 overflow-x-auto">
+<pre class="text-green-400"><code>from nextpy import get_server_side_props
+
+@get_server_side_props
+async def get_data(context):
+    # Fetch data on every request
+    data = await fetch_from_api()
+    return {"props": {"data": data}}</code></pre>
+                </div>
+                
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">getStaticProps (SSG)</h3>
+                <div class="bg-gray-900 rounded-lg p-4 text-sm font-mono overflow-x-auto">
+<pre class="text-green-400"><code>from nextpy import get_static_props
+
+@get_static_props
+async def get_data(context):
+    # Fetch data at build time
+    data = await fetch_from_cms()
+    return {
+        "props": {"data": data},
+        "revalidate": 60  # ISR: regenerate every 60s
+    }</code></pre>
+                </div>
+            </section>
+            
+            <section id="api-routes" class="mb-16">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">API Routes</h2>
+                <p class="text-gray-600 mb-4">Create API endpoints in <code class="bg-gray-100 px-1 rounded">pages/api/</code>:</p>
+                
+                <div class="bg-gray-900 rounded-lg p-4 text-sm font-mono overflow-x-auto">
+<pre class="text-green-400"><code># pages/api/posts.py
+from pydantic import BaseModel
+
+class Post(BaseModel):
+    title: str
+    content: str
+
+async def get(request, params):
+    """GET /api/posts"""
+    return {"posts": [...]}
+
+async def post(request, params):
+    """POST /api/posts"""
+    data = await request.json()
+    post = Post(**data)
+    return {"created": post.dict()}</code></pre>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+{% endblock %}

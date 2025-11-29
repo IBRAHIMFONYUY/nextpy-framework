@@ -4,7 +4,9 @@ Handles routing, SSR, API routes, and static file serving
 """
 
 import os
+import sys
 import asyncio
+import importlib.util
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
@@ -43,6 +45,7 @@ class NextPyApp:
         self.public_dir = Path(public_dir)
         self.out_dir = Path(out_dir)
         self.debug = debug
+        self._modules_cache: Dict[str, Any] = {}
         
         self.router = Router(str(self.pages_dir), str(self.templates_dir))
         self.renderer = Renderer(
@@ -93,47 +96,29 @@ class NextPyApp:
         """Set up the catch-all route handler"""
         self.router.scan_pages()
         
-        for route in self.router.api_routes:
-            self._register_api_route(route)
-            
-        @self.app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
-        async def catch_all(request: Request, path: str = "") -> Response:
-            return await self._handle_request(request, f"/{path}")
-            
         @self.app.get("/")
         async def index(request: Request) -> Response:
             return await self._handle_request(request, "/")
             
-    def _register_api_route(self, route) -> None:
-        """Register an API route with FastAPI"""
-        if route.handler:
-            methods = self._get_handler_methods(route.handler)
-            
-            @self.app.api_route(route.path, methods=methods)
-            async def api_handler(request: Request) -> Response:
-                return await self._handle_api_request(request, route)
-                
-    def _get_handler_methods(self, handler: Callable) -> list:
-        """Get HTTP methods supported by a handler"""
-        methods = []
-        module = handler.__module__ if hasattr(handler, "__module__") else None
+        @self.app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+        async def catch_all(request: Request, path: str = "") -> Response:
+            return await self._handle_request(request, f"/{path}")
         
-        if module:
-            import sys
-            mod = sys.modules.get(module)
-            if mod:
-                if hasattr(mod, "get") or hasattr(mod, "GET"):
-                    methods.append("GET")
-                if hasattr(mod, "post") or hasattr(mod, "POST"):
-                    methods.append("POST")
-                if hasattr(mod, "put") or hasattr(mod, "PUT"):
-                    methods.append("PUT")
-                if hasattr(mod, "delete") or hasattr(mod, "DELETE"):
-                    methods.append("DELETE")
-                if hasattr(mod, "patch") or hasattr(mod, "PATCH"):
-                    methods.append("PATCH")
-                    
-        return methods or ["GET", "POST"]
+    def _load_module_from_file(self, file_path: Path) -> Optional[Any]:
+        """Load a Python module from a file path"""
+        try:
+            module_name = f"nextpy_page_{file_path.stem}_{hash(str(file_path))}"
+            
+            spec = importlib.util.spec_from_file_location(module_name, file_path)
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[module_name] = module
+                spec.loader.exec_module(module)
+                return module
+        except Exception as e:
+            if self.debug:
+                print(f"Error loading module from {file_path}: {e}")
+        return None
         
     async def _handle_request(self, request: Request, path: str) -> Response:
         """Handle a page request"""
@@ -155,12 +140,12 @@ class NextPyApp:
         
         try:
             props = {}
-            if route.handler:
-                module = self._get_module_from_handler(route.handler)
-                if module:
-                    props = await execute_data_fetching(module, context)
+            module = self._load_module_from_file(route.file_path)
+            
+            if module:
+                props = await execute_data_fetching(module, context)
                     
-            template_name = self._get_template_name(route)
+            template_name = self._get_template_name(route, module)
             
             html = await self.renderer.render_async(
                 template_name,
@@ -170,7 +155,6 @@ class NextPyApp:
                     "query": dict(request.query_params),
                     "request": request,
                 },
-                layout="_base.html" if (self.templates_dir / "_base.html").exists() else None,
             )
             
             return HTMLResponse(
@@ -191,7 +175,8 @@ class NextPyApp:
             
         except Exception as e:
             if self.debug:
-                raise
+                import traceback
+                traceback.print_exc()
             return await self._render_error(request, e)
             
     async def _handle_api_request(
@@ -203,13 +188,7 @@ class NextPyApp:
         """Handle an API route request"""
         params = params or {}
         
-        if not route.handler:
-            return JSONResponse(
-                {"error": "Handler not found"},
-                status_code=500,
-            )
-            
-        module = self._get_module_from_handler(route.handler)
+        module = self._load_module_from_file(route.file_path)
         if not module:
             return JSONResponse(
                 {"error": "Module not found"},
@@ -243,21 +222,18 @@ class NextPyApp:
                 
         except Exception as e:
             if self.debug:
-                raise
+                import traceback
+                traceback.print_exc()
             return JSONResponse(
                 {"error": str(e)},
                 status_code=500,
             )
-            
-    def _get_module_from_handler(self, handler: Callable) -> Optional[Any]:
-        """Get the module that contains the handler"""
-        if hasattr(handler, "__module__"):
-            import sys
-            return sys.modules.get(handler.__module__)
-        return None
         
-    def _get_template_name(self, route) -> str:
+    def _get_template_name(self, route, module: Optional[Any] = None) -> str:
         """Get the template name for a route"""
+        if module and hasattr(module, "get_template"):
+            return module.get_template()
+            
         relative = route.file_path.relative_to(self.pages_dir)
         template_name = str(relative).replace(".py", ".html")
         
@@ -314,6 +290,7 @@ class NextPyApp:
         
     def reload_routes(self) -> None:
         """Reload all routes (for hot reload)"""
+        self._modules_cache.clear()
         self.router = Router(str(self.pages_dir), str(self.templates_dir))
         self.router.scan_pages()
 

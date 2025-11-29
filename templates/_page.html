@@ -1,0 +1,19 @@
+{% extends "_base.html" %}
+
+{% block title %}{{ title | default('NextPy Page') }}{% endblock %}
+
+{% block content %}
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    {% if title %}
+    <h1 class="text-4xl font-bold text-gray-900 mb-6">{{ title }}</h1>
+    {% endif %}
+    
+    {% if description %}
+    <p class="text-xl text-gray-600 mb-8">{{ description }}</p>
+    {% endif %}
+    
+    <div class="prose prose-lg max-w-none">
+        {{ content | safe if content else '' }}
+    </div>
+</main>
+{% endblock %}

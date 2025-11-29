@@ -1,0 +1,31 @@
+{% extends "_base.html" %}
+
+{% block title %}About - NextPy{% endblock %}
+
+{% block content %}
+<main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <h1 class="text-4xl font-bold text-gray-900 mb-6">{{ title }}</h1>
+    <p class="text-xl text-gray-600 mb-8">{{ description }}</p>
+    
+    <div class="prose prose-lg max-w-none">
+        <h2>Our Mission</h2>
+        <p>NextPy bridges the gap between Python's incredible ecosystem and modern web development patterns. We believe Python developers shouldn't have to learn a completely new paradigm to build production-ready web applications.</p>
+        
+        <h2>The Stack</h2>
+        <ul>
+            <li><strong>FastAPI</strong> - High-performance async web framework</li>
+            <li><strong>Jinja2</strong> - Powerful templating engine</li>
+            <li><strong>Pydantic</strong> - Data validation and settings management</li>
+            <li><strong>HTMX</strong> - Modern browser features without JavaScript complexity</li>
+            <li><strong>Tailwind CSS</strong> - Utility-first CSS framework</li>
+        </ul>
+        
+        <h2>Version History</h2>
+        <ul>
+            {% for version in versions %}
+            <li><strong>v{{ version.number }}</strong> ({{ version.date }}) - {{ version.description }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</main>
+{% endblock %}

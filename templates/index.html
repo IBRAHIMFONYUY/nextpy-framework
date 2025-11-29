@@ -1,0 +1,81 @@
+{% extends "_base.html" %}
+
+{% block title %}{{ title | default('NextPy - Python Web Framework') }}{% endblock %}
+
+{% block content %}
+<main>
+    <section class="bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 text-white py-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-5xl md:text-6xl font-bold mb-6">{{ title }}</h1>
+            <p class="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">{{ description }}</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="/documentation" class="px-8 py-4 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-colors" hx-get="/documentation" hx-target="#main-content" hx-push-url="true">
+                    Get Started
+                </a>
+                <a href="https://github.com/nextpy/nextpy" class="px-8 py-4 border-2 border-white text-white rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors">
+                    View on GitHub
+                </a>
+            </div>
+        </div>
+    </section>
+    
+    <section class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">Key Features</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                {% for feature in features %}
+                <div class="p-6 bg-gray-50 rounded-xl hover:shadow-lg transition-shadow">
+                    <div class="text-4xl mb-4">{{ feature.icon }}</div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ feature.title }}</h3>
+                    <p class="text-gray-600">{{ feature.description }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    
+    <section class="py-20 bg-gray-50">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">Quick Start</h2>
+            <div class="bg-gray-900 rounded-xl p-6 text-green-400 font-mono text-sm overflow-x-auto">
+                <pre><code># Install NextPy
+pip install nextpy
+
+# Create a new project
+nextpy create my-app
+
+# Start development server
+cd my-app
+nextpy dev
+
+# Build for production
+nextpy build</code></pre>
+            </div>
+        </div>
+    </section>
+    
+    <section class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">Why NextPy?</h2>
+            <div class="grid md:grid-cols-2 gap-12">
+                <div>
+                    <h3 class="text-2xl font-semibold text-gray-900 mb-4">Python-First Development</h3>
+                    <p class="text-gray-600 leading-relaxed">Write your entire application in Python with familiar tools like FastAPI, Pydantic, and Jinja2. No JavaScript configuration needed.</p>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-semibold text-gray-900 mb-4">Next.js-Inspired Architecture</h3>
+                    <p class="text-gray-600 leading-relaxed">File-based routing, SSR, SSG, and API routes - all the patterns you love from Next.js, now in Python.</p>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-semibold text-gray-900 mb-4">Type Safety with Pydantic</h3>
+                    <p class="text-gray-600 leading-relaxed">Full type validation for API routes and data fetching with Pydantic models and Python type hints.</p>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-semibold text-gray-900 mb-4">HTMX Integration</h3>
+                    <p class="text-gray-600 leading-relaxed">Client-side interactivity without heavy JavaScript frameworks. SPA-like experience with minimal overhead.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+{% endblock %}

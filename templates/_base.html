@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}NextPy App{% endblock %}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .htmx-indicator {
+            display: none;
+        }
+        .htmx-request .htmx-indicator {
+            display: inline-block;
+        }
+        .htmx-request.htmx-indicator {
+            display: inline-block;
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center space-x-2" hx-get="/" hx-target="#main-content" hx-push-url="true">
+                        <span class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">NextPy</span>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="/" class="text-gray-600 hover:text-gray-900 transition-colors" hx-get="/" hx-target="#main-content" hx-push-url="true">Home</a>
+                    <a href="/about" class="text-gray-600 hover:text-gray-900 transition-colors" hx-get="/about" hx-target="#main-content" hx-push-url="true">About</a>
+                    <a href="/blog" class="text-gray-600 hover:text-gray-900 transition-colors" hx-get="/blog" hx-target="#main-content" hx-push-url="true">Blog</a>
+                    <a href="/documentation" class="text-gray-600 hover:text-gray-900 transition-colors" hx-get="/documentation" hx-target="#main-content" hx-push-url="true">Docs</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <div id="main-content">
+        {% block content %}{{ content | safe }}{% endblock %}
+    </div>
+    
+    <footer class="bg-gray-800 text-white py-8 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <p class="text-gray-400">Built with NextPy - The Python Web Framework</p>
+                <p class="text-gray-500 text-sm mt-2">Version 1.0.0</p>
+            </div>
+        </div>
+    </footer>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>
