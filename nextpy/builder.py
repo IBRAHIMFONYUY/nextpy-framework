@@ -4,7 +4,7 @@ NextPy Build Optimizer - Fast builds with caching and parallel processing
 
 import asyncio
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import hashlib
 import json
 from datetime import datetime
@@ -13,19 +13,19 @@ from datetime import datetime
 class BuildCache:
     """Smart build caching to skip unchanged files"""
     
-    def __init__(self, cache_dir=".nextpy_cache"):
+    def __init__(self, cache_dir: str = ".nextpy_cache"):
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(exist_ok=True)
         self.cache_file = self.cache_dir / "build_cache.json"
-        self.cache = self._load_cache()
+        self.cache: Dict[str, str] = self._load_cache()
     
-    def _load_cache(self) -> Dict[str, Any]:
+    def _load_cache(self) -> Dict[str, str]:
         if self.cache_file.exists():
             with open(self.cache_file) as f:
                 return json.load(f)
         return {}
     
-    def _save_cache(self):
+    def _save_cache(self) -> None:
         with open(self.cache_file, "w") as f:
             json.dump(self.cache, f)
     
@@ -46,7 +46,7 @@ class BuildCache:
         self._save_cache()
         return True
     
-    def clear(self):
+    def clear(self) -> None:
         """Clear cache"""
         self.cache = {}
         if self.cache_file.exists():
@@ -57,12 +57,12 @@ class ParallelBuilder:
     """Build with parallel processing for faster builds"""
     
     @staticmethod
-    async def build_pages(pages: List[Path], concurrency: int = 4) -> List[Dict]:
+    async def build_pages(pages: List[Path], concurrency: int = 4) -> List[Dict[str, Any]]:
         """Build multiple pages in parallel"""
-        results = []
+        results: List[Dict[str, Any]] = []
         semaphore = asyncio.Semaphore(concurrency)
         
-        async def build_page(page: Path):
+        async def build_page(page: Path) -> Dict[str, Any]:
             async with semaphore:
                 return await ParallelBuilder._build_single_page(page)
         
@@ -71,7 +71,7 @@ class ParallelBuilder:
         return results
     
     @staticmethod
-    async def _build_single_page(page: Path) -> Dict:
+    async def _build_single_page(page: Path) -> Dict[str, Any]:
         """Build a single page"""
         await asyncio.sleep(0.1)  # Simulate build work
         return {
@@ -87,8 +87,8 @@ class BuildOptimizer:
     @staticmethod
     def analyze_bundle(output_dir: Path) -> Dict[str, Any]:
         """Analyze built bundle size"""
-        total_size = 0
-        files = {}
+        total_size: int = 0
+        files: Dict[str, int] = {}
         
         for file in output_dir.rglob("*"):
             if file.is_file():
@@ -110,9 +110,9 @@ class BuildOptimizer:
     def compress_assets(output_dir: Path) -> int:
         """Compress CSS and JS files"""
         import gzip
-        compressed_count = 0
+        compressed_count: int = 0
         
-        for file in output_dir.rglob("*.js") + output_dir.rglob("*.css"):
+        for file in list(output_dir.rglob("*.js")) + list(output_dir.rglob("*.css")):
             if file.is_file():
                 with open(file, "rb") as f_in:
                     content = f_in.read()

@@ -1,16 +1,129 @@
 {% extends "_base.html" %}
 
-{% block title %}Error{% endblock %}
+{% block title %}Error - NextPy{% endblock %}
 
 {% block content %}
-<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-    <div class="text-center">
-        <h1 class="text-6xl font-bold text-red-500">Error</h1>
-        <h2 class="text-2xl font-bold text-gray-900 mt-4">Something went wrong</h2>
-        <p class="text-lg text-gray-600 mt-4">{{ error | default('An unexpected error occurred.') }}</p>
-        <a href="/" class="inline-block mt-8 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" hx-get="/" hx-target="#main-content" hx-push-url="true">
-            Go Home
-        </a>
+<div class="min-h-screen bg-gradient-to-br from-red-50 to-orange-50">
+    <!-- Error Header -->
+    <div class="bg-gradient-to-r from-red-600 to-red-700 text-white py-12 px-4">
+        <div class="max-w-4xl mx-auto">
+            <div class="flex items-center gap-4 mb-6">
+                <div class="text-5xl">⚠️</div>
+                <div>
+                    <h1 class="text-4xl font-bold">{{ error_type | default('Error') }}</h1>
+                    <p class="text-red-100 mt-2">Something went wrong. Here's what happened:</p>
+                </div>
+            </div>
+        </div>
     </div>
-</main>
+
+    <div class="max-w-4xl mx-auto px-4 py-12">
+        <!-- Error Message -->
+        <div class="bg-white rounded-lg shadow-lg p-8 mb-8 border-l-4 border-red-600">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Error Message</h2>
+            <div class="bg-red-50 rounded-lg p-6 border border-red-200">
+                <p class="text-lg text-red-800 font-mono">{{ error_message | default('An unexpected error occurred') }}</p>
+            </div>
+        </div>
+
+        <!-- Why This Happened -->
+        <div class="bg-white rounded-lg shadow-lg p-8 mb-8 border-l-4 border-orange-600">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Why This Happened</h2>
+            <div class="bg-orange-50 rounded-lg p-6 border border-orange-200 space-y-2">
+                <p class="text-gray-700"><strong>Error Type:</strong> <code class="bg-gray-100 px-2 py-1 rounded">{{ error_type | default('Unknown') }}</code></p>
+                <p class="text-gray-700"><strong>When:</strong> {{ error_timestamp | default('Just now') }}</p>
+                <p class="text-gray-700"><strong>Request:</strong> <code class="bg-gray-100 px-2 py-1 rounded">{{ error_path | default('Unknown') }}</code></p>
+            </div>
+        </div>
+
+        <!-- Where It Happened -->
+        <div class="bg-white rounded-lg shadow-lg p-8 mb-8 border-l-4 border-yellow-600">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Where It Happened</h2>
+            <div class="bg-yellow-50 rounded-lg p-6 border border-yellow-200 space-y-3">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">📄 File Location:</p>
+                    <p class="text-lg font-mono text-yellow-900 bg-white rounded p-3">{{ error_file | default('Unknown') }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">📍 Line Number:</p>
+                    <p class="text-2xl font-bold text-yellow-700 bg-white rounded p-3">Line <strong>{{ error_line | default('?') }}</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stack Trace -->
+        <div class="bg-white rounded-lg shadow-lg p-8 mb-8 border-l-4 border-blue-600">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Stack Trace</h2>
+            <div class="bg-gray-900 rounded-lg p-6 border border-gray-700 overflow-x-auto">
+                <pre class="text-green-400 font-mono text-xs leading-relaxed">{{ error_traceback | default('No traceback available') }}</pre>
+            </div>
+            <p class="text-sm text-gray-500 mt-4">💡 Use this information to debug the issue or check the file at the line number indicated above.</p>
+        </div>
+
+        <!-- Error Details Table -->
+        {% if error_details %}
+        <div class="bg-white rounded-lg shadow-lg p-8 mb-8 border-l-4 border-indigo-600">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Error Details</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-indigo-50 border-b-2 border-indigo-200">
+                        <tr>
+                            <th class="text-left px-4 py-2 font-bold text-gray-900">Key</th>
+                            <th class="text-left px-4 py-2 font-bold text-gray-900">Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for key, value in error_details.items() %}
+                        <tr class="border-b border-gray-200 hover:bg-gray-50">
+                            <td class="px-4 py-2 font-mono text-gray-700">{{ key }}</td>
+                            <td class="px-4 py-2 text-gray-600">{{ value }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Common Solutions -->
+        <div class="bg-blue-50 rounded-lg border-l-4 border-blue-600 p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Common Solutions</h2>
+            <ul class="space-y-3 text-gray-700">
+                <li class="flex items-start gap-3">
+                    <span class="text-blue-600 font-bold">1.</span>
+                    <span><strong>Check the line number:</strong> Review the file path and line number above to locate the issue in your code</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="text-blue-600 font-bold">2.</span>
+                    <span><strong>Check the stack trace:</strong> Follow the error chain to understand what triggered the error</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="text-blue-600 font-bold">3.</span>
+                    <span><strong>Review imports:</strong> Ensure all required modules are imported and available</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="text-blue-600 font-bold">4.</span>
+                    <span><strong>Check the database:</strong> If database-related, ensure your database is running and connected</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="text-blue-600 font-bold">5.</span>
+                    <span><strong>Read documentation:</strong> Check DOCUMENTATION.md and COMPREHENSIVE_GUIDE.md for guidance</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center sm:justify-start">
+            <a href="/" class="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition text-center" hx-get="/" hx-target="#main-content" hx-push-url="true">
+                ← Go Home
+            </a>
+            <a href="/documentation" class="px-8 py-3 border-2 border-blue-600 text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition text-center" hx-get="/documentation" hx-target="#main-content" hx-push-url="true">
+                📖 View Docs
+            </a>
+            <button onclick="location.reload()" class="px-8 py-3 border-2 border-gray-400 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition">
+                🔄 Retry
+            </button>
+        </div>
+    </div>
+</div>
 {% endblock %}

@@ -3,14 +3,14 @@ NextPy Development Tools - Generators and scaffolding
 """
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Tuple
 
 
 class PageGenerator:
     """Generate page files from templates"""
     
     @staticmethod
-    def create_page(name: str, pages_dir: Path = Path("pages")):
+    def create_page(name: str, pages_dir: Path = Path("pages")) -> Tuple[Path, Path]:
         """Generate a new page file"""
         name_clean = name.replace("-", "_").lower()
         page_file = pages_dir / f"{name_clean}.py"
@@ -56,7 +56,7 @@ class APIGenerator:
     """Generate API route files"""
     
     @staticmethod
-    def create_api(name: str, methods: list = None, api_dir: Path = Path("pages/api")):
+    def create_api(name: str, methods: Optional[List[str]] = None, api_dir: Path = Path("pages/api")) -> Path:
         """Generate API endpoint"""
         if methods is None:
             methods = ["GET"]
@@ -64,7 +64,7 @@ class APIGenerator:
         name_clean = name.replace("-", "_").lower()
         api_file = api_dir / f"{name_clean}.py"
         
-        method_stubs = []
+        method_stubs: List[str] = []
         for method in methods:
             method_lower = method.lower()
             if method == "GET":
@@ -99,7 +99,7 @@ class ComponentGenerator:
     """Generate component files"""
     
     @staticmethod
-    def create_component(name: str, templates_dir: Path = Path("templates/components")):
+    def create_component(name: str, templates_dir: Path = Path("templates/components")) -> Path:
         """Generate a new component"""
         name_clean = name.replace("-", "_").lower()
         component_file = templates_dir / f"{name_clean}.html"
@@ -123,7 +123,7 @@ class ModelGenerator:
     """Generate database models"""
     
     @staticmethod
-    def create_model(name: str, fields: dict = None, models_dir: Path = Path("models")):
+    def create_model(name: str, fields: Optional[dict] = None, models_dir: Path = Path("models")) -> Path:
         """Generate database model"""
         if fields is None:
             fields = {"id": "Integer, primary_key=True", "name": "String(255)"}
@@ -131,7 +131,7 @@ class ModelGenerator:
         models_dir.mkdir(exist_ok=True)
         model_file = models_dir / f"{name.lower()}.py"
         
-        field_stubs = []
+        field_stubs: List[str] = []
         for field_name, field_type in fields.items():
             field_stubs.append(f"    {field_name} = Column({field_type})")
         
