@@ -7,6 +7,13 @@
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        @keyframes slideIn {
+            0% { transform: scaleX(0); }
+            10% { transform: scaleX(0.1); }
+            50% { transform: scaleX(1); }
+            100% { transform: scaleX(1); }
+        }
+        
         .htmx-indicator {
             display: none;
         }
@@ -16,23 +23,50 @@
         .htmx-request.htmx-indicator {
             display: inline-block;
         }
+        
+        .nextpy-loading-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3b82f6, #6366f1, #8b5cf6);
+            z-index: 9999;
+            display: none;
+            animation: slideIn 0.6s ease-in-out;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+        
+        .nextpy-loading-bar.active {
+            display: block;
+            width: 90%;
+        }
+        
+        .nextpy-loading-bar.complete {
+            width: 100%;
+            opacity: 0;
+            transition: opacity 0.3s ease-out;
+        }
     </style>
     {% block head %}{% endblock %}
 </head>
 <body class="bg-gray-50 min-h-screen">
-    <nav class="bg-white shadow-sm border-b">
+    <!-- NextPy Loading Bar -->
+    <div class="nextpy-loading-bar" id="nextpy-loading"></div>
+    
+    <nav class="bg-white shadow-sm border-b sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <a href="/" class="flex items-center space-x-2" hx-get="/" hx-target="#main-content" hx-push-url="true">
-                        <span class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">NextPy</span>
+                    <a href="/" class="flex items-center space-x-2 group" hx-get="/" hx-target="#main-content" hx-push-url="true">
+                        <span class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent group-hover:scale-105 transition-transform">NextPy</span>
                     </a>
                 </div>
-                <div class="flex items-center space-x-6">
-                    <a href="/" class="text-gray-600 hover:text-gray-900 transition-colors" hx-get="/" hx-target="#main-content" hx-push-url="true">Home</a>
-                    <a href="/about" class="text-gray-600 hover:text-gray-900 transition-colors" hx-get="/about" hx-target="#main-content" hx-push-url="true">About</a>
-                    <a href="/blog" class="text-gray-600 hover:text-gray-900 transition-colors" hx-get="/blog" hx-target="#main-content" hx-push-url="true">Blog</a>
-                    <a href="/documentation" class="text-gray-600 hover:text-gray-900 transition-colors" hx-get="/documentation" hx-target="#main-content" hx-push-url="true">Docs</a>
+                <div class="flex items-center space-x-8">
+                    <a href="/" class="text-gray-600 hover:text-blue-600 font-medium transition-colors" hx-get="/" hx-target="#main-content" hx-push-url="true">Home</a>
+                    <a href="/about" class="text-gray-600 hover:text-blue-600 font-medium transition-colors" hx-get="/about" hx-target="#main-content" hx-push-url="true">About</a>
+                    <a href="/blog" class="text-gray-600 hover:text-blue-600 font-medium transition-colors" hx-get="/blog" hx-target="#main-content" hx-push-url="true">Blog</a>
+                    <a href="/documentation" class="text-gray-600 hover:text-blue-600 font-medium transition-colors" hx-get="/documentation" hx-target="#main-content" hx-push-url="true">Docs</a>
+                    <a href="/login" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium" hx-get="/login" hx-target="#main-content" hx-push-url="true">Login</a>
                 </div>
             </div>
         </div>
@@ -42,37 +76,90 @@
         {% block content %}{{ content | safe }}{% endblock %}
     </div>
     
-    <footer class="bg-gray-800 text-white py-8 mt-16">
+    <footer class="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-16 mt-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center">
-                <p class="text-gray-400">Built with NextPy - The Python Web Framework</p>
-                <p class="text-gray-500 text-sm mt-2">Version 1.0.0</p>
+            <div class="grid md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <h3 class="font-bold text-lg mb-4">NextPy</h3>
+                    <p class="text-gray-400 text-sm">The Python web framework inspired by Next.js</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Documentation</h4>
+                    <ul class="space-y-2 text-gray-400 text-sm">
+                        <li><a href="/documentation" class="hover:text-white transition">Getting Started</a></li>
+                        <li><a href="/documentation" class="hover:text-white transition">API Reference</a></li>
+                        <li><a href="/examples" class="hover:text-white transition">Examples</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Community</h4>
+                    <ul class="space-y-2 text-gray-400 text-sm">
+                        <li><a href="#" class="hover:text-white transition">GitHub</a></li>
+                        <li><a href="#" class="hover:text-white transition">Discord</a></li>
+                        <li><a href="#" class="hover:text-white transition">Twitter</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Resources</h4>
+                    <ul class="space-y-2 text-gray-400 text-sm">
+                        <li><a href="/blog" class="hover:text-white transition">Blog</a></li>
+                        <li><a href="/about" class="hover:text-white transition">About</a></li>
+                        <li><a href="#" class="hover:text-white transition">License</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <p class="text-gray-400">Built with NextPy - The Python Web Framework | Version 1.0.0</p>
+                    <p class="text-gray-500 text-sm mt-4 md:mt-0">© 2025 NextPy. All rights reserved.</p>
+                </div>
             </div>
         </div>
     </footer>
     
     {% block scripts %}{% endblock %}
     
+    <!-- NextPy Loading Bar Script -->
+    <script>
+        const loadingBar = document.getElementById('nextpy-loading');
+        
+        document.addEventListener('htmx:sendXHR', () => {
+            loadingBar.classList.add('active');
+            loadingBar.style.width = '30%';
+            
+            setTimeout(() => {
+                loadingBar.style.width = '60%';
+            }, 200);
+        });
+        
+        document.addEventListener('htmx:responseEnd', () => {
+            loadingBar.classList.remove('active');
+            loadingBar.classList.add('complete');
+            loadingBar.style.width = '100%';
+            
+            setTimeout(() => {
+                loadingBar.classList.remove('complete');
+                loadingBar.style.width = '0';
+            }, 500);
+        });
+    </script>
+    
     <!-- NextPy Dev Tools -->
     {% if debug %}
     <script>
-        // Hot reload indicator
         const indicator = document.createElement('div');
         indicator.id = 'nextpy-reload-indicator';
         indicator.innerHTML = '<span style="display: flex; gap: 4px;"><span style="width: 6px; height: 6px; background: white; border-radius: 50%; animation: pulse 1.5s infinite;"></span><span style="width: 6px; height: 6px; background: white; border-radius: 50%; animation: pulse 1.5s infinite; animation-delay: 0.2s;"></span><span style="width: 6px; height: 6px; background: white; border-radius: 50%; animation: pulse 1.5s infinite; animation-delay: 0.4s;"></span></span> Reloading...';
         indicator.style.cssText = 'position: fixed; top: 16px; right: 16px; z-index: 9999; display: none; align-items: center; gap: 8px; padding: 8px 12px; background: rgb(37, 99, 235); color: white; border-radius: 8px; font-size: 14px; font-family: system-ui; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); font-weight: 500;';
         document.body.appendChild(indicator);
 
-        // Listen for file changes
         const eventSource = new EventSource('/__nextpy__/reload');
         eventSource.onmessage = () => {
             indicator.style.display = 'flex';
             setTimeout(() => window.location.reload(), 500);
         };
         
-        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            // Ctrl/Cmd + Shift + R for manual reload
             if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'r') {
                 window.location.reload();
             }
