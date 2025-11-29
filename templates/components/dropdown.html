@@ -1,0 +1,20 @@
+{% macro dropdown(label, items, id="dropdown") %}
+<div class="relative inline-block">
+    <button onclick="document.getElementById('{{ id }}-menu').classList.toggle('hidden')" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">
+        {{ label }}
+    </button>
+    <div id="{{ id }}-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded shadow-lg z-50">
+        {% for item in items %}
+        <a href="{{ item.href }}" class="block px-4 py-2 hover:bg-gray-100">{{ item.label }}</a>
+        {% endfor %}
+    </div>
+</div>
+<script>
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('{{ id }}-menu');
+    if (!e.target.closest('.relative')) {
+        menu?.classList.add('hidden');
+    }
+});
+</script>
+{% endmacro %}

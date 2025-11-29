@@ -162,3 +162,17 @@ python -m nextpy.cli dev
 - Contact form with email
 - Search functionality
 - Component examples
+- Login page with JWT authentication
+- Protected routes
+
+## Advanced Features Implemented
+- ✅ JWT & Session Authentication (AUTHENTICATION.md)
+- ✅ WebSocket support (real-time connections)
+- ✅ Performance optimization (caching, rate limiting, batch processing)
+- ✅ Testing framework (pytest setup with examples)
+- ✅ Additional UI components (Toast, Dropdown, Tabs)
+- ✅ Error handling (custom exceptions, error utilities)
+- ✅ Email utilities (SMTP support)
+- ✅ File upload helpers (with validation)
+- ✅ Caching layer (TTL support)
+- ✅ Database integration (SQLAlchemy with SQLite/PostgreSQL/MySQL)

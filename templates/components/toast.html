@@ -1,0 +1,10 @@
+{% macro toast(message, type="info", duration=3000) %}
+<div class="toast-{{ type }}" style="position: fixed; bottom: 20px; right: 20px; padding: 16px 24px; background: {% if type == 'success' %}#10b981{% elif type == 'error' %}#ef4444{% elif type == 'warning' %}#f59e0b{% else %}#3b82f6{% endif %}; color: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999;">
+    {{ message }}
+</div>
+<script>
+setTimeout(() => {
+    document.querySelector('.toast-{{ type }}')?.remove();
+}, {{ duration }});
+</script>
+{% endmacro %}

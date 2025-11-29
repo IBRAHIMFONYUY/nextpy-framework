@@ -1,0 +1,47 @@
+{% extends "_base.html" %}
+{% from "components/form.html" import input %}
+{% from "components/button.html" import button %}
+
+{% block content %}
+<div class="max-w-md mx-auto py-16 px-4">
+    <div class="bg-white p-8 rounded-lg shadow-lg">
+        <h1 class="text-3xl font-bold mb-6 text-center">{{ title }}</h1>
+        
+        <form id="loginForm" class="space-y-4">
+            {{ input("email", "Email", "email", required=True) }}
+            {{ input("password", "Password", "password", required=True) }}
+            
+            <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Sign In</button>
+        </form>
+        
+        <p class="text-center text-gray-600 mt-4">Demo: email@example.com / password</p>
+    </div>
+</div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    try {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            localStorage.setItem('token', result.token);
+            alert('Login successful!');
+            window.location.href = '/';
+        } else {
+            alert('Login failed');
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
+</script>
+{% endblock %}

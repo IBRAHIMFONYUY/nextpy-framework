@@ -1,0 +1,39 @@
+{% macro tabs(items, id="tabs") %}
+<div class="border-b border-gray-200">
+    <div class="flex gap-0">
+        {% for item in items %}
+        <button onclick="switchTab('{{ id }}', {{ loop.index0 }})" class="tab-btn px-4 py-2 border-b-2 {% if loop.first %}border-blue-600 text-blue-600{% else %}border-transparent text-gray-600 hover:border-gray-300{% endif %}" data-tab="{{ loop.index0 }}">
+            {{ item.label }}
+        </button>
+        {% endfor %}
+    </div>
+</div>
+<div class="mt-4">
+    {% for item in items %}
+    <div id="{{ id }}-{{ loop.index0 }}" class="{% if not loop.first %}hidden{% endif %}">
+        {{ item.content | safe }}
+    </div>
+    {% endfor %}
+</div>
+<script>
+function switchTab(tabId, index) {
+    // Hide all
+    for (let i = 0; i < 10; i++) {
+        const tab = document.getElementById(`${tabId}-${i}`);
+        if (tab) tab.classList.add('hidden');
+    }
+    // Show selected
+    document.getElementById(`${tabId}-${index}`)?.classList.remove('hidden');
+    // Update buttons
+    document.querySelectorAll(`#${tabId} .tab-btn`).forEach((btn, i) => {
+        if (i === index) {
+            btn.classList.add('border-blue-600', 'text-blue-600');
+            btn.classList.remove('border-transparent', 'text-gray-600');
+        } else {
+            btn.classList.remove('border-blue-600', 'text-blue-600');
+            btn.classList.add('border-transparent', 'text-gray-600');
+        }
+    });
+}
+</script>
+{% endmacro %}
