@@ -123,7 +123,7 @@ def useEffect(effect: Callable, dependencies: Optional[List] = None) -> None:
     
     if should_run:
         state.effects[effect_key] = effect
-        state.effect_dependencies[deps_key] = dependencies
+        state.effect_dependencies[deps_key] = dependencies or []
         effect()
 
 
@@ -190,10 +190,10 @@ def useCallback(callback: Callable, dependencies: Optional[List[Any]] = None) ->
     
     if callback_key not in state.callbacks:
         state.callbacks[callback_key] = callback
-        state.callback_dependencies[deps_key] = dependencies
+        state.callback_dependencies[deps_key] = dependencies or []
     elif state.callback_dependencies.get(deps_key) != dependencies:
         state.callbacks[callback_key] = callback
-        state.callback_dependencies[deps_key] = dependencies
+        state.callback_dependencies[deps_key] = dependencies or []
     
     return state.callbacks[callback_key]
 
@@ -215,10 +215,10 @@ def useMemo(compute: Callable, dependencies: Optional[List[Any]] = None) -> Any:
     
     if memo_key not in state.values:
         state.values[memo_key] = compute()
-        state.effect_dependencies[deps_key] = dependencies
+        state.effect_dependencies[deps_key] = dependencies or []
     elif state.effect_dependencies.get(deps_key) != dependencies:
         state.values[memo_key] = compute()
-        state.effect_dependencies[deps_key] = dependencies
+        state.effect_dependencies[deps_key] = dependencies or []
     
     return state.values[memo_key]
 

@@ -199,12 +199,15 @@ def _create_project_structure(project_dir: Path):
     dirs = [
         "pages",
         "pages/api",
+        "pages/blog",
+        "pages/api/users",
         "templates",
+        "templates/components",
         "public",
         "public/css",
         "public/js",
         "public/images",
-        "components",
+        "models",
     ]
     
     for dir_path in dirs:
@@ -277,14 +280,210 @@ if __name__ == "__main__":
 uvicorn>=0.23.0
 jinja2>=3.1.0
 pydantic>=2.0.0
+pydantic-settings>=2.0.0
 click>=8.1.0
 watchdog>=3.0.0
 python-multipart>=0.0.6
 pillow>=10.0.0
 aiofiles>=23.0.0
 httpx>=0.24.0
+sqlalchemy>=2.0.0
+python-dotenv>=1.0.0
+pyjwt>=2.8.0
 ''')
     click.echo("  Created: requirements.txt")
+
+    (project_dir / "pages" / "about.py").write_text('''"""About page"""
+
+def get_template():
+    return "about.html"
+
+async def get_server_side_props(context):
+    return {
+        "props": {
+            "title": "About NextPy",
+            "description": "Learn about the NextPy framework"
+        }
+    }
+''')
+    click.echo("  Created: pages/about.py")
+
+    (project_dir / "pages" / "blog" / "index.py").write_text('''"""Blog listing"""
+
+def get_template():
+    return "blog/index.html"
+
+async def get_server_side_props(context):
+    posts = [
+        {"slug": "hello", "title": "Hello World"},
+        {"slug": "welcome", "title": "Welcome to NextPy"}
+    ]
+    return {"props": {"posts": posts}}
+''')
+    click.echo("  Created: pages/blog/index.py")
+
+    (project_dir / "pages" / "blog" / "[slug].py").write_text('''"""Dynamic blog post"""
+
+def get_template():
+    return "blog/post.html"
+
+async def get_server_side_props(context):
+    slug = context["params"]["slug"]
+    return {
+        "props": {
+            "slug": slug,
+            "title": f"Post: {slug}",
+            "content": "Blog post content here"
+        }
+    }
+''')
+    click.echo("  Created: pages/blog/[slug].py")
+
+    (project_dir / "pages" / "api" / "posts.py").write_text('''"""API route for posts"""
+
+async def get(request):
+    """GET /api/posts"""
+    return {"posts": [{"id": 1, "title": "Post 1"}]}
+
+async def post(request):
+    """POST /api/posts"""
+    body = await request.json()
+    return {"id": 2, "title": body.get("title")}, 201
+''')
+    click.echo("  Created: pages/api/posts.py")
+
+    (project_dir / "pages" / "api" / "users" / "[id].py").write_text('''"""Dynamic API route"""
+
+async def get(request):
+    """GET /api/users/:id"""
+    user_id = request.path_params["id"]
+    return {"id": user_id, "name": f"User {user_id}"}
+
+async def put(request):
+    """PUT /api/users/:id"""
+    user_id = request.path_params["id"]
+    body = await request.json()
+    return {"id": user_id, "updated": True}
+
+async def delete(request):
+    """DELETE /api/users/:id"""
+    user_id = request.path_params["id"]
+    return {"deleted": True}, 204
+''')
+    click.echo("  Created: pages/api/users/[id].py")
+
+    (project_dir / "templates" / "components" / "button.html").write_text('''{% macro button(text, href="", onclick="", variant="primary", disabled=false) %}
+<a href="{{ href }}" class="px-4 py-2 rounded-lg font-semibold transition" style="background: {% if variant == 'primary' %}#3b82f6{% else %}#6b7280{% endif %}; color: white;">
+    {{ text }}
+</a>
+{% endmacro %}
+''')
+    click.echo("  Created: templates/components/button.html")
+
+    (project_dir / "templates" / "components" / "card.html").write_text('''{% macro card(title="", content="", footer="") %}
+<div class="bg-white rounded-lg shadow-md p-6 mb-4">
+    {% if title %}<h3 class="font-bold text-lg mb-2">{{ title }}</h3>{% endif %}
+    {% if content %}<p class="text-gray-600">{{ content }}</p>{% endif %}
+    {% if footer %}<div class="mt-4 text-sm text-gray-500">{{ footer }}</div>{% endif %}
+</div>
+{% endmacro %}
+''')
+    click.echo("  Created: templates/components/card.html")
+
+    (project_dir / "templates" / "components" / "modal.html").write_text('''{% macro modal(id="", title="", content="") %}
+<div id="{{ id }}" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 24px; border-radius: 8px; min-width: 400px;">
+        {% if title %}<h2 class="text-2xl font-bold mb-4">{{ title }}</h2>{% endif %}
+        {% if content %}<p class="text-gray-600 mb-6">{{ content }}</p>{% endif %}
+        <button onclick="document.getElementById('{{ id }}').style.display = 'none';" class="px-4 py-2 bg-blue-600 text-white rounded">Close</button>
+    </div>
+</div>
+{% endmacro %}
+''')
+    click.echo("  Created: templates/components/modal.html")
+
+    (project_dir / "models" / "user.py").write_text('''"""User database model"""
+
+from nextpy.db import Base
+from sqlalchemy import Column, Integer, String, DateTime
+from datetime import datetime
+
+class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255))
+    email = Column(String(255), unique=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<User {self.name}>"
+''')
+    click.echo("  Created: models/user.py")
+
+    (project_dir / "nextpy.config.py").write_text('''"""NextPy Configuration"""
+
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    app_name: str = "MyNextPyApp"
+    debug: bool = True
+    database_url: str = "sqlite:///app.db"
+    secret_key: str = "your-secret-key-change-in-production"
+    
+    class Config:
+        env_file = ".env"
+
+settings = Settings()
+''')
+    click.echo("  Created: nextpy.config.py")
+
+    (project_dir / ".env").write_text('''DATABASE_URL=sqlite:///app.db
+DEBUG=True
+SECRET_KEY=your-secret-key-change-in-production
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-password
+''')
+    click.echo("  Created: .env")
+
+    (project_dir / ".gitignore").write_text('''# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Database
+*.db
+*.sqlite3
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build output
+out/
+.nextpy/
+''')
+    click.echo("  Created: .gitignore")
 
 
 if __name__ == "__main__":
