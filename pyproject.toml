@@ -63,7 +63,7 @@ Repository = "https://github.com/nextpy/nextpy-framework"
 nextpy = "nextpy.cli:cli"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = [".nextpy_framework"]
 include = ["nextpy*"]
 
 [tool.setuptools.package-data]
