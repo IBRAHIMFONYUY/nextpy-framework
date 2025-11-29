@@ -78,10 +78,37 @@ Or use the CLI:
 python -m nextpy.cli dev
 ```
 
+## Recent Features Added
+- ✅ Comprehensive documentation (DOCUMENTATION.md)
+- ✅ Image optimization component with lazy loading
+- ✅ Link component with HTMX prefetch
+- ✅ SEO utilities and structured data helpers
+- ✅ Pagination, modal, breadcrumb components
+- ✅ Form validation utilities (Pydantic models)
+- ✅ Hot reload indicator with visual feedback
+- ✅ Debug panel for development errors
+- ✅ Advanced examples (ISR, protected routes, file uploads)
+- ✅ Middleware support system
+- ✅ Static site generation with revalidation
+
 ## Tech Stack
-- FastAPI - Web framework
-- Jinja2 - Templating
-- Pydantic - Data validation
-- HTMX - Client interactivity
-- Tailwind CSS - Styling
-- Uvicorn - ASGI server
+- **FastAPI** - High-performance web framework
+- **Uvicorn** - Lightning-fast ASGI server
+- **Jinja2** - Powerful templating with inheritance
+- **Pydantic** - Type-safe data validation
+- **HTMX** - SPA features without JavaScript complexity
+- **Tailwind CSS** - Utility-first CSS framework
+- **Watchdog** - File monitoring for hot reload
+- **Click** - Elegant CLI framework
+
+## Package Architecture
+- nextpy/server/app.py - FastAPI application factory
+- nextpy/core/router.py - File-based routing engine
+- nextpy/core/renderer.py - SSR with Jinja2
+- nextpy/core/builder.py - SSG with static generation
+- nextpy/core/data_fetching.py - getServerSideProps/getStaticProps
+- nextpy/components/ - Python components (image, link, head)
+- nextpy/utils/ - Validators, SEO, utilities
+- templates/components/ - Jinja2 macro components
+- nextpy/cli.py - CLI scaffolding & commands
+- pyproject.toml - Package metadata & deps

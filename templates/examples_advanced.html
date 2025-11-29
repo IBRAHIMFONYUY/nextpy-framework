@@ -1,0 +1,43 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12 px-4">
+    <h1 class="text-4xl font-bold mb-2">{{ title }}</h1>
+    <p class="text-gray-600 mb-12">{{ description }}</p>
+
+    <div class="space-y-8">
+        <section>
+            <h2 class="text-2xl font-bold mb-4 pb-2 border-b">Static Generation with ISR</h2>
+            <div class="bg-blue-50 p-4 rounded-lg">
+                <code class="text-sm">
+get_static_props(context) → Returns props + revalidate interval<br>
+get_static_paths() → Define which dynamic routes to pre-render
+                </code>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="text-2xl font-bold mb-4 pb-2 border-b">Protected Routes</h2>
+            <div class="bg-green-50 p-4 rounded-lg">
+                <code class="text-sm">
+if not user:<br>
+&nbsp;&nbsp;return {"redirect": {"destination": "/login", "permanent": False}}
+                </code>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="text-2xl font-bold mb-4 pb-2 border-b">Examples</h2>
+            <div class="grid md:grid-cols-2 gap-4">
+                {% for ex in examples %}
+                <div class="border rounded-lg p-4 hover:shadow-lg transition">
+                    <h3 class="font-bold text-lg mb-2">{{ ex.name }}</h3>
+                    <p class="text-gray-600 text-sm mb-3">{{ ex.desc }}</p>
+                    <code class="text-xs bg-gray-100 p-2 rounded block">{{ ex.file }}</code>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

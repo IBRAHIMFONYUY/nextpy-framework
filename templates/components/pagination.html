@@ -1,0 +1,21 @@
+{% macro pagination(current_page, total_pages, base_url="/", class="") %}
+<div class="flex justify-center gap-2 {{ class }}">
+    {% if current_page > 1 %}
+    <a href="{{ base_url }}?page=1" class="px-3 py-2 border rounded hover:bg-gray-100" hx-get="{{ base_url }}?page=1" hx-target="#main-content">«</a>
+    <a href="{{ base_url }}?page={{ current_page - 1 }}" class="px-3 py-2 border rounded hover:bg-gray-100" hx-get="{{ base_url }}?page={{ current_page - 1 }}" hx-target="#main-content">‹</a>
+    {% endif %}
+
+    {% for page in range(max(1, current_page - 2), min(total_pages + 1, current_page + 3)) %}
+        {% if page == current_page %}
+        <span class="px-3 py-2 bg-blue-600 text-white rounded">{{ page }}</span>
+        {% else %}
+        <a href="{{ base_url }}?page={{ page }}" class="px-3 py-2 border rounded hover:bg-gray-100" hx-get="{{ base_url }}?page={{ page }}" hx-target="#main-content">{{ page }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if current_page < total_pages %}
+    <a href="{{ base_url }}?page={{ current_page + 1 }}" class="px-3 py-2 border rounded hover:bg-gray-100" hx-get="{{ base_url }}?page={{ current_page + 1 }}" hx-target="#main-content">›</a>
+    <a href="{{ base_url }}?page={{ total_pages }}" class="px-3 py-2 border rounded hover:bg-gray-100" hx-get="{{ base_url }}?page={{ total_pages }}" hx-target="#main-content">»</a>
+    {% endif %}
+</div>
+{% endmacro %}

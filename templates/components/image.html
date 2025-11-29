@@ -1,0 +1,13 @@
+{% macro image(src, alt="", width=None, height=None, quality=85, lazy=True, responsive=True, class="") %}
+<img
+    src="{{ src }}"
+    alt="{{ alt }}"
+    loading="{% if lazy %}lazy{% else %}eager{% endif %}"
+    decoding="async"
+    {% if width %}width="{{ width }}"{% endif %}
+    {% if height %}height="{{ height }}"{% endif %}
+    {% if width and height %}style="aspect-ratio: {{ width }}/{{ height }};"{% endif %}
+    class="{% if responsive %}w-full h-auto{% endif %} {{ class }}"
+    {% if responsive and width %}sizes="(max-width: 640px) 100vw, (max-width: 1024px) 75vw, {{ width }}px"{% endif %}
+/>
+{% endmacro %}

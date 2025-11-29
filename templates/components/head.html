@@ -1,0 +1,29 @@
+{% macro seo(title="", description="", image="", url="", og_type="website", keywords="", author="") %}
+<meta name="title" content="{{ title }}">
+<meta name="description" content="{{ description }}">
+{% if keywords %}
+<meta name="keywords" content="{{ keywords }}">
+{% endif %}
+{% if author %}
+<meta name="author" content="{{ author }}">
+{% endif %}
+<meta property="og:type" content="{{ og_type }}">
+<meta property="og:url" content="{{ url }}">
+<meta property="og:title" content="{{ title }}">
+<meta property="og:description" content="{{ description }}">
+{% if image %}
+<meta property="og:image" content="{{ image }}">
+<meta property="twitter:image" content="{{ image }}">
+{% endif %}
+<meta property="twitter:card" content="summary_large_image">
+<meta property="twitter:url" content="{{ url }}">
+<meta property="twitter:title" content="{{ title }}">
+<meta property="twitter:description" content="{{ description }}">
+<link rel="canonical" href="{{ url }}">
+{% endmacro %}
+
+{% macro structured_data(data) %}
+<script type="application/ld+json">
+{{ data | tojson }}
+</script>
+{% endmacro %}
