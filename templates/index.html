@@ -1,81 +1,135 @@
 {% extends "_base.html" %}
 
-{% block title %}{{ title | default('NextPy - Python Web Framework') }}{% endblock %}
-
 {% block content %}
-<main>
-    <section class="bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 text-white py-24">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 class="text-5xl md:text-6xl font-bold mb-6">{{ title }}</h1>
-            <p class="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">{{ description }}</p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="/documentation" class="px-8 py-4 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-colors" hx-get="/documentation" hx-target="#main-content" hx-push-url="true">
-                    Get Started
-                </a>
-                <a href="https://github.com/nextpy/nextpy" class="px-8 py-4 border-2 border-white text-white rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors">
-                    View on GitHub
-                </a>
-            </div>
+<!-- Hero Section -->
+<div class="bg-gradient-to-br from-blue-600 to-purple-600 text-white py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h1 class="text-5xl md:text-6xl font-bold mb-6">{{ title }}</h1>
+        <p class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">{{ description }}</p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="/features" class="px-8 py-4 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-colors" hx-get="/features" hx-target="#main-content" hx-push-url="true">
+                Explore Features
+            </a>
+            <a href="/documentation" class="px-8 py-4 border-2 border-white text-white rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors" hx-get="/documentation" hx-target="#main-content" hx-push-url="true">
+                Documentation
+            </a>
         </div>
-    </section>
-    
-    <section class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">Key Features</h2>
-            <div class="grid md:grid-cols-3 gap-8">
-                {% for feature in features %}
-                <div class="p-6 bg-gray-50 rounded-xl hover:shadow-lg transition-shadow">
-                    <div class="text-4xl mb-4">{{ feature.icon }}</div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ feature.title }}</h3>
-                    <p class="text-gray-600">{{ feature.description }}</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </section>
-    
-    <section class="py-20 bg-gray-50">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">Quick Start</h2>
-            <div class="bg-gray-900 rounded-xl p-6 text-green-400 font-mono text-sm overflow-x-auto">
-                <pre><code># Install NextPy
-pip install nextpy
+    </div>
+</div>
 
-# Create a new project
-nextpy create my-app
-
-# Start development server
-cd my-app
-nextpy dev
-
-# Build for production
-nextpy build</code></pre>
+<!-- Features Grid -->
+<div class="py-16 bg-gray-50">
+    <div class="max-w-6xl mx-auto px-4">
+        <h2 class="text-3xl font-bold text-center mb-12">Key Features</h2>
+        <div class="grid md:grid-cols-3 gap-8">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-xl font-bold mb-2">📄 File-Based Routing</h3>
+                <p class="text-gray-600">Just add .py files to pages/ and they become routes</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-xl font-bold mb-2">🚀 SSR & SSG</h3>
+                <p class="text-gray-600">Server-side rendering and static generation out of the box</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-xl font-bold mb-2">🗄️ Database</h3>
+                <p class="text-gray-600">SQLAlchemy ORM with SQLite, PostgreSQL, MySQL support</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-xl font-bold mb-2">🎨 Components</h3>
+                <p class="text-gray-600">20+ pre-built UI components with Tailwind CSS</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-xl font-bold mb-2">⚡ Hot Reload</h3>
+                <p class="text-gray-600">Instant updates as you code with visual feedback</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-xl font-bold mb-2">🔧 Utils</h3>
+                <p class="text-gray-600">Caching, email, uploads, search, logging & more</p>
             </div>
         </div>
-    </section>
-    
-    <section class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">Why NextPy?</h2>
-            <div class="grid md:grid-cols-2 gap-12">
-                <div>
-                    <h3 class="text-2xl font-semibold text-gray-900 mb-4">Python-First Development</h3>
-                    <p class="text-gray-600 leading-relaxed">Write your entire application in Python with familiar tools like FastAPI, Pydantic, and Jinja2. No JavaScript configuration needed.</p>
-                </div>
-                <div>
-                    <h3 class="text-2xl font-semibold text-gray-900 mb-4">Next.js-Inspired Architecture</h3>
-                    <p class="text-gray-600 leading-relaxed">File-based routing, SSR, SSG, and API routes - all the patterns you love from Next.js, now in Python.</p>
-                </div>
-                <div>
-                    <h3 class="text-2xl font-semibold text-gray-900 mb-4">Type Safety with Pydantic</h3>
-                    <p class="text-gray-600 leading-relaxed">Full type validation for API routes and data fetching with Pydantic models and Python type hints.</p>
-                </div>
-                <div>
-                    <h3 class="text-2xl font-semibold text-gray-900 mb-4">HTMX Integration</h3>
-                    <p class="text-gray-600 leading-relaxed">Client-side interactivity without heavy JavaScript frameworks. SPA-like experience with minimal overhead.</p>
-                </div>
+    </div>
+</div>
+
+<!-- Quick Links Section -->
+<div class="py-16">
+    <div class="max-w-6xl mx-auto px-4">
+        <h2 class="text-3xl font-bold text-center mb-12">Explore</h2>
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <a href="/features" class="p-4 bg-blue-50 rounded-lg border border-blue-200 hover:shadow-lg transition text-center" hx-get="/features" hx-target="#main-content" hx-push-url="true">
+                <span class="text-2xl block mb-2">✨</span>
+                <strong>Features</strong>
+                <p class="text-sm text-gray-600">All capabilities</p>
+            </a>
+            <a href="/examples" class="p-4 bg-green-50 rounded-lg border border-green-200 hover:shadow-lg transition text-center" hx-get="/examples" hx-target="#main-content" hx-push-url="true">
+                <span class="text-2xl block mb-2">🎨</span>
+                <strong>Components</strong>
+                <p class="text-sm text-gray-600">UI components</p>
+            </a>
+            <a href="/examples_advanced" class="p-4 bg-purple-50 rounded-lg border border-purple-200 hover:shadow-lg transition text-center" hx-get="/examples_advanced" hx-target="#main-content" hx-push-url="true">
+                <span class="text-2xl block mb-2">🚀</span>
+                <strong>Advanced</strong>
+                <p class="text-sm text-gray-600">Advanced patterns</p>
+            </a>
+            <a href="/db_example" class="p-4 bg-orange-50 rounded-lg border border-orange-200 hover:shadow-lg transition text-center" hx-get="/db_example" hx-target="#main-content" hx-push-url="true">
+                <span class="text-2xl block mb-2">🗄️</span>
+                <strong>Database</strong>
+                <p class="text-sm text-gray-600">Database examples</p>
+            </a>
+            <a href="/blog" class="p-4 bg-red-50 rounded-lg border border-red-200 hover:shadow-lg transition text-center" hx-get="/blog" hx-target="#main-content" hx-push-url="true">
+                <span class="text-2xl block mb-2">📚</span>
+                <strong>Blog</strong>
+                <p class="text-sm text-gray-600">Blog posts</p>
+            </a>
+            <a href="/about" class="p-4 bg-teal-50 rounded-lg border border-teal-200 hover:shadow-lg transition text-center" hx-get="/about" hx-target="#main-content" hx-push-url="true">
+                <span class="text-2xl block mb-2">ℹ️</span>
+                <strong>About</strong>
+                <p class="text-sm text-gray-600">About NextPy</p>
+            </a>
+            <a href="/documentation" class="p-4 bg-indigo-50 rounded-lg border border-indigo-200 hover:shadow-lg transition text-center" hx-get="/documentation" hx-target="#main-content" hx-push-url="true">
+                <span class="text-2xl block mb-2">📖</span>
+                <strong>Docs</strong>
+                <p class="text-sm text-gray-600">Full docs</p>
+            </a>
+            <a href="/api/health" class="p-4 bg-pink-50 rounded-lg border border-pink-200 hover:shadow-lg transition text-center">
+                <span class="text-2xl block mb-2">🔗</span>
+                <strong>API</strong>
+                <p class="text-sm text-gray-600">Try API</p>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- CTA Section -->
+<div class="bg-blue-600 text-white py-16">
+    <div class="max-w-4xl mx-auto px-4 text-center">
+        <h2 class="text-3xl font-bold mb-4">Ready to Build?</h2>
+        <p class="text-lg mb-8">Create your first NextPy app in minutes</p>
+        <code class="bg-black bg-opacity-30 px-4 py-3 rounded-lg inline-block">nextpy create my-app</code>
+        <p class="text-sm mt-4">Then run: <code class="bg-black bg-opacity-30 px-2 py-1 rounded">nextpy dev</code></p>
+    </div>
+</div>
+
+<!-- Stats Section -->
+<div class="py-16 bg-gray-50">
+    <div class="max-w-4xl mx-auto px-4">
+        <div class="grid md:grid-cols-4 gap-8 text-center">
+            <div>
+                <div class="text-4xl font-bold text-blue-600">20+</div>
+                <p class="text-gray-600">Components</p>
+            </div>
+            <div>
+                <div class="text-4xl font-bold text-blue-600">3</div>
+                <p class="text-gray-600">Databases Supported</p>
+            </div>
+            <div>
+                <div class="text-4xl font-bold text-blue-600">100%</div>
+                <p class="text-gray-600">Python-Based</p>
+            </div>
+            <div>
+                <div class="text-4xl font-bold text-blue-600">Open</div>
+                <p class="text-gray-600">Source & Free</p>
             </div>
         </div>
-    </section>
-</main>
+    </div>
+</div>
 {% endblock %}

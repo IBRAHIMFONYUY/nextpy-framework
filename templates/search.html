@@ -1,0 +1,32 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12 px-4">
+    <h1 class="text-4xl font-bold mb-8">{{ title }}</h1>
+    
+    <form method="GET" class="mb-8" hx-get="/search" hx-target="#main-content">
+        <input type="text" name="q" value="{{ query }}" placeholder="Search..." class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+    </form>
+    
+    {% if results %}
+    <div class="space-y-4">
+        <p class="text-gray-600">Found {{ total }} result{% if total != 1 %}s{% endif %}</p>
+        {% for item in results %}
+        <div class="bg-white p-6 rounded-lg border hover:shadow-lg transition">
+            <h3 class="text-xl font-bold text-blue-600 mb-2">{{ item.title }}</h3>
+            <p class="text-gray-700">{{ item.content }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% elif query %}
+    <div class="text-center py-12">
+        <p class="text-gray-600 text-lg">No results found for "{{ query }}"</p>
+        <p class="text-gray-500 mt-2">Try a different search term</p>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <p class="text-gray-600">Enter a search term to get started</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

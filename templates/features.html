@@ -1,0 +1,18 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto py-16 px-4">
+    <h1 class="text-5xl font-bold text-center mb-4">{{ title }}</h1>
+    <p class="text-xl text-center text-gray-600 mb-16">{{ description }}</p>
+    
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for feature in features %}
+        <a href="{{ feature.link }}" class="group bg-white p-6 rounded-lg border hover:border-blue-500 hover:shadow-lg transition-all">
+            <div class="text-4xl mb-3">{{ feature.icon }}</div>
+            <h3 class="text-xl font-bold mb-2 group-hover:text-blue-600">{{ feature.title }}</h3>
+            <p class="text-gray-600">{{ feature.description }}</p>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

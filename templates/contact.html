@@ -1,0 +1,53 @@
+{% extends "_base.html" %}
+
+{% from "components/form.html" import input, textarea %}
+{% from "components/button.html" import button %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-12 px-4">
+    <h1 class="text-4xl font-bold mb-2">{{ title }}</h1>
+    <p class="text-gray-600 mb-8">{{ description }}</p>
+    
+    <form class="bg-white p-8 rounded-lg shadow" id="contactForm">
+        {{ input("name", "Full Name", "text", required=True) }}
+        {{ input("email", "Email Address", "email", required=True) }}
+        {{ input("subject", "Subject", "text", required=True) }}
+        {{ textarea("message", "Message", "Tell us what you think...", required=True, rows=5) }}
+        
+        <div class="mt-6 flex gap-4">
+            {{ button("Send Message", "#", "primary", "md") }}
+            <button type="reset" class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Reset</button>
+        </div>
+    </form>
+    
+    <div id="successMessage" class="hidden mt-4 p-4 bg-green-50 text-green-800 rounded-lg">
+        ✓ Message sent successfully! We'll get back to you soon.
+    </div>
+</div>
+
+<script>
+document.getElementById('contactForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    try {
+        const response = await fetch('/api/contact', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            document.getElementById('contactForm').reset();
+            document.getElementById('successMessage').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('successMessage').classList.add('hidden');
+            }, 5000);
+        }
+    } catch (error) {
+        alert('Error sending message: ' + error.message);
+    }
+});
+</script>
+{% endblock %}

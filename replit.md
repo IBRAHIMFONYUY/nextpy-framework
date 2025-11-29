@@ -91,15 +91,51 @@ python -m nextpy.cli dev
 - ✅ Middleware support system
 - ✅ Static site generation with revalidation
 
+## Complete Feature List
+
+**Core Features:**
+- ✅ File-based routing with dynamic `[slug]` and catch-all `[...path]` routes
+- ✅ Server-Side Rendering (SSR) with `get_server_side_props`
+- ✅ Static Site Generation (SSG) with `get_static_props`
+- ✅ Incremental Static Regeneration (ISR) with revalidation
+- ✅ API routes with full HTTP methods (GET, POST, PUT, DELETE, PATCH)
+- ✅ Sync & Async page functions (both supported!)
+- ✅ Database support: SQLite, PostgreSQL, MySQL
+- ✅ Environment variables with `.env` file
+- ✅ Hot reload with visual indicator
+- ✅ Debug panel for errors
+
+**20+ Components:**
+- Buttons, Cards, Alerts, Forms, Images, Links
+- Pagination, Modal, Breadcrumb, Navigation
+- SEO/Head component with structured data
+- Navbar with HTMX integration
+
+**Utilities:**
+- Email sending (SMTP)
+- File upload handling
+- Caching with TTL
+- Full-text search (simple & fuzzy)
+- Form validation (Pydantic models)
+- Logging system
+- SEO utilities (sitemaps, robots.txt)
+
+**Developer Experience:**
+- CLI with commands: dev, build, start, create, routes
+- Hot reload with file watching
+- Debug panel with stack traces
+- Type hints throughout
+
 ## Tech Stack
 - **FastAPI** - High-performance web framework
+- **SQLAlchemy** - ORM with database support
 - **Uvicorn** - Lightning-fast ASGI server
 - **Jinja2** - Powerful templating with inheritance
 - **Pydantic** - Type-safe data validation
-- **HTMX** - SPA features without JavaScript complexity
-- **Tailwind CSS** - Utility-first CSS framework
+- **HTMX** - SPA features without JavaScript
+- **Tailwind CSS** - Utility-first styling
+- **Click** - CLI framework
 - **Watchdog** - File monitoring for hot reload
-- **Click** - Elegant CLI framework
 
 ## Package Architecture
 - nextpy/server/app.py - FastAPI application factory
@@ -107,8 +143,22 @@ python -m nextpy.cli dev
 - nextpy/core/renderer.py - SSR with Jinja2
 - nextpy/core/builder.py - SSG with static generation
 - nextpy/core/data_fetching.py - getServerSideProps/getStaticProps
+- nextpy/core/sync.py - Sync/Async support
+- nextpy/db.py - SQLAlchemy database layer
+- nextpy/config.py - Environment configuration
 - nextpy/components/ - Python components (image, link, head)
-- nextpy/utils/ - Validators, SEO, utilities
-- templates/components/ - Jinja2 macro components
+- nextpy/utils/ - Caching, email, search, validators, SEO, logging, file uploads
+- templates/components/ - 20+ Jinja2 macro components
 - nextpy/cli.py - CLI scaffolding & commands
 - pyproject.toml - Package metadata & deps
+
+## Example Pages Included
+- Homepage with hero section and feature grid
+- Features showcase page
+- Blog with dynamic posts
+- About page
+- Documentation page
+- Database example page
+- Contact form with email
+- Search functionality
+- Component examples
