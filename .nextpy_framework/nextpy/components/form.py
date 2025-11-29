@@ -228,25 +228,6 @@ def FileInput(
     >'''
 
 
-def NumberInput(
-    name: str = "",
-    label: str = "",
-    value: int = 0,
-    min: int = 0,
-    max: int = 100,
-    step: int = 1,
-    required: bool = False,
-    **kwargs
-) -> str:
-    """Number input component"""
-    req = "required" if required else ""
-    return f'''<div class="mb-4">
-        {f'<label class="block text-sm font-medium mb-1">{label}</label>' if label else ''}
-        <input type="number" name="{name}" value="{value}" min="{min}" max="{max}" step="{step}" {req}
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"/>
-    </div>'''
-
-
 def DateInput(
     name: str = "",
     label: str = "",
@@ -256,8 +237,9 @@ def DateInput(
 ) -> str:
     """Date input component"""
     req = "required" if required else ""
+    label_html = f'<label class="block text-sm font-medium mb-1">{label}</label>' if label else ''
     return f'''<div class="mb-4">
-        {f'<label class="block text-sm font-medium mb-1">{label}</label>' if label else ''}
+        {label_html}
         <input type="date" name="{name}" value="{value}" {req}
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"/>
     </div>'''
@@ -272,8 +254,9 @@ def TimeInput(
 ) -> str:
     """Time input component"""
     req = "required" if required else ""
+    label_html = f'<label class="block text-sm font-medium mb-1">{label}</label>' if label else ''
     return f'''<div class="mb-4">
-        {f'<label class="block text-sm font-medium mb-1">{label}</label>' if label else ''}
+        {label_html}
         <input type="time" name="{name}" value="{value}" {req}
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"/>
     </div>'''
@@ -288,8 +271,9 @@ def PasswordInput(
 ) -> str:
     """Password input component"""
     req = "required" if required else ""
+    label_html = f'<label class="block text-sm font-medium mb-1">{label}</label>' if label else ''
     return f'''<div class="mb-4">
-        {f'<label class="block text-sm font-medium mb-1">{label}</label>' if label else ''}
+        {label_html}
         <input type="password" name="{name}" placeholder="{placeholder}" {req}
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"/>
     </div>'''

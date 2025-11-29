@@ -9,19 +9,17 @@ def Tabs(tabs: list, active_index: int = 0) -> str:
     Tabs component
     tabs: [{"label": "Tab 1", "content": "<p>Content 1</p>"}, ...]
     """
-    tab_buttons = "\n".join([
-        f'<button class="px-4 py-2 border-b-2 {"border-blue-600 text-blue-600 font-bold" if i == active_index else "border-gray-300 text-gray-600"}" onclick="switchTab({i})">
-            {tab["label"]}
-        </button>'
-        for i, tab in enumerate(tabs)
-    ])
+    tab_buttons_list = []
+    for i, tab in enumerate(tabs):
+        active_class = "border-blue-600 text-blue-600 font-bold" if i == active_index else "border-gray-300 text-gray-600"
+        tab_buttons_list.append(f'<button class="px-4 py-2 border-b-2 {active_class}" onclick="switchTab({i})">\n            {tab["label"]}\n        </button>')
+    tab_buttons = "\n".join(tab_buttons_list)
     
-    tab_contents = "\n".join([
-        f'<div id="tab-content-{i}" class="{"block" if i == active_index else "hidden"} py-4">
-            {tab["content"]}
-        </div>'
-        for i, tab in enumerate(tabs)
-    ])
+    tab_contents_list = []
+    for i, tab in enumerate(tabs):
+        display_class = "block" if i == active_index else "hidden"
+        tab_contents_list.append(f'<div id="tab-content-{i}" class="{display_class} py-4">\n            {tab["content"]}\n        </div>')
+    tab_contents = "\n".join(tab_contents_list)
     
     return f'''
     <div class="space-y-4">
@@ -53,8 +51,9 @@ def Accordion(items: list) -> str:
     Accordion component
     items: [{"title": "Section 1", "content": "<p>Content 1</p>"}, ...]
     """
-    accordion_html = "\n".join([
-        f'''
+    accordion_items = []
+    for i, item in enumerate(items):
+        accordion_items.append(f'''
         <div class="border border-gray-300 mb-2 rounded-lg overflow-hidden">
             <button onclick="toggleAccordion({i})" class="w-full text-left px-4 py-3 bg-gray-100 hover:bg-gray-200 font-semibold flex justify-between items-center">
                 {item["title"]}
@@ -64,9 +63,8 @@ def Accordion(items: list) -> str:
                 {item["content"]}
             </div>
         </div>
-        '''
-        for i, item in enumerate(items)
-    ])
+        ''')
+    accordion_html = "\n".join(accordion_items)
     
     return f'''
     <div class="space-y-2">
@@ -119,6 +117,7 @@ def Dropdown(label: str, items: list, position: str = "left") -> str:
 def Modal(title: str, content: str, footer: str = "", show: bool = False) -> str:
     """Modal component"""
     display = "flex" if show else "hidden"
+    footer_html = f'<div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">{footer}</div>' if footer else ''
     return f'''
     <div id="modal-overlay" class="{display} fixed inset-0 bg-black bg-opacity-50 justify-center items-center z-50">
         <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
@@ -129,7 +128,7 @@ def Modal(title: str, content: str, footer: str = "", show: bool = False) -> str
             <div class="px-6 py-4">
                 {content}
             </div>
-            {f'<div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">{footer}</div>' if footer else ''}
+            {footer_html}
         </div>
     </div>
     <script>
@@ -164,11 +163,13 @@ def Card(title: str, content: str, image: str = "", footer: str = "") -> str:
 
 def Breadcrumb(items: list) -> str:
     """Breadcrumb navigation"""
-    breadcrumb_html = " / ".join([
-        f'<a href="{item.get("href", "#")}" class="text-blue-600 hover:underline">{item["label"]}</a>'
-        if item.get("href") else f'<span class="text-gray-700">{item["label"]}</span>'
-        for item in items
-    ])
+    breadcrumb_parts = []
+    for item in items:
+        if item.get("href"):
+            breadcrumb_parts.append(f'<a href="{item.get("href")}" class="text-blue-600 hover:underline">{item["label"]}</a>')
+        else:
+            breadcrumb_parts.append(f'<span class="text-gray-700">{item["label"]}</span>')
+    breadcrumb_html = " / ".join(breadcrumb_parts)
     return f'<nav class="text-sm text-gray-600 mb-4">{breadcrumb_html}</nav>'
 
 
