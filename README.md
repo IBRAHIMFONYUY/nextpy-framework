@@ -11,12 +11,27 @@ A Python web framework inspired by Next.js. Build modern web applications with f
 - **API Routes** - Create API endpoints in `pages/api/`
 - **HTMX Integration** - SPA-like navigation without heavy JavaScript
 - **Jinja2 Templates** - Powerful templating with layout inheritance
+- **Hot Reload** - Instant updates on file changes during development
+- **Debug Panel** - Built-in error overlay for development
+- **Components Library** - Pre-built UI components (buttons, cards, forms)
 
 ## Installation
+
+### Via pip
 
 ```bash
 pip install nextpy-framework
 ```
+
+### Development Install (Editable)
+
+```bash
+git clone https://github.com/nextpy/nextpy-framework.git
+cd nextpy-framework
+pip install -e .
+```
+
+This installs NextPy in editable mode, so changes to the source code take effect immediately.
 
 ## Quick Start
 
@@ -27,7 +42,23 @@ nextpy create my-app
 cd my-app
 ```
 
-### 2. Create a page
+### 2. Install dependencies
+
+```bash
+pip install -e .
+# or
+pip install -r requirements.txt
+```
+
+### 3. Run development server
+
+```bash
+nextpy dev
+```
+
+Visit `http://localhost:5000` - your app starts with hot reload enabled!
+
+### 4. Create a page
 
 ```python
 # pages/hello.py
@@ -43,7 +74,7 @@ async def get_server_side_props(context):
     }
 ```
 
-### 3. Create a template
+### 5. Create a template
 
 ```html
 <!-- templates/hello.html -->
@@ -54,32 +85,74 @@ async def get_server_side_props(context):
 {% endblock %}
 ```
 
-### 4. Run the development server
-
-```bash
-nextpy dev
-```
-
-Visit `http://localhost:5000/hello` to see your page!
+Visit `http://localhost:5000/hello` - page updates instantly as you edit!
 
 ## Project Structure
 
 ```
 my-app/
-├── pages/              # Your pages (file-based routing)
-│   ├── index.py        # Home page (/)
-│   ├── about.py        # About page (/about)
+├── pages/                 # Your pages (file-based routing)
+│   ├── index.py          # Home page (/)
+│   ├── about.py          # About page (/about)
 │   ├── blog/
-│   │   ├── index.py    # Blog listing (/blog)
-│   │   └── [slug].py   # Dynamic post (/blog/:slug)
+│   │   ├── index.py      # Blog listing (/blog)
+│   │   └── [slug].py     # Dynamic post (/blog/:slug)
 │   └── api/
-│       └── posts.py    # API route (/api/posts)
-├── templates/          # Jinja2 templates
-│   ├── _base.html      # Base layout
-│   └── index.html      # Page templates
-├── public/             # Static files (CSS, JS, images)
-└── main.py             # Entry point
+│       └── posts.py      # API route (/api/posts)
+├── templates/            # Jinja2 templates
+│   ├── _base.html        # Base layout
+│   ├── components/       # Reusable components
+│   │   ├── button.html
+│   │   ├── card.html
+│   │   └── form.html
+│   └── index.html        # Page templates
+├── public/               # Static files (CSS, JS, images)
+├── main.py              # Entry point
+└── requirements.txt     # Python dependencies
 ```
+
+## Package Architecture
+
+NextPy is fully self-contained and tightly integrated:
+
+### Core Components
+
+| Module | Purpose |
+|--------|---------|
+| **nextpy/server/app.py** | Creates FastAPI application with routing |
+| **nextpy/core/router.py** | Scans pages/, templates/, APIs dynamically |
+| **nextpy/core/renderer.py** | SSR with Jinja2 + data fetching |
+| **nextpy/core/builder.py** | SSG with static HTML generation |
+| **nextpy/cli.py** | CLI scaffolding & commands |
+| **nextpy/components/** | Button, card, form components |
+| **nextpy/middleware.py** | Debug panel, error handling |
+
+### Setup Files
+
+- **pyproject.toml** - Package metadata & dependencies
+- **setup.cfg** - Build configuration
+- **MANIFEST.in** - Include non-Python files
+- **LICENSE** - MIT License
+- **README.md** - Documentation
+
+### How It All Works Together
+
+1. **CLI** (`nextpy create myapp`) scaffolds project structure
+2. **Router** scans `pages/` and maps files to routes
+3. **Renderer** executes `get_server_side_props` and renders with Jinja2
+4. **FastAPI** serves pages and API routes
+5. **Builder** generates static files for SSG
+6. **Watchdog** detects file changes → automatic hot reload
+7. **Debug Middleware** shows errors in development
+
+### Installable Features
+
+✅ Works with `pip install -e .` for local development  
+✅ All files tightly integrated (no external dependencies)  
+✅ Auto-discovery of pages, templates, APIs  
+✅ CLI includes scaffolding with example structure  
+✅ Hot reload watches pages/, templates/, nextpy/ directories  
+✅ Debug panel shows errors in browser  
 
 ## Data Fetching
 
@@ -127,23 +200,104 @@ async def get(request):
 async def post(request):
     data = await request.json()
     return {"created": data}
+
+async def put(request):
+    data = await request.json()
+    return {"updated": data}
+
+async def delete(request):
+    return {"deleted": True}
+```
+
+## Components
+
+Use pre-built components via Jinja2 macros:
+
+```html
+{% from "components/button.html" import button %}
+{% from "components/card.html" import card %}
+{% from "components/form.html" import input, textarea, select %}
+
+{{ button("Click Me", "/action", "primary") }}
+{{ card(title="My Card", content="Description", link="/details") }}
+{{ input("name", "Full Name", "text", "John Doe", True) }}
+```
+
+## Layouts & Nesting
+
+Create nested layouts with template inheritance:
+
+```html
+<!-- templates/_base.html (root) -->
+<html>
+  <body>
+    <nav>...</nav>
+    {% block content %}{% endblock %}
+  </body>
+</html>
+
+<!-- templates/_blog-layout.html (extends base) -->
+{% extends "_base.html" %}
+{% block content %}
+  <div class="blog-container">
+    {% block blog_content %}{% endblock %}
+  </div>
+{% endblock %}
+
+<!-- templates/blog/[slug].html (extends blog layout) -->
+{% extends "_blog-layout.html" %}
+{% block blog_content %}
+  <h1>{{ title }}</h1>
+{% endblock %}
 ```
 
 ## CLI Commands
 
 ```bash
-nextpy dev      # Start development server with hot reload
+nextpy dev      # Start development server with hot reload & debug panel
 nextpy build    # Generate static files to out/
 nextpy start    # Start production server
+nextpy routes   # Display all registered routes
+nextpy create   # Create new project
 ```
+
+### Development Features
+
+🔥 **Hot Reload** - File changes trigger instant server restart  
+🐛 **Debug Panel** - Error overlay with stack traces  
+📍 **Route Listing** - View all registered routes  
+🎯 **Auto-discovery** - Pages, templates, APIs loaded automatically  
 
 ## Tech Stack
 
 - **FastAPI** - High-performance async web framework
-- **Jinja2** - Powerful templating engine
-- **Pydantic** - Data validation
-- **HTMX** - Modern browser features without JavaScript complexity
 - **Uvicorn** - Lightning-fast ASGI server
+- **Jinja2** - Powerful templating engine with inheritance
+- **Pydantic** - Type-safe data validation
+- **Watchdog** - File system monitoring for hot reload
+- **Click** - Elegant CLI framework
+- **HTMX** - Modern browser features without JavaScript complexity
+- **Tailwind CSS** - Utility-first CSS framework
+
+## Production Deployment
+
+```bash
+# Build static files
+nextpy build
+
+# Start production server
+nextpy start
+```
+
+For hosting:
+- **Heroku**: `git push heroku main`
+- **Vercel**: Static hosting (use `nextpy build`)
+- **Docker**: Dockerfile ready
+- **VPS**: Run `nextpy start` with process manager (systemd, supervisord)
+
+## Contributing
+
+Contributions welcome! NextPy is MIT licensed.
 
 ## License
 

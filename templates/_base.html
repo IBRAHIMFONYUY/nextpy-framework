@@ -52,5 +52,32 @@
     </footer>
     
     {% block scripts %}{% endblock %}
+    
+    <!-- NextPy Dev Tools -->
+    {% if debug %}
+    <script>
+        // Hot reload indicator
+        const indicator = document.createElement('div');
+        indicator.id = 'nextpy-reload-indicator';
+        indicator.innerHTML = '<span style="display: flex; gap: 4px;"><span style="width: 6px; height: 6px; background: white; border-radius: 50%; animation: pulse 1.5s infinite;"></span><span style="width: 6px; height: 6px; background: white; border-radius: 50%; animation: pulse 1.5s infinite; animation-delay: 0.2s;"></span><span style="width: 6px; height: 6px; background: white; border-radius: 50%; animation: pulse 1.5s infinite; animation-delay: 0.4s;"></span></span> Reloading...';
+        indicator.style.cssText = 'position: fixed; top: 16px; right: 16px; z-index: 9999; display: none; align-items: center; gap: 8px; padding: 8px 12px; background: rgb(37, 99, 235); color: white; border-radius: 8px; font-size: 14px; font-family: system-ui; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); font-weight: 500;';
+        document.body.appendChild(indicator);
+
+        // Listen for file changes
+        const eventSource = new EventSource('/__nextpy__/reload');
+        eventSource.onmessage = () => {
+            indicator.style.display = 'flex';
+            setTimeout(() => window.location.reload(), 500);
+        };
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + Shift + R for manual reload
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'r') {
+                window.location.reload();
+            }
+        });
+    </script>
+    {% endif %}
 </body>
 </html>
