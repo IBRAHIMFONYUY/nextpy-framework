@@ -1,0 +1,62 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12 px-4">
+    <h1 class="text-4xl font-bold mb-4">Database Integration</h1>
+    
+    <div class="grid md:grid-cols-2 gap-6 mb-8">
+        <div class="bg-blue-50 p-6 rounded-lg">
+            <h2 class="text-2xl font-bold mb-2">Users</h2>
+            <p class="text-gray-600 mb-4">Total: <span class="font-bold text-2xl">{{ total_users }}</span></p>
+            {% if users %}
+            <ul class="space-y-2">
+                {% for user in users %}
+                <li class="bg-white p-3 rounded border">
+                    <strong>{{ user.username }}</strong><br>
+                    <small class="text-gray-500">{{ user.email }}</small>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-gray-500">No users yet</p>
+            {% endif %}
+        </div>
+        
+        <div class="bg-green-50 p-6 rounded-lg">
+            <h2 class="text-2xl font-bold mb-2">Posts</h2>
+            <p class="text-gray-600 mb-4">Total: <span class="font-bold text-2xl">{{ total_posts }}</span></p>
+            {% if posts %}
+            <ul class="space-y-2">
+                {% for post in posts %}
+                <li class="bg-white p-3 rounded border">
+                    <strong>{{ post.title }}</strong><br>
+                    <small class="text-gray-500">{{ post.slug }}</small>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-gray-500">No posts yet</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="bg-gray-50 p-6 rounded-lg">
+        <h3 class="text-xl font-bold mb-4">Database Configuration</h3>
+        <code class="block bg-gray-900 text-gray-100 p-4 rounded font-mono text-sm overflow-x-auto">
+DATABASE_URL: {{ database_url }}<br>
+SQLAlchemy configured for: {% if 'sqlite' in database_url %}SQLite{% elif 'postgres' in database_url %}PostgreSQL{% elif 'mysql' in database_url %}MySQL{% endif %}
+        </code>
+    </div>
+    
+    <div class="mt-8 p-6 bg-blue-100 border-l-4 border-blue-600">
+        <h4 class="font-bold mb-2">✨ Features:</h4>
+        <ul class="list-disc list-inside space-y-1 text-sm">
+            <li>✅ Supports SQLite, PostgreSQL, MySQL</li>
+            <li>✅ SQLAlchemy ORM with async support</li>
+            <li>✅ Environment variable configuration</li>
+            <li>✅ Connection pooling & session management</li>
+            <li>✅ Both sync and async page functions</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
