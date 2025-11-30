@@ -907,3 +907,4 @@ async def get(request):
 ---
 
 **NextPy v1.0.0** - The Python web framework inspired by Next.js
+Built with love ❤️ by the NextPy community.

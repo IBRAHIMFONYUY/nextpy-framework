@@ -181,6 +181,8 @@ Suggest new features by:
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the NextPy License.
 
 Thank you for making NextPy better! 🚀
+
+Built with love ❤️ by the NextPy community.
