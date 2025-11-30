@@ -6,7 +6,7 @@ Thank you for your interest in contributing to NextPy! We welcome contributions 
 
 1. **Fork the repository**
    ```bash
-   git clone https://github.com/your-username/nextpy-framework.git
+   git clone https://github.com/IBRAHIMFONYUY/nextpy-framework.git
    cd nextpy-framework
    ```
 
@@ -174,7 +174,7 @@ Suggest new features by:
 ## Questions?
 
 - **Documentation**: https://nextpy.dev/docs
-- **Discussions**: https://github.com/nextpy/nextpy-framework/discussions
+- **Discussions**: https://github.com/IBRAHIMFONYUY/nextpy-framework/discussions
 - **Discord**: [Join our community](https://discord.gg/nextpy)
 
 ---
