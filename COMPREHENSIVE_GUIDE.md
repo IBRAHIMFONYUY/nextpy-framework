@@ -834,7 +834,7 @@ nextpy start
 
 ## Resources
 
-- **GitHub**: https://github.com/nextpy/nextpy-framework
+- **GitHub**: https://github.com/IBRAHIMFONYUY/nextpy-framework
 - **Documentation**: See `DOCUMENTATION.md`
 - **Quick Reference**: See `QUICK_REFERENCE.md`
 - **Authentication Guide**: See `AUTHENTICATION.md`

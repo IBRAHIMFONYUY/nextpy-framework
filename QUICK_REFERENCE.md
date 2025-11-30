@@ -140,4 +140,4 @@ class ContactForm(BaseModel):
 - Auth Guide: `AUTHENTICATION.md`
 - Testing: `TESTING.md`
 - Performance: `PERFORMANCE.md`
-- GitHub: https://github.com/nextpy/nextpy-framework
+- GitHub: https://github.com/IBRAHIMFONYUY/nextpy-framework

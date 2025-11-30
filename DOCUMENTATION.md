@@ -901,7 +901,7 @@ async def get(request):
 - **Examples**: `/examples` page on the app
 - **Components**: `/examples` for UI component showcase
 - **Blog**: `/blog` for tutorials
-- **GitHub**: [NextPy Framework](https://github.com/nextpy)
+- **GitHub**: [NextPy Framework](https://github.com/IBRAHIMFONYUY/nextpy-framework)
 - **Community**: Join our Discord
 
 ---
