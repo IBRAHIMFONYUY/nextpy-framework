@@ -43,6 +43,13 @@ class HotReloadHandler(FileSystemEventHandler):
         if self.reload_callback:
             self.reload_callback()
 
+def find_main_module():
+    for path in Path('.').iterdir():
+        if path.is_file() and path.name == "main.py":
+            return "main:app"
+        elif path.is_dir() and (path / "main.py").exists():
+            return f"{path.name}.main:app"
+    raise FileNotFoundError("Could not find main.py")
 
 @click.group()
 @click.version_option(version="1.0.0", prog_name="NextPy")
@@ -70,11 +77,16 @@ def dev(port: int, host: str, reload: bool, debug: bool):
     click.echo(f"\n  ✨ Server ready at http://0.0.0.0:{port}")
     click.echo(f"  🌐 Open http://localhost:{port} in your browser\n")
     
-    os.chdir(Path.cwd())
+    project_dir = Path('.')  # Or dynamically find the project folder
+    os.chdir(project_dir)
+
+    main_module = find_main_module()
+    
+
     
     if reload:
         uvicorn.run(
-            "main:app",
+            main_module,
             host=host,
             port=port,
             reload=True,
@@ -83,7 +95,7 @@ def dev(port: int, host: str, reload: bool, debug: bool):
         )
     else:
         uvicorn.run(
-            "main:app",
+            main_module,
             host=host,
             port=port,
             log_level="info",
@@ -160,6 +172,8 @@ def create(name: str):
     click.echo(f"    pip install -r requirements.txt")
     click.echo(f"    nextpy dev")
     click.echo()
+
+
 
 
 @cli.command()
