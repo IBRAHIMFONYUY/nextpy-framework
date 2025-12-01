@@ -3,7 +3,7 @@ NextPy - A Python web framework inspired by Next.js
 File-based routing, SSR, SSG, and more with FastAPI + Jinja2
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 from nextpy.core.router import Router, Route, DynamicRoute
 from nextpy.core.renderer import Renderer
@@ -47,4 +47,6 @@ __all__ = [
     "useRef",
     "useGlobalState",
     "component",
+    "maintainers",
+    "main"
 ]
