@@ -1,3 +1,4 @@
+# Core dependencies from PyPI
 aiofiles>=25.1.0
 annotated-doc>=0.0.4
 annotated-types>=0.7.0
@@ -14,8 +15,6 @@ httpx>=0.28.1
 idna>=3.11
 Jinja2>=3.1.6
 MarkupSafe>=3.0.3
--e git+https://github.com/IBRAHIMFONYUY/nextpy-framework.git@5b7bc12930cdf6966fd8cf45d4b8bdf2858d32c2#egg=nextpy_framework
-
 pillow>=12.0.0
 pydantic>=2.12.5
 pydantic-settings>=2.12.0
@@ -24,9 +23,12 @@ PyJWT>=2.10.1
 python-dotenv>=1.2.1
 python-multipart>=0.0.20
 SQLAlchemy>=2.0.44
-starlette>=0.50.0git+https://github.com/IBRAHIMFONYUY/nextpy-framework.git@5b7bc12930cdf6966fd8cf45d4b8bdf2858d32c2#egg=nextpy_framework
-
+starlette>=0.50.0
 typing-inspection>=0.4.2
 typing_extensions>=4.15.0
 uvicorn>=0.38.0
 watchdog>=6.0.0
+
+# Git dependency (NextPy Framework)
+# ⚠ Only use this during development. Remove or replace for PyPI release.
+-e git+https://github.com/IBRAHIMFONYUY/nextpy-framework.git@5b7bc12930cdf6966fd8cf45d4b8bdf2858d32c2#egg=nextpy_framework
