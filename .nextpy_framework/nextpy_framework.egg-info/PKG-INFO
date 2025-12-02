@@ -1,12 +1,12 @@
 Metadata-Version: 2.4
 Name: nextpy-framework
-Version: 1.0.0
-Summary: A Python web framework inspired by Next.js with file-based routing, SSR, and SSG
+Version: 1.1.1
+Summary: A Python web framework inspired by Next.js with file-based routing, SSR, and SSG and more
 Author: NextPy Team
 License: MIT
-Project-URL: Homepage, https://github.com/nextpy/nextpy-framework
+Project-URL: Homepage, https://github.com/IBRAHIMFONYUY/nextpy-framework
 Project-URL: Documentation, https://nextpy-framework.readthedocs.io
-Project-URL: Repository, https://github.com/nextpy/nextpy-framework
+Project-URL: Repository, https://github.com/IBRAHIMFONYUY/nextpy-framework
 Keywords: web framework,nextjs,fastapi,ssr,ssg,file-based routing,htmx,jinja2
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Developers
@@ -53,6 +53,7 @@ A Python web framework inspired by Next.js. Build modern web applications with f
 - **Hot Reload** - Instant updates on file changes during development
 - **Debug Panel** - Built-in error overlay for development
 - **Components Library** - Pre-built UI components (buttons, cards, forms)
+- **Tailwind CSS Integration** - Utility-first CSS framework for rapid UI development
 
 ## Installation
 
@@ -81,15 +82,90 @@ nextpy create my-app
 cd my-app
 ```
 
-### 2. Install dependencies
+### 2. Install dependencies (Python & Node.js)
 
+First, install Python dependencies:
 ```bash
 pip install -e .
 # or
 pip install -r requirements.txt
 ```
 
-### 3. Run development server
+Then, for Tailwind CSS, ensure you have Node.js and npm installed. Initialize npm and install Tailwind CSS:
+```bash
+npm init -y
+npm install -D tailwindcss@latest postcss@latest autoprefixer@latest
+```
+
+### 3. Configure Tailwind CSS
+
+Create `tailwind.config.js` in your project root:
+
+```javascript
+// tailwind.config.js
+module.exports = {
+  content: [
+    './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './templates/**/*.html', # Add this line for Jinja2 templates
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+};
+```
+
+Create `postcss.config.js` in your project root:
+
+```javascript
+// postcss.config.js
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+```
+
+Create `styles.css` in your project root (or a `css` folder) with Tailwind directives:
+
+```css
+/* styles.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+Ensure your `main.py` is configured to compile Tailwind CSS (this is automatically handled in new NextPy projects):
+
+```python
+# main.py (excerpt)
+import subprocess
+# ...
+try:
+    print("Compiling Tailwind CSS...")
+    subprocess.run(["npx", "tailwindcss", "-i", "./styles.css", "-o", "./public/tailwind.css"], check=True)
+    print("Tailwind CSS compiled successfully.")
+except subprocess.CalledProcessError as e:
+    print(f"Error compiling Tailwind CSS: {e}")
+except FileNotFoundError:
+    print("Error: npx or tailwindcss command not found. Make sure Node.js and Tailwind CSS are installed.")
+# ...
+```
+
+Finally, link the compiled Tailwind CSS in your base HTML template (`templates/_base.html`):
+
+```html
+<!-- templates/_base.html (excerpt) -->
+<head>
+  <!-- ... other head elements ... -->
+  <link href="/public/tailwind.css" rel="stylesheet">
+</head>
+```
+
+### 4. Run development server
 
 ```bash
 nextpy dev
@@ -97,7 +173,7 @@ nextpy dev
 
 Visit `http://localhost:5000` - your app starts with hot reload enabled!
 
-### 4. Create a page
+### 5. Create a page
 
 ```python
 # pages/hello.py
@@ -113,14 +189,14 @@ async def get_server_side_props(context):
     }
 ```
 
-### 5. Create a template
+### 6. Create a template with Tailwind CSS
 
 ```html
 <!-- templates/hello.html -->
 {% extends "_base.html" %}
 
 {% block content %}
-<h1>{{ message }}</h1>
+<h1 class="text-3xl font-bold underline">{{ message }}</h1>
 {% endblock %}
 ```
 
@@ -146,8 +222,13 @@ my-app/
 │   │   └── form.html
 │   └── index.html        # Page templates
 ├── public/               # Static files (CSS, JS, images)
+│   └── tailwind.css      # Compiled Tailwind CSS
 ├── main.py              # Entry point
-└── requirements.txt     # Python dependencies
+├── requirements.txt     # Python dependencies
+├── package.json         # Node.js dependencies
+├── tailwind.config.js   # Tailwind CSS configuration
+├── postcss.config.js    # PostCSS configuration
+└── styles.css           # Tailwind CSS directives
 ```
 
 ## Package Architecture
@@ -271,6 +352,7 @@ Create nested layouts with template inheritance:
 <html>
   <body>
     <nav>...</nav>
+    <link href="/public/tailwind.css" rel="stylesheet"> # Added Tailwind CSS link
     {% block content %}{% endblock %}
   </body>
 </html>
