@@ -44,12 +44,9 @@ class HotReloadHandler(FileSystemEventHandler):
             self.reload_callback()
 
 def find_main_module():
-    for path in Path('.').iterdir():
-        if path.is_file() and path.name == "main.py":
-            return "main:app"
-        elif path.is_dir() and (path / "main.py").exists():
-            return f"{path.name}.main:app"
-    raise FileNotFoundError("Could not find main.py")
+    # main.py is always expected at the project root for NextPy projects
+    # We ensure the current directory is in sys.path before calling uvicorn.run
+    return "main:app"
 
 @click.group()
 @click.version_option(version="1.0.0", prog_name="NextPy")
@@ -77,12 +74,14 @@ def dev(port: int, host: str, reload: bool, debug: bool):
     click.echo(f"\n  ✨ Server ready at http://0.0.0.0:{port}")
     click.echo(f"  🌐 Open http://localhost:{port} in your browser\n")
     
-    project_dir = Path('.')  # Or dynamically find the project folder
+    project_dir = Path('.')
     os.chdir(project_dir)
 
-    main_module = find_main_module()
-    
+    # Ensure the current directory is in sys.path for module discovery
+    if str(project_dir.resolve()) not in sys.path:
+        sys.path.insert(0, str(project_dir.resolve()))
 
+    main_module = find_main_module()
     
     if reload:
         uvicorn.run(
@@ -90,7 +89,7 @@ def dev(port: int, host: str, reload: bool, debug: bool):
             host=host,
             port=port,
             reload=True,
-            reload_dirs=["pages", "templates", "nextpy"],
+            reload_dirs=["pages", "templates", ".nextpy_framework"], # Corrected path
             log_level="info",
         )
     else:
@@ -172,8 +171,6 @@ def create(name: str):
     click.echo(f"    pip install -r requirements.txt")
     click.echo(f"    nextpy dev")
     click.echo()
-
-
 
 
 @cli.command()
@@ -272,6 +269,9 @@ async def get_server_side_props(context):
     <div class="text-center text-white">
         <h1 class="text-5xl font-bold mb-4">{{ title }}</h1>
         <p class="text-xl">{{ message }}</p>
+        <a href="https://github.com/nextpy/nextpy-framework" target="_blank" class="mt-8 inline-block px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow-lg hover:bg-gray-100 hover:text-blue-700 transition-all duration-300 transform hover:scale-105">
+            Explore NextPy Framework
+        </a>
     </div>
 </div>
 {% endblock %}
@@ -304,6 +304,7 @@ httpx>=0.24.0
 sqlalchemy>=2.0.0
 python-dotenv>=1.0.0
 pyjwt>=2.8.0
+markdown>=3.0.0 # Added markdown for documentation rendering
 ''')
     click.echo("  Created: requirements.txt")
 
@@ -321,6 +322,47 @@ async def get_server_side_props(context):
     }
 ''')
     click.echo("  Created: pages/about.py")
+
+    # Add the documentation page and template to new projects
+    (project_dir / "pages" / "documentation.py").write_text('''"""Framework Documentation Page"""
+
+from nextpy.server.app import get_template
+from markdown import markdown
+
+def get_template():
+    return "documentation.html"
+
+async def get_server_side_props(context):
+    try:
+        with open("DOCUMENTATION.md", "r") as f:
+            md_content = f.read()
+        html_content = markdown(md_content)
+    except FileNotFoundError:
+        html_content = "<h1>Documentation not found</h1><p>Please ensure DOCUMENTATION.md is in the project root.</p>"
+    
+    return {
+        "props": {
+            "title": "NextPy Framework Documentation",
+            "documentation_content": html_content
+        }
+    }
+''')
+    click.echo("  Created: pages/documentation.py")
+
+    (project_dir / "templates" / "documentation.html").write_text('''{% extends "_base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12 px-4">
+    <h1 class="text-4xl font-bold mb-6">{{ title }}</h1>
+    <div class="prose lg:prose-xl">
+        {{ documentation_content | safe }}
+    </div>
+</div>
+{% endblock %}
+''')
+    click.echo("  Created: templates/documentation.html")
 
     (project_dir / "pages" / "blog" / "index.py").write_text('''"""Blog listing"""
 
@@ -498,6 +540,55 @@ out/
 .nextpy/
 ''')
     click.echo("  Created: .gitignore")
+    
+    # Copy DOCUMENTATION.md to the new project
+    try:
+        current_dir = Path(__file__).parent.parent.parent.parent # Adjust based on actual cli.py location
+        doc_path = current_dir / "DOCUMENTATION.md"
+        if doc_path.exists():
+            (project_dir / "DOCUMENTATION.md").write_text(doc_path.read_text())
+            click.echo("  Copied: DOCUMENTATION.md")
+        else:
+            click.echo(click.style("  Warning: DOCUMENTATION.md not found in framework root. Docs page might be empty.", fg="yellow"))
+    except Exception as e:
+        click.echo(click.style(f"  Error copying DOCUMENTATION.md: {e}", fg="red"))
+
+    # Update _base.html to use /documentation route
+    base_html_path = project_dir / "templates" / "_base.html"
+    if base_html_path.exists():
+        base_html_content = base_html_path.read_text()
+        # Ensure the 'Docs' link correctly points to /documentation
+        updated_base_html_content = base_html_content.replace(
+            '<a href="/docs" class="text-gray-600 hover:text-blue-600 font-medium transition-colors" hx-get="/docs" hx-target="#main-content" hx-push-url="true">Docs</a>',
+            '<a href="/documentation" class="text-gray-600 hover:text-blue-600 font-medium transition-colors" hx-get="/documentation" hx-target="#main-content" hx-push-url="true">Docs</a>'
+        ).replace(
+            '<li><a href="/docs" class="hover:text-white transition">Getting Started</a></li>',
+            '<li><a href="/documentation" class="hover:text-white transition">Getting Started</a></li>'
+        ).replace(
+            '<li><a href="/docs" class="hover:text-white transition">API Reference</a></li>',
+            '<li><a href="/documentation" class="hover:text-white transition">API Reference</a></li>'
+        )
+        base_html_path.write_text(updated_base_html_content)
+        click.echo("  Updated: templates/_base.html with /documentation link")
+    else:
+        click.echo(click.style("  Warning: templates/_base.html not found in new project. Could not update documentation link.", fg="yellow"))
+
+    # Update index.html to include a link to the NextPy GitHub repository
+    index_html_path = project_dir / "templates" / "index.html"
+    if index_html_path.exists():
+        index_html_content = index_html_path.read_text()
+        # Find the closing tag of the <p> element and insert the new link after it
+        insertion_point = index_html_content.find('</p>')
+        if insertion_point != -1:
+            updated_index_html_content = index_html_content[:insertion_point + 4] + \
+                                         '        <a href="https://github.com/nextpy/nextpy-framework" target="_blank" class="mt-8 inline-block px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow-lg hover:bg-gray-100 hover:text-blue-700 transition-all duration-300 transform hover:scale-105">\n            Explore NextPy Framework\n        </a>' + \
+                                         index_html_content[insertion_point + 4:]
+            index_html_path.write_text(updated_index_html_content)
+            click.echo("  Updated: templates/index.html with NextPy Framework link")
+        else:
+            click.echo(click.style("  Warning: Could not find insertion point in templates/index.html to add NextPy Framework link.", fg="yellow"))
+    else:
+        click.echo(click.style("  Warning: templates/index.html not found in new project. Could not add NextPy Framework link.", fg="yellow"))
 
 
 if __name__ == "__main__":

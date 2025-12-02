@@ -13,6 +13,7 @@ from datetime import datetime
 class ContactMessage(Base):
     """Store contact messages"""
     __tablename__ = "contact_messages"
+    __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True)
     name = Column(String(255))
