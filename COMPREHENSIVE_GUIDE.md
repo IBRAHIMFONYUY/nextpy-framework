@@ -10,12 +10,13 @@
 7. [Database Integration](#database-integration)
 8. [Authentication](#authentication)
 9. [Components & Templates](#components--templates)
-10. [Utilities & Tools](#utilities--tools)
-11. [Development Tools](#development-tools)
-12. [Performance Optimization](#performance-optimization)
-13. [Testing](#testing)
-14. [Deployment](#deployment)
-15. [Troubleshooting](#troubleshooting)
+10. [Styling with Tailwind CSS](#styling-with-tailwind-css)
+11. [Utilities & Tools](#utilities--tools)
+12. [Development Tools](#development-tools)
+13. [Performance Optimization](#performance-optimization)
+14. [Testing](#testing)
+15. [Deployment](#deployment)
+16. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -52,12 +53,17 @@ my-app/
 │   ├── index.html         # Homepage template
 │   ├── components/        # Reusable components
 │   └── [page].html        # Page templates
-├── nextpy/                # Framework code
 ├── public/                # Static files
+│   └── tailwind.css       # Compiled Tailwind CSS
 ├── models/                # Database models
 ├── tests/                 # Test files
+├── nextpy/                # Framework code
 ├── main.py               # Application entry
 ├── requirements.txt      # Dependencies
+├── package.json          # Node.js dependencies
+├── tailwind.config.js    # Tailwind CSS configuration
+├── postcss.config.js     # PostCSS configuration
+├── styles.css            # Tailwind CSS directives
 └── .env                  # Configuration
 
 ```
@@ -122,8 +128,8 @@ Template `templates/about.html`:
 {% extends "_base.html" %}
 
 {% block content %}
-<h1>{{ title }}</h1>
-<p>{{ description }}</p>
+<h1 class="text-4xl font-bold">{{ title }}</h1>
+<p class="text-lg">{{ description }}</p>
 {% endblock %}
 ```
 
@@ -155,7 +161,7 @@ async def get_server_side_props(context):
     return {"props": {"path": path}}
 ```
 
-Access via: `/docs/guides`, `/docs/guides/advanced`, etc.
+Access via: `/docs/guides/advanced`, `/docs/guides/advanced`, etc.
 
 ---
 
@@ -553,6 +559,127 @@ Use it:
 
 ---
 
+## Styling with Tailwind CSS
+
+NextPy provides a streamlined workflow for integrating Tailwind CSS into your projects, allowing you to build UIs rapidly with a utility-first approach.
+
+### 1. Install Node.js Dependencies
+
+Tailwind CSS is a PostCSS plugin, requiring Node.js and npm. Navigate to your project root and install the necessary packages:
+
+```bash
+npm init -y
+npm install -D tailwindcss@latest postcss@latest autoprefixer@latest
+```
+
+### 2. Configure Tailwind CSS
+
+Create `tailwind.config.js` in your project root to configure Tailwind's content paths, theme, and plugins. It's crucial to include your Jinja2 template files (`./templates/**/*.html`) in the `content` array so Tailwind can scan them for classes:
+
+```javascript
+// tailwind.config.js
+module.exports = {
+  content: [
+    './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './templates/**/*.html', // Include this line for Jinja2 templates
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+};
+```
+
+Create `postcss.config.js` in your project root to enable PostCSS and its plugins, including Tailwind CSS and Autoprefixer:
+
+```javascript
+// postcss.config.js
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+```
+
+Create a `styles.css` file (e.g., in your project root or `public/css/`) and include the Tailwind directives:
+
+```css
+/* styles.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+### 3. Automatic CSS Compilation with `main.py`
+
+NextPy's `main.py` is pre-configured to automatically compile your Tailwind CSS into a static file (`public/tailwind.css`) whenever your application starts. This ensures that your styles are always up-to-date. The relevant section in `main.py` looks like this:
+
+```python
+# main.py (excerpt)
+import subprocess
+
+# ... other imports and setup ...
+
+try:
+    print("Compiling Tailwind CSS...")
+    subprocess.run(["npx", "tailwindcss", "-i", "./styles.css", "-o", "./public/tailwind.css"], check=True)
+    print("Tailwind CSS compiled successfully.")
+except subprocess.CalledProcessError as e:
+    print(f"Error compiling Tailwind CSS: {e}")
+except FileNotFoundError:
+    print("Error: npx or tailwindcss command not found. Make sure Node.js and Tailwind CSS are installed.")
+
+# ... rest of your NextPy app creation ...
+```
+
+### 4. Link Compiled CSS in your Base Template
+
+To apply the Tailwind CSS styles to your application, link the compiled CSS file (`/public/tailwind.css`) in the `<head>` section of your base Jinja2 template (typically `templates/_base.html`):
+
+```html
+<!-- templates/_base.html (excerpt) -->
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- ... other head elements ... -->
+    <link href="/public/tailwind.css" rel="stylesheet">
+</head>
+<body>
+    <!-- ... rest of your layout ... -->
+</body>
+</html>
+```
+
+### 5. Using Tailwind Classes in Templates
+
+Once set up, you can use Tailwind CSS utility classes directly within your Jinja2 templates. Tailwind will automatically detect these classes and include them in the compiled `public/tailwind.css` file.
+
+```html
+<!-- templates/my_awesome_page.html -->
+{% extends "_base.html" %}
+
+{% block content %}
+<div class="container mx-auto p-4 bg-white shadow-lg rounded-lg">
+    <h1 class="text-5xl font-extrabold text-indigo-800 mb-6">Hello, Tailwind!</h1>
+    <p class="text-lg text-gray-700 leading-relaxed mb-8">
+        This is an example of a NextPy page styled with 
+        <span class="font-semibold text-teal-600">Tailwind CSS</span>. 
+        Enjoy rapid UI development!
+    </p>
+    <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-xl transition duration-300 ease-in-out transform hover:scale-105">
+        Learn More
+    </button>
+</div>
+{% endblock %}
+```
+
+This integration ensures that your NextPy applications can leverage the full power of Tailwind CSS for modern and responsive designs, with the compiled styles being available offline once the application is running.
+
+---
+
 ## Utilities & Tools
 
 ### Caching
@@ -649,7 +776,7 @@ nextpy create:model Product
 
 ### Development Server
 
-Hot reload automatically detects changes:
+Hot reload automatically detects changes and compiles Tailwind CSS:
 
 ```bash
 nextpy dev
@@ -659,6 +786,7 @@ Features:
 - Auto-restart on file changes
 - Error display in browser
 - Performance stats
+- **Automatic Tailwind CSS compilation**
 
 ### Build Optimization
 
@@ -671,6 +799,7 @@ Optimizations:
 - Code splitting
 - Compression
 - Cache busting
+- **Tailwind CSS purging and minification**
 
 ---
 
@@ -779,7 +908,15 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
+# Install Node.js and npm for Tailwind CSS compilation
+RUN apt-get update && apt-get install -y nodejs npm
+COPY package.json tailwind.config.js postcss.config.js styles.css ./
+RUN npm install
+
 COPY . .
+
+# Compile Tailwind CSS during build (or ensure main.py runs it)
+RUN npx tailwindcss -i ./styles.css -o ./public/tailwind.css --minify
 
 CMD ["nextpy", "start"]
 ```
@@ -829,6 +966,16 @@ nextpy start
 1. Use SSG for static pages
 2. Enable caching
 3. Check for N+1 queries
+
+### Tailwind CSS Not Applying / Compiling
+
+- **Node.js and npm:** Ensure Node.js and npm are installed on your system. Run `node -v` and `npm -v` to verify.
+- **Dependencies:** Make sure you have installed the necessary Node.js dependencies: `npm install -D tailwindcss@latest postcss@latest autoprefixer@latest`.
+- **Configuration:** Double-check `tailwind.config.js` and `postcss.config.js` for correct syntax and content, especially the `content` array in `tailwind.config.js` including `'./templates/**/*.html'`.
+- **`styles.css`:** Verify that `styles.css` exists in the project root (or the path specified in `main.py`) and contains the `@tailwind` directives.
+- **`main.py` Compilation:** Confirm the `subprocess.run` command in `main.py` for Tailwind CSS compilation is present and executes without errors when you run `nextpy dev`.
+- **Link in `_base.html`:** Ensure `<link href="/public/tailwind.css" rel="stylesheet">` is correctly placed in the `<head>` section of your `templates/_base.html`.
+- **Clear Browser Cache:** Sometimes browser caching can prevent new styles from loading. Try a hard refresh (`Ctrl+Shift+R` or `Cmd+Shift+R`) or clear your browser's cache.
 
 ---
 

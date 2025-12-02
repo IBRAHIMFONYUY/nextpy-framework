@@ -1,0 +1,2 @@
+[console_scripts]
+nextpy = nextpy.cli:cli

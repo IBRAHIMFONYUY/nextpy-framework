@@ -52,6 +52,8 @@ dev = [
     "pytest-asyncio>=0.21.0",
     "black>=23.0",
     "mypy>=1.0",
+    # For Tailwind CSS development, ensure Node.js and npm are installed.
+    # Then run: npm install -D tailwindcss@latest postcss@latest autoprefixer@latest
 ]
 
 [project.urls]

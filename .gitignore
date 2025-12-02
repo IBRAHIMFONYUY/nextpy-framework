@@ -1,54 +1,31 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+# Byte-code files
+*.pyc
 
-# Virtual environments
-.env
-.venv
-env/
-venv/
-ENV/
-.pythonlibs/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
 
 # NextPy
+
+nextpy.db
+.web/
 out/
-.nextpy/
-*.log
+public/tailwind.css # Ignore the compiled tailwind css as it's generated
+
+# Environment
+.env
+.venv/
+venv/
+env/
+
+# IDEs
+.idea/
+.vscode/
 
 # OS
 .DS_Store
-Thumbs.db
+.ipynb_checkpoints
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Misc
-*.bak
-*.tmp
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
