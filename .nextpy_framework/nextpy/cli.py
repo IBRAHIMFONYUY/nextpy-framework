@@ -1,6 +1,6 @@
 """
 NextPy CLI - Command-line interface for NextPy projects
-Commands: dev, build, start
+Commands: dev, build, start, create, routes, export, db
 """
 
 import os
@@ -12,11 +12,19 @@ from typing import Optional
 
 import click
 import uvicorn
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+
+# Try to import watchdog, make it optional
+try:
+    from watchdog.observers import Observer
+    from watchdog.events import FileSystemEventHandler
+    WATCHDOG_AVAILABLE = True
+except ImportError:
+    WATCHDOG_AVAILABLE = False
+    Observer = None
+    FileSystemEventHandler = None
 
 
-class HotReloadHandler(FileSystemEventHandler):
+class HotReloadHandler:
     """Handles file system changes for hot reload"""
     
     def __init__(self, reload_callback):
@@ -24,7 +32,7 @@ class HotReloadHandler(FileSystemEventHandler):
         self._debounce_timer = None
         
     def on_modified(self, event):
-        if event.is_directory:
+        if not WATCHDOG_AVAILABLE or event.is_directory:
             return
             
         extensions = (".py", ".html", ".jinja2", ".css", ".js")
@@ -32,12 +40,14 @@ class HotReloadHandler(FileSystemEventHandler):
             self._trigger_reload()
             
     def on_created(self, event):
-        if not event.is_directory:
-            self._trigger_reload()
+        if not WATCHDOG_AVAILABLE or event.is_directory:
+            return
+        self._trigger_reload()
             
     def on_deleted(self, event):
-        if not event.is_directory:
-            self._trigger_reload()
+        if not WATCHDOG_AVAILABLE or event.is_directory:
+            return
+        self._trigger_reload()
             
     def _trigger_reload(self):
         if self.reload_callback:
@@ -49,7 +59,7 @@ def find_main_module():
     return "main:app"
 
 @click.group()
-@click.version_option(version="1.0.0", prog_name="NextPy")
+@click.version_option(version="2.0.0", prog_name="NextPy")
 def cli():
     """NextPy - A Python web framework inspired by Next.js"""
     pass
@@ -64,6 +74,10 @@ def dev(port: int, host: str, reload: bool, debug: bool):
     """Start the development server with hot reload"""
     click.echo(click.style("\n  NextPy Development Server", fg="cyan", bold=True))
     click.echo(click.style("  ========================\n", fg="cyan"))
+    
+    if reload and not WATCHDOG_AVAILABLE:
+        click.echo(click.style("  Warning: watchdog not installed. Install with 'pip install watchdog' for hot reload.", fg="yellow"))
+        reload = False
     
     _ensure_project_structure()
     
@@ -104,25 +118,59 @@ def dev(port: int, host: str, reload: bool, debug: bool):
 @cli.command()
 @click.option("--out", "-o", default="out", help="Output directory for static files")
 @click.option("--clean/--no-clean", default=True, help="Clean output directory first")
-def build(out: str, clean: bool):
+@click.option("--static/--no-static", default=False, help="Build static site")
+def build(out: str, clean: bool, static: bool):
     """Build the project for production (SSG)"""
     click.echo(click.style("\n  NextPy Static Build", fg="green", bold=True))
     click.echo(click.style("  ===================\n", fg="green"))
+    
+    if static:
+        click.echo("  Building static site...")
+    else:
+        click.echo("  Building for production...")
     
     from nextpy.core.builder import Builder
     
     builder = Builder(out_dir=out)
     
     async def run_build():
-        manifest = await builder.build(clean=clean)
+        if static:
+            manifest = await builder.export_static(clean=clean)
+        else:
+            manifest = await builder.build(clean=clean)
         return manifest
         
     manifest = asyncio.run(run_build())
     
     pages_count = len(manifest.get("pages", {}))
-    click.echo(f"\n  Built {pages_count} pages")
+    build_type = "static site" if static else "production build"
+    click.echo(f"\n  Built {pages_count} pages ({build_type})")
     click.echo(f"  Output: {out}/")
     click.echo(click.style("\n  Build complete!\n", fg="green", bold=True))
+
+
+@cli.command()
+@click.option("--out", "-o", default="out", help="Output directory for exported files")
+@click.option("--clean/--no-clean", default=True, help="Clean output directory first")
+def export(out: str, clean: bool):
+    """Export the project to static files"""
+    click.echo(click.style("\n  NextPy Static Export", fg="green", bold=True))
+    click.echo(click.style("  ====================\n", fg="green"))
+    
+    from nextpy.core.builder import Builder
+    
+    builder = Builder(out_dir=out)
+    
+    async def run_export():
+        manifest = await builder.export_static(clean=clean)
+        return manifest
+        
+    manifest = asyncio.run(run_export())
+    
+    pages_count = len(manifest.get("pages", {}))
+    click.echo(f"\n  Exported {pages_count} pages")
+    click.echo(f"  Output: {out}/")
+    click.echo(click.style("\n  Export complete!\n", fg="green", bold=True))
 
 
 @cli.command()
@@ -152,9 +200,12 @@ def start(port: int, host: str):
 
 @cli.command()
 @click.argument("name")
-def create(name: str):
+@click.option("--template", "-t", help="Project template to use (blog, api, default)")
+def create(name: str, template: str):
     """Create a new NextPy project"""
     click.echo(click.style(f"\n  Creating NextPy project: {name}", fg="cyan", bold=True))
+    if template:
+        click.echo(click.style(f"  Template: {template}\n", fg="cyan"))
     click.echo(click.style("  " + "=" * (25 + len(name)) + "\n", fg="cyan"))
     
     project_dir = Path(name)
@@ -163,7 +214,7 @@ def create(name: str):
         click.echo(click.style(f"  Error: Directory '{name}' already exists", fg="red"))
         return
         
-    _create_project_structure(project_dir)
+    _create_project_structure(project_dir, template)
     
     click.echo(f"\n  Project created at: {project_dir.absolute()}")
     click.echo(f"\n  Next steps:")
@@ -197,6 +248,59 @@ def routes():
     click.echo()
 
 
+@cli.group()
+def db():
+    """Database management commands"""
+    pass
+
+
+@db.command()
+def init():
+    """Initialize the database"""
+    click.echo(click.style("\n  NextPy Database Initialization", fg="cyan", bold=True))
+    click.echo(click.style("  ============================\n", fg="cyan"))
+    
+    try:
+        from nextpy.db import init_db
+        from nextpy.config import settings
+        
+        init_db(settings.database_url)
+        click.echo(click.style("  ✅ Database initialized successfully!\n", fg="green"))
+    except Exception as e:
+        click.echo(click.style(f"  ❌ Database initialization failed: {e}\n", fg="red"))
+
+
+@db.command()
+def migrate():
+    """Run database migrations"""
+    click.echo(click.style("\n  NextPy Database Migration", fg="cyan", bold=True))
+    click.echo(click.style("  ========================\n", fg="cyan"))
+    
+    try:
+        from nextpy.db import run_migrations
+        
+        run_migrations()
+        click.echo(click.style("  ✅ Migrations completed successfully!\n", fg="green"))
+    except Exception as e:
+        click.echo(click.style(f"  ❌ Migration failed: {e}\n", fg="red"))
+
+
+@db.command()
+@click.argument("name")
+def migration(name: str):
+    """Create a new database migration"""
+    click.echo(click.style(f"\n  Creating Migration: {name}", fg="cyan", bold=True))
+    click.echo(click.style("  " + "=" * (25 + len(name)) + "\n", fg="cyan"))
+    
+    try:
+        from nextpy.db import create_migration
+        
+        migration_file = create_migration(name)
+        click.echo(f"  ✅ Migration created: {migration_file}\n")
+    except Exception as e:
+        click.echo(click.style(f"  ❌ Migration creation failed: {e}\n", fg="red"))
+
+
 def _ensure_project_structure():
     """Ensure the basic project structure exists"""
     dirs = ["pages", "pages/api", "templates", "public", "public/css", "public/js"]
@@ -205,13 +309,11 @@ def _ensure_project_structure():
         Path(dir_path).mkdir(parents=True, exist_ok=True)
 
 
-def _create_project_structure(project_dir: Path):
+def _create_project_structure(project_dir: Path, template: str = None):
     """Create a new project structure"""
     dirs = [
         "pages",
         "pages/api",
-        "pages/blog",
-        "pages/api/users",
         "templates",
         "templates/components",
         "public",
@@ -220,6 +322,24 @@ def _create_project_structure(project_dir: Path):
         "public/images",
         "models",
     ]
+    
+    # Add template-specific directories
+    if template == "blog":
+        dirs.extend([
+            "pages/blog",
+            "pages/api/posts",
+        ])
+    elif template == "api":
+        dirs.extend([
+            "pages/api/users",
+            "pages/api/posts",
+        ])
+    else:
+        # Default template
+        dirs.extend([
+            "pages/blog",
+            "pages/api/users",
+        ])
     
     for dir_path in dirs:
         (project_dir / dir_path).mkdir(parents=True, exist_ok=True)
