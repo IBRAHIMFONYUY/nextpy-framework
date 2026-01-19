@@ -9,7 +9,7 @@
 project = 'nextpy framework'
 copyright = '2025, Ibrahim Fonyuy'
 author = 'Ibrahim Fonyuy'
-release = '1.1.0'
+release = '2.0.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

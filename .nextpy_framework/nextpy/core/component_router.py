@@ -1,12 +1,6 @@
 """
-NextPy Router - File-based routing system inspired by Next.js
-Supports:
-- File-based routing (pages/index.py -> /)
-- Dynamic routes (pages/[slug].py -> /:slug)
-- Nested routes (pages/blog/[id].py -> /blog/:id)
-- Catch-all routes (pages/[...path].py -> /*)
-- API routes (pages/api/*.py)
-- Demo pages when no project exists
+NextPy Component Router - Enhanced router for component-based pages
+Supports both template-based and component-based rendering
 """
 
 import os
@@ -16,48 +10,22 @@ from pathlib import Path
 from typing import Dict, List, Optional, Callable, Any, Tuple
 from dataclasses import dataclass, field
 from pydantic import BaseModel
-from .demo_router import demo_router
 
-
-class RouteParams(BaseModel):
-    """Type-safe route parameters"""
-    params: Dict[str, str] = {}
-    query: Dict[str, str] = {}
+from .router import Route, DynamicRoute, RouteParams
+from .component_renderer import ComponentRenderer
 
 
 @dataclass
-class Route:
-    """Represents a single route in the application"""
-    path: str
-    file_path: Path
-    handler: Optional[Callable] = None
-    is_dynamic: bool = False
-    is_api: bool = False
-    is_catch_all: bool = False
-    param_names: List[str] = field(default_factory=list)
-    pattern: Optional[re.Pattern] = None
-    
-    def matches(self, url_path: str) -> Optional[Dict[str, str]]:
-        """Check if this route matches the given URL path"""
-        if self.pattern:
-            match = self.pattern.match(url_path)
-            if match:
-                return match.groupdict()
-        elif self.path == url_path:
-            return {}
-        return None
+class ComponentRoute(Route):
+    """A route that renders components instead of templates"""
+    use_components: bool = True
+    renderer: ComponentRenderer = field(default_factory=ComponentRenderer)
 
 
-@dataclass  
-class DynamicRoute(Route):
-    """A route with dynamic segments like [slug] or [...path]"""
-    is_dynamic: bool = True
-
-
-class Router:
+class ComponentRouter:
     """
-    File-based router that scans the pages directory
-    and creates routes similar to Next.js
+    Enhanced router that supports both template-based and component-based pages
+    Automatically detects which rendering system to use based on file content
     """
     
     def __init__(self, pages_dir: str = "pages", templates_dir: str = "templates"):
@@ -66,15 +34,7 @@ class Router:
         self.routes: List[Route] = []
         self.api_routes: List[Route] = []
         self._route_cache: Dict[str, Route] = {}
-        self._demo_mode = False
-        
-    def enable_demo_mode(self):
-        """Enable demo mode when no project exists"""
-        self._demo_mode = True
-        
-    def is_demo_mode(self) -> bool:
-        """Check if router is in demo mode"""
-        return self._demo_mode
+        self.renderer = ComponentRenderer()
         
     def scan_pages(self) -> None:
         """Scan the pages directory and register all routes"""
@@ -149,22 +109,78 @@ class Router:
             except re.error:
                 pattern = re.compile("^" + path + "$")
                 
-        handler = self._load_handler(file_path)
+        # Check if this is a component-based page
+        use_components = self._is_component_page(file_path)
         
-        route_class = DynamicRoute if is_dynamic else Route
+        route_class = ComponentRoute if use_components else (DynamicRoute if is_dynamic else Route)
         return route_class(
             path=path,
             file_path=file_path,
-            handler=handler,
+            handler=self._load_handler(file_path, use_components),
             is_dynamic=is_dynamic,
             is_api=is_api,
             is_catch_all=is_catch_all,
             param_names=param_names,
             pattern=pattern,
+            use_components=use_components,
+            renderer=self.renderer if use_components else None
         )
         
-    def _load_handler(self, file_path: Path) -> Optional[Callable]:
-        """Dynamically load the handler function from a page file"""
+    def _is_component_page(self, file_path: Path) -> bool:
+        """Check if a page uses components or templates"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                
+            # Check for component indicators
+            component_indicators = [
+                'from ..nextpy.components',
+                'from nextpy.components',
+                'from .jsx',
+                'from nextpy.jsx',
+                'default = ',
+                'def Component(',
+                '@Component',
+                'jsx(',
+                'div(',
+                'h1(',
+                'return jsx(',
+                'return div('
+            ]
+            
+            # Check for template indicators
+            template_indicators = [
+                'def get_template(',
+                'return "',
+                'templates/',
+                '.html'
+            ]
+            
+            component_score = sum(1 for indicator in component_indicators if indicator in content)
+            template_score = sum(1 for indicator in template_indicators if indicator in content)
+            
+            return component_score > template_score
+            
+        except Exception:
+            return False
+        
+    def _load_handler(self, file_path: Path, use_components: bool = False) -> Optional[Callable]:
+        """Load the appropriate handler based on rendering type"""
+        if use_components:
+            return self._create_component_handler(file_path)
+        else:
+            return self._create_template_handler(file_path)
+    
+    def _create_component_handler(self, file_path: Path) -> Callable:
+        """Create a handler for component-based pages"""
+        def handler(context: Dict[str, Any] = None):
+            if context is None:
+                context = {}
+            return self.renderer.render_page(file_path, context)
+        return handler
+    
+    def _create_template_handler(self, file_path: Path) -> Optional[Callable]:
+        """Load the traditional template-based handler"""
         try:
             spec = importlib.util.spec_from_file_location(
                 file_path.stem, 
@@ -203,21 +219,6 @@ class Router:
         """Find a route that matches the given URL path"""
         url_path = url_path.rstrip("/") or "/"
         
-        # Check demo routes first if in demo mode
-        if self.is_demo_mode():
-            demo_page = demo_router.get_demo_page(url_path)
-            if demo_page:
-                # Create a demo route
-                from .demo_pages import HomePage  # Import here to avoid circular import
-                demo_route = Route(
-                    path=url_path,
-                    file_path=Path("demo"),
-                    handler=demo_page,
-                    is_dynamic=False,
-                    is_api=False
-                )
-                return (demo_route, {})
-        
         if url_path in self._route_cache:
             route = self._route_cache[url_path]
             params = route.matches(url_path) or {}
@@ -234,6 +235,27 @@ class Router:
                 
         return None
         
+    def render_route(self, route: Route, context: Dict[str, Any] = None) -> str:
+        """Render a route using the appropriate renderer"""
+        if context is None:
+            context = {}
+            
+        if isinstance(route, ComponentRoute) and route.use_components:
+            return route.renderer.render_page(route.file_path, context)
+        elif route.handler and callable(route.handler):
+            return route.handler(context)
+        else:
+            return f"<h1>Route {route.path} has no handler</h1>"
+    
+    def handle_api_route(self, route: Route, request_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle API route requests"""
+        if isinstance(route, ComponentRoute) and route.use_components:
+            return route.renderer.render_api_route(route.file_path, request_data)
+        elif route.handler and callable(route.handler):
+            return route.handler(request_data)
+        else:
+            return {'error': f'API route {route.path} has no handler'}
+        
     def get_all_routes(self) -> List[Route]:
         """Get all registered routes"""
         return self.routes + self.api_routes
@@ -247,6 +269,7 @@ class Router:
         self.routes = [r for r in self.routes if r.file_path != file_path]
         self.api_routes = [r for r in self.api_routes if r.file_path != file_path]
         self._route_cache.clear()
+        self.renderer.clear_cache()
         
         if file_path.exists():
             route = self._create_route_from_file(file_path)
@@ -257,3 +280,15 @@ class Router:
                     self.routes.append(route)
                     
         self._sort_routes()
+    
+    def get_component_routes(self) -> List[ComponentRoute]:
+        """Get only component-based routes"""
+        return [r for r in self.routes if isinstance(r, ComponentRoute) and r.use_components]
+    
+    def get_template_routes(self) -> List[Route]:
+        """Get only template-based routes"""
+        return [r for r in self.routes if not (isinstance(r, ComponentRoute) and r.use_components)]
+
+
+# Export the router instance
+component_router = ComponentRouter()

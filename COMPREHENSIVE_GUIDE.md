@@ -440,7 +440,7 @@ async def post(request):
     
     token = AuthManager.create_token(user_id=user.id)
     session.close()
-    
+    Link("/about", "About Us", prefetch=False)
     return {"token": token, "user_id": user.id}
 ```
 
@@ -662,14 +662,14 @@ Once set up, you can use Tailwind CSS utility classes directly within your Jinja
 {% extends "_base.html" %}
 
 {% block content %}
-<div class="container mx-auto p-4 bg-white shadow-lg rounded-lg">
-    <h1 class="text-5xl font-extrabold text-indigo-800 mb-6">Hello, Tailwind!</h1>
-    <p class="text-lg text-gray-700 leading-relaxed mb-8">
+<div class="container p-4 mx-auto bg-white rounded-lg shadow-lg">
+    <h1 class="mb-6 text-5xl font-extrabold text-indigo-800">Hello, Tailwind!</h1>
+    <p class="mb-8 text-lg leading-relaxed text-gray-700">
         This is an example of a NextPy page styled with 
         <span class="font-semibold text-teal-600">Tailwind CSS</span>. 
         Enjoy rapid UI development!
     </p>
-    <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-xl transition duration-300 ease-in-out transform hover:scale-105">
+    <button class="px-6 py-3 font-bold text-white transition duration-300 ease-in-out transform bg-blue-600 rounded-full shadow-xl hover:bg-blue-700 hover:scale-105">
         Learn More
     </button>
 </div>

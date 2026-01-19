@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 
 from nextpy.core.router import Router
+from nextpy.core.demo_router import demo_router
 from nextpy.core.renderer import Renderer
 from nextpy.core.data_fetching import (
     PageContext,
@@ -24,6 +25,7 @@ from nextpy.core.data_fetching import (
     RedirectError,
 )
 from nextpy.server.middleware import NextPyMiddleware
+from nextpy.security import security_manager
 
 
 class NextPyApp:
@@ -54,6 +56,13 @@ class NextPyApp:
             str(self.public_dir),
         )
         
+        # Check if we should enable demo mode
+        if demo_router.should_serve_demo():
+            self.router.enable_demo_mode()
+            print("🎉 NextPy Demo Mode - No project detected")
+            print("📚 Showing built-in documentation and examples")
+            print("💡 Create a project with: nextpy create my-app")
+        
         self.app = FastAPI(
             title="NextPy Application",
             debug=debug,
@@ -74,6 +83,24 @@ class NextPyApp:
         )
         
         self.app.add_middleware(NextPyMiddleware)
+        
+        # Add security headers middleware
+        @self.app.middleware("http")
+        async def add_security_headers(request: Request, call_next):
+            response = await call_next(request)
+            
+            # Add Content Security Policy
+            csp_header = security_manager.create_csp_header()
+            response.headers["Content-Security-Policy"] = csp_header
+            
+            # Add other security headers
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            response.headers["X-Frame-Options"] = "DENY"
+            response.headers["X-XSS-Protection"] = "1; mode=block"
+            response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+            response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+            
+            return response
         
     def _setup_static_files(self) -> None:
         """Mount static file directories"""
@@ -128,6 +155,10 @@ class NextPyApp:
             return await self._render_404(request)
             
         route, params = match
+        
+        # Handle demo pages differently
+        if self.router.is_demo_mode() and str(route.file_path) == "demo":
+            return await self._handle_demo_page(request, route, params)
         
         if route.is_api:
             return await self._handle_api_request(request, route, params)
@@ -288,10 +319,43 @@ class NextPyApp:
             """
         return HTMLResponse(content=html, status_code=500)
         
+    async def _handle_demo_page(self, request: Request, route, params: Dict[str, str]) -> Response:
+        """Handle demo page requests"""
+        try:
+            # Call the demo page function
+            demo_function = route.handler
+            if callable(demo_function):
+                # Demo pages return JSX elements, render them
+                from ..jsx import render_jsx
+                jsx_element = demo_function()
+                html = render_jsx(jsx_element)
+                
+                return HTMLResponse(
+                    content=html,
+                    headers={
+                        "Cache-Control": "no-cache, no-store, must-revalidate",
+                        "Pragma": "no-cache",
+                        "Expires": "0",
+                    },
+                )
+            else:
+                return await self._render_404(request)
+                
+        except Exception as e:
+            if self.debug:
+                import traceback
+                traceback.print_exc()
+            return await self._render_error(request, e)
+        
     def reload_routes(self) -> None:
         """Reload all routes (for hot reload)"""
         self._modules_cache.clear()
         self.router = Router(str(self.pages_dir), str(self.templates_dir))
+        
+        # Re-check demo mode
+        if demo_router.should_serve_demo():
+            self.router.enable_demo_mode()
+        
         self.router.scan_pages()
 
 
