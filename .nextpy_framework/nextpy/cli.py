@@ -1147,6 +1147,105 @@ pyjwt>=2.8.0
 markdown>=3.0.0 # Added markdown for documentation rendering
 ''')
     click.echo("  Created: requirements.txt")
+    
+    # Create main.py file for ASGI app
+    (project_dir / "main.py").write_text('''"""NextPy ASGI Application Entry Point"""
+
+from fastapi import FastAPI
+from nextpy.server.app import NextPyApp
+from nextpy.core.router import Router
+from pathlib import Path
+import os
+
+# Create NextPy app
+app = NextPyApp()
+
+# Configure pages directory
+pages_dir = Path("pages")
+if pages_dir.exists():
+    router = Router(pages_dir=pages_dir)
+    app.add_router(router)
+
+# Add debug icon in development
+if os.getenv("DEVELOPMENT") or os.getenv("DEBUG") or os.getenv("NEXTPY_DEBUG"):
+    from nextpy.components.debug.AutoDebug import AutoDebug
+    app.add_middleware(AutoDebug)
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "framework": "NextPy"}
+
+# Root endpoint
+@app.get("/")
+async def root():
+    return {"message": "NextPy is running!", "docs": "/docs"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+''')
+    click.echo("  Created: main.py")
+    
+    # Create .env file for development
+    (project_dir / ".env").write_text('''# NextPy Development Environment
+DEVELOPMENT=true
+DEBUG=true
+NEXTPY_DEBUG=true
+
+# Server Configuration
+HOST=0.0.0.0
+PORT=8000
+
+# Database (if needed)
+DATABASE_URL=sqlite:///./app.db
+
+# Secret Key
+SECRET_KEY=your-secret-key-here
+
+# NextPy Settings
+NEXTPY_DEBUG_ICON=true
+NEXTPY_HOT_RELOAD=true
+NEXTPY_LOG_LEVEL=info
+''')
+    click.echo("  Created: .env")
+    
+    # Install VS Code extension if available
+    try:
+        import sys
+        import subprocess
+        from pathlib import Path
+        
+        # Check if VS Code is available
+        result = subprocess.run([sys.executable, "-c", "import vscode"], 
+                              capture_output=True, text=True)
+        
+        if result.returncode == 0:
+            extension_id = "nextpy.nextpy-vscode"
+            
+            # Check if extension is already installed
+            check_cmd = ["code", "--list-extensions", "--show-versions", extension_id]
+            check_result = subprocess.run(check_cmd, capture_output=True, text=True)
+            
+            if extension_id not in check_result.stdout:
+                click.echo(click.style("  🔌 Installing NextPy VS Code extension...", fg="blue"))
+                
+                # Try to install from marketplace
+                install_cmd = ["code", "--install-extension", extension_id]
+                install_result = subprocess.run(install_cmd, capture_output=True, text=True)
+                
+                if install_result.returncode == 0:
+                    click.echo(click.style("  ✅ NextPy VS Code extension installed!", fg="green"))
+                    click.echo(click.style("  📝 Restart VS Code to activate", fg="yellow"))
+                else:
+                    click.echo(click.style("  ⚠️  Extension installation failed", fg="orange"))
+                    click.echo("  💡 Install manually: code --install-extension nextpy.nextpy-vscode")
+            else:
+                click.echo(click.style("  ✅ NextPy VS Code extension already installed", fg="green"))
+        else:
+            click.echo(click.style("  ⚠️  VS Code not available", fg="orange"))
+    except Exception as e:
+        click.echo(click.style(f"  ⚠️  Could not install VS Code extension: {e}", fg="orange"))
 
 
 
