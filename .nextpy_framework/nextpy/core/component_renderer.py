@@ -5,43 +5,140 @@ Handles component-based pages similar to Next.js, including true JSX syntax
 
 import importlib.util
 import sys
+import time
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 from ..jsx import JSXElement, render_jsx
 from ..jsx_transformer import load_jsx_module
-from ..jsx_preprocessor import is_jsx_file
+from ..jsx_preprocessor import is_jsx_file, JSXSyntaxError
+
+# Import auto-debug system
+try:
+    from ..components.debug.AutoDebug import inject_debug_icon, should_show_debug
+    AUTO_DEBUG_AVAILABLE = True
+except ImportError:
+    AUTO_DEBUG_AVAILABLE = False
+    inject_debug_icon = None
+    should_show_debug = None
 
 
 class ComponentRenderer:
     """Renders Next.js-style Python components to HTML"""
     
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         self.cache = {}
+        self.cache_timeout = 300  # 5 minutes
+        self.debug = debug
+        self.cache_stats = {
+            'hits': 0,
+            'misses': 0,
+            'invalidations': 0
+        }
+        self.render_cache = {}
+        self.render_cache_timeout = 60  # 1 minute for rendered content
+        
+    def _is_cache_valid(self, file_path: Path, cache_entry: Dict[str, Any]) -> bool:
+        """Check if cache entry is still valid"""
+        if not cache_entry:
+            return False
+            
+        # Check timeout
+        current_time = time.time()
+        if current_time - cache_entry.get('timestamp', 0) > self.cache_timeout:
+            return False
+            
+        # In debug mode, check file modification time
+        if self.debug and file_path.exists():
+            file_mtime = file_path.stat().st_mtime
+            cache_mtime = cache_entry.get('file_mtime', 0)
+            if file_mtime > cache_mtime:
+                return False
+                
+        return True
+        
+    def _get_cache_key(self, file_path: Path, context: Dict[str, Any] = None) -> str:
+        """Generate cache key for rendered content"""
+        context_hash = hash(str(sorted(context.items()))) if context else 0
+        return f"{file_path}:{context_hash}"
+        
+    def _cleanup_expired_cache(self):
+        """Remove expired entries from cache"""
+        current_time = time.time()
+        expired_keys = []
+        
+        for key, entry in self.cache.items():
+            if current_time - entry.get('timestamp', 0) > self.cache_timeout:
+                expired_keys.append(key)
+                
+        for key in expired_keys:
+            del self.cache[key]
+            self.cache_stats['invalidations'] += 1
+            
+        # Clean render cache
+        expired_render_keys = []
+        for key, entry in self.render_cache.items():
+            if current_time - entry.get('timestamp', 0) > self.render_cache_timeout:
+                expired_render_keys.append(key)
+                
+        for key in expired_render_keys:
+            del self.render_cache[key]
     
     def load_component_module(self, file_path: Path):
-        """Load a Python module from file path"""
-        if file_path in self.cache:
-            return self.cache[file_path]
+        """Load a Python module from file path with enhanced caching"""
+        # Check cache first
+        cache_entry = self.cache.get(str(file_path))
         
-        # Check if file contains JSX syntax
-        if is_jsx_file(file_path):
-            # Load with JSX transformer
-            module = load_jsx_module(file_path)
-        else:
-            # Load regular Python module
-            spec = importlib.util.spec_from_file_location(
-                file_path.stem, 
-                file_path
-            )
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
+        if self._is_cache_valid(file_path, cache_entry):
+            self.cache_stats['hits'] += 1
+            return cache_entry['module']
         
-        self.cache[file_path] = module
-        return module
+        # Cache miss - load module
+        self.cache_stats['misses'] += 1
+        
+        try:
+            # Check if file contains JSX syntax
+            if is_jsx_file(file_path):
+                # Load with JSX transformer
+                module = load_jsx_module(file_path)
+            else:
+                # Load regular Python module
+                spec = importlib.util.spec_from_file_location(
+                    file_path.stem, 
+                    file_path
+                )
+                if spec and spec.loader:
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+                else:
+                    raise ImportError(f"Could not load module from {file_path}")
+            
+            # Cache the module with metadata
+            file_mtime = file_path.stat().st_mtime if file_path.exists() else 0
+            cache_entry = {
+                'module': module,
+                'timestamp': time.time(),
+                'file_mtime': file_mtime,
+                'file_size': file_path.stat().st_size if file_path.exists() else 0
+            }
+            
+            self.cache[str(file_path)] = cache_entry
+            
+            # Cleanup expired entries periodically
+            if len(self.cache) > 100:  # Cleanup if cache gets too large
+                self._cleanup_expired_cache()
+            
+            return module
+            
+        except Exception as e:
+            # Remove any existing cache entry for this file
+            if str(file_path) in self.cache:
+                del self.cache[str(file_path)]
+            raise e
     
     def render_page(self, file_path: Path, context: Dict[str, Any] = None) -> str:
         """
-        Render a page component to HTML
+        Render a page component to HTML with caching
         Supports Next.js-style patterns:
         - Default export component
         - getServerSideProps
@@ -49,6 +146,13 @@ class ComponentRenderer:
         """
         if context is None:
             context = {}
+        
+        # Check render cache for static props
+        render_cache_key = self._get_cache_key(file_path, context)
+        render_cache_entry = self.render_cache.get(render_cache_key)
+        
+        if render_cache_entry and self._is_cache_valid(file_path, render_cache_entry):
+            return render_cache_entry['html']
         
         try:
             module = self.load_component_module(file_path)
@@ -66,9 +170,22 @@ class ComponentRenderer:
             # getStaticProps (runs at build time)
             elif hasattr(module, 'getStaticProps'):
                 if callable(module.getStaticProps):
-                    result = module.getStaticProps(context)
-                    if isinstance(result, dict) and 'props' in result:
-                        page_props.update(result['props'])
+                    # Check if we have cached static props
+                    static_props_key = f"static:{file_path}"
+                    static_cache_entry = self.cache.get(static_props_key)
+                    
+                    if self._is_cache_valid(file_path, static_cache_entry):
+                        page_props.update(static_cache_entry['props'])
+                    else:
+                        result = module.getStaticProps(context)
+                        if isinstance(result, dict) and 'props' in result:
+                            page_props.update(result['props'])
+                            # Cache static props
+                            self.cache[static_props_key] = {
+                                'props': result['props'],
+                                'timestamp': time.time(),
+                                'file_mtime': file_path.stat().st_mtime if file_path.exists() else 0
+                            }
             
             # Get the main component
             component = None
@@ -103,12 +220,25 @@ class ComponentRenderer:
             # Convert to HTML
             html = render_jsx(rendered)
             
+            # Inject debug icon in development mode
+            if AUTO_DEBUG_AVAILABLE and should_show_debug():
+                html = inject_debug_icon(html, page_props)
+            
             # Wrap in basic HTML structure if not already present
             if not html.strip().startswith('<html'):
                 html = self._wrap_in_html(html, page_props)
             
+            # Cache the rendered content
+            self.render_cache[render_cache_key] = {
+                'html': html,
+                'timestamp': time.time(),
+                'file_mtime': file_path.stat().st_mtime if file_path.exists() else 0
+            }
+            
             return html
             
+        except JSXSyntaxError as e:
+            return self._render_error_page(f"JSX Syntax Error: {str(e)}", file_path)
         except Exception as e:
             return self._render_error_page(str(e), file_path)
     
@@ -194,9 +324,51 @@ class ComponentRenderer:
         except Exception as e:
             return {'error': str(e)}
     
-    def clear_cache(self):
+    def clear_cache(self, file_path: Path = None):
         """Clear the module cache"""
-        self.cache.clear()
+        if file_path:
+            # Clear specific file from cache
+            file_key = str(file_path)
+            if file_key in self.cache:
+                del self.cache[file_key]
+                self.cache_stats['invalidations'] += 1
+            
+            # Clear related render cache entries
+            keys_to_remove = [key for key in self.render_cache.keys() if key.startswith(str(file_path))]
+            for key in keys_to_remove:
+                del self.render_cache[key]
+        else:
+            # Clear all cache
+            self.cache.clear()
+            self.render_cache.clear()
+            self.cache_stats['invalidations'] += len(self.cache)
+    
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Get cache performance statistics"""
+        total_requests = self.cache_stats['hits'] + self.cache_stats['misses']
+        hit_rate = (self.cache_stats['hits'] / total_requests * 100) if total_requests > 0 else 0
+        
+        return {
+            'cache_hits': self.cache_stats['hits'],
+            'cache_misses': self.cache_stats['misses'],
+            'hit_rate_percent': round(hit_rate, 2),
+            'cache_invalidations': self.cache_stats['invalidations'],
+            'module_cache_size': len(self.cache),
+            'render_cache_size': len(self.render_cache),
+            'cache_timeout': self.cache_timeout,
+            'render_cache_timeout': self.render_cache_timeout
+        }
+    
+    def set_cache_timeout(self, timeout: int):
+        """Set cache timeout in seconds"""
+        self.cache_timeout = timeout
+    
+    def set_debug_mode(self, debug: bool):
+        """Enable or disable debug mode (affects cache invalidation)"""
+        self.debug = debug
+        if debug:
+            # Clear cache when enabling debug mode to ensure fresh loads
+            self.clear_cache()
 
 
 # Global renderer instance

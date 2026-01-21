@@ -37,11 +37,24 @@ class ComponentRouter:
         self.renderer = ComponentRenderer()
         
     def scan_pages(self) -> None:
-        """Scan the pages directory and register all routes"""
+        """Scan pages directory and register all routes"""
         if not self.pages_dir.exists():
             return
             
+        # Scan for both .py and .py.jsx files
         for file_path in self.pages_dir.rglob("*.py"):
+            if file_path.name.startswith("_"):
+                continue
+                
+            route = self._create_route_from_file(file_path)
+            if route:
+                if route.is_api:
+                    self.api_routes.append(route)
+                else:
+                    self.routes.append(route)
+                    
+        # Also scan for .py.jsx files
+        for file_path in self.pages_dir.rglob("*.py.jsx"):
             if file_path.name.startswith("_"):
                 continue
                 
@@ -112,56 +125,203 @@ class ComponentRouter:
         # Check if this is a component-based page
         use_components = self._is_component_page(file_path)
         
+        route_path = path
+        
+        handler = self._load_handler(file_path, use_components)
+        
         route_class = ComponentRoute if use_components else (DynamicRoute if is_dynamic else Route)
-        return route_class(
-            path=path,
+        
+        route = route_class(
+            path=route_path,
             file_path=file_path,
-            handler=self._load_handler(file_path, use_components),
-            is_dynamic=is_dynamic,
+            handler=handler,
             is_api=is_api,
-            is_catch_all=is_catch_all,
+            is_dynamic=is_dynamic,
             param_names=param_names,
-            pattern=pattern,
-            use_components=use_components,
-            renderer=self.renderer if use_components else None
+            pattern=pattern
         )
         
+        # Add component-specific attributes
+        if use_components:
+            route.use_components = True
+            route.renderer = self.renderer
+        
+        return route
+        
     def _is_component_page(self, file_path: Path) -> bool:
-        """Check if a page uses components or templates"""
+        """Check if a page uses components or templates with enhanced JSX detection"""
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
                 
-            # Check for component indicators
-            component_indicators = [
-                'from ..nextpy.components',
-                'from nextpy.components',
-                'from .jsx',
-                'from nextpy.jsx',
+            # Enhanced JSX patterns for more robust detection
+            jsx_patterns = [
+                'return (',
                 'default = ',
-                'def Component(',
-                '@Component',
+                'className=',
+                '<div',
+                '<h1',
+                '<h2',
+                '<h3',
+                '<p',
+                '<button',
+                '<section',
+                '<article',
+                '<header',
+                '<footer',
+                '<nav',
+                '<main',
+                '<aside',
+                '<span',
+                '<img',
+                '<a',
+                '<ul',
+                '<ol',
+                '<li',
+                '<form',
+                '<input',
+                '<label',
+                '<select',
+                '<textarea',
+                'export function',
+                'def.*return.*<',
                 'jsx(',
-                'div(',
-                'h1(',
-                'return jsx(',
-                'return div('
+                'render_jsx(',
+                'from nextpy.true_jsx',
+                'from .jsx import',
+                'getServerSideProps',
+                'getStaticProps',
+                'props.get(',
+                'props = props or',
+                'function.*Component',
+                'const.*=.*\(.*\)',
+                'className=',
+                'htmlFor=',
+                'onClick=',
+                'onChange=',
+                'onSubmit=',
+                'href=',
+                'src=',
+                'alt=',
+                'placeholder=',
+                'type=',
+                'value=',
+                'disabled=',
+                'readOnly=',
+                'required=',
+                'checked=',
+                'selected=',
+                'multiple=',
+                'accept=',
+                'maxLength=',
+                'minLength=',
+                'pattern=',
+                'min=',
+                'max=',
+                'step=',
+                'autoComplete=',
+                'autoFocus=',
+                'tabIndex=',
+                'accessKey=',
+                'draggable=',
+                'hidden=',
+                'spellCheck=',
+                'contentEditable=',
+                'dir=',
+                'lang=',
+                'title=',
+                'style=',
+                'id=',
+                'name=',
+                'data-',
+                'aria-',
+                'role=',
             ]
             
-            # Check for template indicators
+            # Check for template indicators (to differentiate from JSX)
             template_indicators = [
                 'def get_template(',
                 'return "',
                 'templates/',
-                '.html'
+                '.html',
+                '{% extends',
+                '{% block',
+                '{% include',
+                '{% for',
+                '{% if',
+                '{{ ',
+                '}}',
+                '|filter',
+                '{% end',
+                'jinja2',
+                'render_template(',
             ]
             
-            component_score = sum(1 for indicator in component_indicators if indicator in content)
-            template_score = sum(1 for indicator in template_indicators if indicator in content)
+            # Enhanced scoring system with weighted patterns
+            component_score = 0
+            template_score = 0
+            
+            # Weight JSX patterns more heavily
+            for pattern in jsx_patterns:
+                if '*' in pattern:
+                    # Regex pattern
+                    if re.search(pattern, content):
+                        component_score += 2
+                else:
+                    # Simple string pattern
+                    count = content.count(pattern)
+                    if count > 0:
+                        component_score += count * 2
+            
+            # Additional JSX-specific checks
+            if file_path.suffix == '.py.jsx':
+                component_score += 10  # Strong indicator
+            
+            # Check for JSX return patterns
+            jsx_return_patterns = [
+                r'return\s*\(\s*<',
+                r'return\s+<',
+                r'default\s*=\s*\w+',
+                r'function\s+\w+\s*\(.*\)\s*{',
+                r'const\s+\w+\s*=\s*\(.*\)\s*=>',
+            ]
+            
+            for pattern in jsx_return_patterns:
+                if re.search(pattern, content, re.MULTILINE):
+                    component_score += 3
+            
+            # Check for component imports
+            component_import_patterns = [
+                r'from\s+.*components',
+                r'import\s+.*from\s+.*components',
+                r'import\s+{.*}',
+                r'from\s+nextpy\.',
+                r'from\s+\.jsx',
+            ]
+            
+            for pattern in component_import_patterns:
+                if re.search(pattern, content):
+                    component_score += 2
+            
+            # Weight template patterns
+            for pattern in template_indicators:
+                if pattern in content:
+                    template_score += 3
+            
+            # Special checks for template files
+            if file_path.suffix == '.py' and not file_path.name.endswith('.jsx'):
+                # Check if it looks like a traditional template page
+                if 'def get_template(' in content and 'return "' in content:
+                    template_score += 5
+            
+            # Debug information (can be removed in production)
+            # print(f"File: {file_path.name}, Component Score: {component_score}, Template Score: {template_score}")
             
             return component_score > template_score
             
-        except Exception:
+        except Exception as e:
+            # If there's an error reading the file, default to False
+            print(f"Error checking if {file_path} is component page: {e}")
             return False
         
     def _load_handler(self, file_path: Path, use_components: bool = False) -> Optional[Callable]:

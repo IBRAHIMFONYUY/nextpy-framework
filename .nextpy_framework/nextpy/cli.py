@@ -1,10 +1,11 @@
 """
 NextPy CLI - Command-line interface for NextPy projects
-Commands: dev, build, start, create, routes, export, db
+Commands: dev, build, start
 """
 
 import os
 import sys
+import time
 import asyncio
 import signal
 from pathlib import Path
@@ -13,7 +14,6 @@ from typing import Optional
 import click
 import uvicorn
 
-# Try to import watchdog, make it optional
 try:
     from watchdog.observers import Observer
     from watchdog.events import FileSystemEventHandler
@@ -25,41 +25,178 @@ except ImportError:
 
 
 class HotReloadHandler:
-    """Handles file system changes for hot reload"""
+    """Handles file system changes for hot reload with enhanced JSX support"""
     
-    def __init__(self, reload_callback):
+    def __init__(self, reload_callback, debug: bool = False):
         self.reload_callback = reload_callback
         self._debounce_timer = None
+        self.debug = debug
+        self.last_reload_time = 0
+        self.reload_cooldown = 0.5  # 500ms cooldown between reloads
+        
+        # Enhanced file patterns for better JSX detection
+        self.file_patterns = {
+            "python": [".py"],
+            "jsx": [".py.jsx", ".jsx"],
+            "templates": [".html", ".htm", ".jinja2", ".j2"],
+            "styles": [".css", ".scss", ".sass", ".less"],
+            "scripts": [".js", ".ts", ".mjs", ".cjs"],
+            "assets": [".json", ".yaml", ".yml", ".toml", ".ini"],
+            "config": [".env", ".env.example", "requirements.txt", "package.json", "tailwind.config.js", "postcss.config.js"]
+        }
+        
+        # Directories to watch
+        self.watch_dirs = {
+            "pages", "components", "templates", "public", 
+            "static", "assets", "styles", "scripts", ".nextpy_framework"
+        }
+        
+        # Files that should always trigger reload
+        self.critical_files = {
+            "main.py", "app.py", "config.py", "settings.py",
+            "requirements.txt", "package.json", "pyproject.toml"
+        }
+        
+    def _should_reload_file(self, file_path: str) -> bool:
+        """Determine if a file change should trigger reload"""
+        file_path = Path(file_path)
+        
+        # Always reload critical files
+        if file_path.name in self.critical_files:
+            return True
+            
+        # Check if file is in a watched directory
+        parent_dirs = [part.name for part in file_path.parents]
+        if not any(dir_name in self.watch_dirs for dir_name in parent_dirs):
+            # If not in watched directories, check if it's in root
+            if len(parent_dirs) == 0 or parent_dirs[-1] == ".":
+                return any(file_path.name.endswith(pattern) for patterns in self.file_patterns.values() for pattern in patterns)
+            return False
+            
+        # Check file extension against all patterns
+        all_extensions = []
+        for patterns in self.file_patterns.values():
+            all_extensions.extend(patterns)
+            
+        return any(file_path.name.endswith(ext) for ext in all_extensions)
+        
+    def _get_file_type(self, file_path: str) -> str:
+        """Categorize file type for logging"""
+        file_path = Path(file_path)
+        
+        for file_type, extensions in self.file_patterns.items():
+            if any(file_path.name.endswith(ext) for ext in extensions):
+                return file_type
+                
+        return "unknown"
+        
+    def _debounce_reload(self, file_path: str = None):
+        """Debounce reload calls to prevent excessive reloading"""
+        current_time = time.time()
+        
+        if current_time - self.last_reload_time < self.reload_cooldown:
+            return
+            
+        self.last_reload_time = current_time
+        
+        if self.debug and file_path:
+            file_type = self._get_file_type(file_path)
+            click.echo(f"  🔄 Hot reload triggered by {file_type} file: {Path(file_path).name}", dim=True)
+            
+        self._trigger_reload()
         
     def on_modified(self, event):
-        if not WATCHDOG_AVAILABLE or event.is_directory:
+        """Handle file modification events"""
+        if event.is_directory:
             return
             
-        extensions = (".py", ".html", ".jinja2", ".css", ".js")
-        if isinstance(event.src_path, str) and any(event.src_path.endswith(ext) for ext in extensions):
-            self._trigger_reload()
+        if self._should_reload_file(event.src_path):
+            self._debounce_reload(event.src_path)
             
     def on_created(self, event):
-        if not WATCHDOG_AVAILABLE or event.is_directory:
-            return
-        self._trigger_reload()
+        """Handle file creation events"""
+        if not event.is_directory and self._should_reload_file(event.src_path):
+            self._debounce_reload(event.src_path)
             
     def on_deleted(self, event):
-        if not WATCHDOG_AVAILABLE or event.is_directory:
-            return
-        self._trigger_reload()
+        """Handle file deletion events"""
+        if not event.is_directory and self._should_reload_file(event.src_path):
+            self._debounce_reload(event.src_path)
+            
+    def on_moved(self, event):
+        """Handle file move/rename events"""
+        if not event.is_directory:
+            # Handle both source and destination
+            if hasattr(event, 'dest_path') and event.dest_path:
+                if self._should_reload_file(event.src_path) or self._should_reload_file(event.dest_path):
+                    self._debounce_reload(event.dest_path or event.src_path)
+            else:
+                if self._should_reload_file(event.src_path):
+                    self._debounce_reload(event.src_path)
             
     def _trigger_reload(self):
+        """Trigger the reload callback"""
         if self.reload_callback:
             self.reload_callback()
+            
+    def setup_file_watcher(self, project_dir: str = "."):
+        """Setup enhanced file watcher with specific patterns"""
+        if not WATCHDOG_AVAILABLE:
+            click.echo("  ⚠️  Watchdog not installed. Hot reload disabled.", fg="yellow")
+            click.echo("  Install with: pip install watchdog", fg="yellow")
+            return None
+            
+        observer = Observer()
+        event_handler = WatchdogHotReloadHandler(self._trigger_reload, debug=self.debug)
+        
+        # Watch specific directories with recursive monitoring
+        for watch_dir in self.watch_dirs:
+            dir_path = Path(project_dir) / watch_dir
+            if dir_path.exists():
+                observer.schedule(event_handler, str(dir_path), recursive=True)
+                if self.debug:
+                    click.echo(f"  📁 Watching directory: {watch_dir}", dim=True)
+                    
+        # Also watch root directory for critical files
+        root_path = Path(project_dir)
+        if root_path.exists():
+            observer.schedule(event_handler, str(root_path), recursive=False)
+            
+        return observer
+
+
+if WATCHDOG_AVAILABLE:
+    class WatchdogHotReloadHandler(HotReloadHandler, FileSystemEventHandler):
+        """Enhanced watchdog handler with better file filtering"""
+        pass
+else:
+    class WatchdogHotReloadHandler(HotReloadHandler):
+        """Fallback handler when watchdog is not available"""
+        pass
 
 def find_main_module():
     # main.py is always expected at the project root for NextPy projects
     # We ensure the current directory is in sys.path before calling uvicorn.run
     return "main:app"
 
+
+def _format_size(size_bytes: int) -> str:
+    """Format file size in human-readable format"""
+    if size_bytes == 0:
+        return "0 B"
+    
+    size_names = ["B", "KB", "MB", "GB", "TB"]
+    i = 0
+    size = float(size_bytes)
+    
+    while size >= 1024.0 and i < len(size_names) - 1:
+        size /= 1024.0
+        i += 1
+    
+    return f"{size:.1f} {size_names[i]}"
+
 @click.group()
-@click.version_option(version="2.0.0", prog_name="NextPy")
+@click.version_option(version="1.0.0", prog_name="NextPy")
 def cli():
     """NextPy - A Python web framework inspired by Next.js"""
     pass
@@ -71,13 +208,19 @@ def cli():
 @click.option("--reload/--no-reload", default=True, help="Enable hot reload")
 @click.option("--debug/--no-debug", default=True, help="Enable debug mode")
 def dev(port: int, host: str, reload: bool, debug: bool):
-    """Start the development server with hot reload"""
+    """Start the development server with enhanced hot reload"""
     click.echo(click.style("\n  NextPy Development Server", fg="cyan", bold=True))
     click.echo(click.style("  ========================\n", fg="cyan"))
     
-    if reload and not WATCHDOG_AVAILABLE:
-        click.echo(click.style("  Warning: watchdog not installed. Install with 'pip install watchdog' for hot reload.", fg="yellow"))
-        reload = False
+    # Set debug environment variable
+    if debug:
+        os.environ["NEXTPY_DEBUG"] = "true"
+        os.environ["DEBUG"] = "true"
+        os.environ["DEVELOPMENT"] = "true"
+    else:
+        os.environ.pop("NEXTPY_DEBUG", None)
+        os.environ.pop("DEBUG", None)
+        os.environ.pop("DEVELOPMENT", None)
     
     _ensure_project_structure()
     
@@ -85,6 +228,18 @@ def dev(port: int, host: str, reload: bool, debug: bool):
     click.echo(f"  - Host:     {host} (accessible at http://localhost:{port})")
     click.echo(f"  - Port:     {port}")
     click.echo(f"  - Reload:   {'Enabled' if reload else 'Disabled'}")
+    click.echo(f"  - Debug:    {'Enabled' if debug else 'Disabled'}")
+    
+    if reload and not WATCHDOG_AVAILABLE:
+        click.echo(f"  - Watchdog: Not Available (install: pip install watchdog)", fg="yellow")
+    elif reload:
+        click.echo(f"  - Watchdog: Available")
+    
+    if debug:
+        click.echo(f"  - Debug Icon: ✅ Auto-enabled")
+        click.echo(f"  - Console Capture: ✅ Enabled")
+        click.echo(f"  - Performance Monitoring: ✅ Enabled")
+        
     click.echo(f"\n  ✨ Server ready at http://0.0.0.0:{port}")
     click.echo(f"  🌐 Open http://localhost:{port} in your browser\n")
     
@@ -98,12 +253,57 @@ def dev(port: int, host: str, reload: bool, debug: bool):
     main_module = find_main_module()
     
     if reload:
+        # Enhanced reload configuration with JSX support
+        reload_dirs = [
+            "pages", 
+            "components", 
+            "templates", 
+            "public", 
+            "static", 
+            "styles", 
+            "scripts",
+            ".nextpy_framework"
+        ]
+        
+        # Filter to only existing directories
+        existing_reload_dirs = []
+        for reload_dir in reload_dirs:
+            dir_path = project_dir / reload_dir
+            if dir_path.exists():
+                existing_reload_dirs.append(reload_dir)
+                if debug:
+                    click.echo(click.style(f"  📁 Watching: {reload_dir}/"))
+                    
+        # Enhanced reload patterns for JSX files
+        reload_includes = [
+            "*.py", 
+            "*.py.jsx", 
+            "*.jsx", 
+            "*.html", 
+            "*.htm", 
+            "*.css", 
+            "*.scss", 
+            "*.sass", 
+            "*.less", 
+            "*.js", 
+            "*.ts", 
+            "*.json", 
+            "*.yaml", 
+            "*.yml",
+            "*.env",
+            "requirements.txt",
+            "package.json",
+            "tailwind.config.js",
+            "postcss.config.js"
+        ]
+        
         uvicorn.run(
             main_module,
             host=host,
             port=port,
             reload=True,
-            reload_dirs=["pages", "templates", ".nextpy_framework"], # Corrected path
+            reload_dirs=existing_reload_dirs,
+            reload_includes=reload_includes,
             log_level="info",
         )
     else:
@@ -118,187 +318,523 @@ def dev(port: int, host: str, reload: bool, debug: bool):
 @cli.command()
 @click.option("--out", "-o", default="out", help="Output directory for static files")
 @click.option("--clean/--no-clean", default=True, help="Clean output directory first")
-@click.option("--static/--no-static", default=False, help="Build static site")
-def build(out: str, clean: bool, static: bool):
-    """Build the project for production (SSG)"""
-    click.echo(click.style("\n  NextPy Static Build", fg="green", bold=True))
+def build(out: str, clean: bool):
+    """Build the project for production with enhanced feedback"""
+    click.echo(click.style("\n  🔨 NextPy Static Build", fg="green", bold=True))
     click.echo(click.style("  ===================\n", fg="green"))
     
-    if static:
-        click.echo("  Building static site...")
-    else:
-        click.echo("  Building for production...")
-    
-    from nextpy.core.builder import Builder
-    
-    builder = Builder(out_dir=out)
-    
-    async def run_build():
-        if static:
-            manifest = await builder.export_static(clean=clean)
-        else:
+    try:
+        from nextpy.core.builder import Builder
+        
+        click.echo(f"  📂 Output directory: {out}/")
+        if clean:
+            click.echo(f"  🧹 Cleaning output directory...")
+        
+        click.echo(f"  ⚙️  Initializing builder...")
+        builder = Builder(out_dir=out)
+        
+        click.echo(f"  🏗️  Building static files...")
+        
+        async def run_build():
             manifest = await builder.build(clean=clean)
-        return manifest
+            return manifest
+            
+        manifest = asyncio.run(run_build())
         
-    manifest = asyncio.run(run_build())
-    
-    pages_count = len(manifest.get("pages", {}))
-    build_type = "static site" if static else "production build"
-    click.echo(f"\n  Built {pages_count} pages ({build_type})")
-    click.echo(f"  Output: {out}/")
-    click.echo(click.style("\n  Build complete!\n", fg="green", bold=True))
-
-
-@cli.command()
-@click.option("--out", "-o", default="out", help="Output directory for exported files")
-@click.option("--clean/--no-clean", default=True, help="Clean output directory first")
-def export(out: str, clean: bool):
-    """Export the project to static files"""
-    click.echo(click.style("\n  NextPy Static Export", fg="green", bold=True))
-    click.echo(click.style("  ====================\n", fg="green"))
-    
-    from nextpy.core.builder import Builder
-    
-    builder = Builder(out_dir=out)
-    
-    async def run_export():
-        manifest = await builder.export_static(clean=clean)
-        return manifest
+        pages_count = len(manifest.get("pages", {}))
+        assets_count = len(manifest.get("assets", []))
+        total_size = manifest.get("total_size", 0)
         
-    manifest = asyncio.run(run_export())
-    
-    pages_count = len(manifest.get("pages", {}))
-    click.echo(f"\n  Exported {pages_count} pages")
-    click.echo(f"  Output: {out}/")
-    click.echo(click.style("\n  Export complete!\n", fg="green", bold=True))
+        click.echo()
+        click.echo(click.style(f"  ✅ Build completed successfully!", fg="green", bold=True))
+        click.echo(f"  📄 Pages built: {pages_count}")
+        click.echo(f"  🎨 Assets processed: {assets_count}")
+        click.echo(f"  💾 Total size: {_format_size(total_size)}")
+        click.echo(f"  📍 Output: {out}/")
+        click.echo()
+        click.echo(click.style(f"  🚀 Ready for deployment!", fg="cyan", bold=True))
+        click.echo(f"  📖 Serve with: nextpy start --port 5000")
+        click.echo()
+        
+    except Exception as e:
+        click.echo(click.style(f"  ❌ Build failed: {str(e)}", fg="red"))
+        if "Builder" not in str(e):
+            click.echo(click.style(f"  💡 Make sure you're in a NextPy project directory", fg="yellow"))
 
 
 @cli.command()
 @click.option("--port", "-p", default=5000, help="Port to run the server on")
 @click.option("--host", "-h", default="0.0.0.0", help="Host to bind to")
 def start(port: int, host: str):
-    """Start the production server"""
-    click.echo(click.style("\n  NextPy Production Server", fg="green", bold=True))
+    """Start the production server with enhanced feedback"""
+    click.echo(click.style("\n  🚀 NextPy Production Server", fg="green", bold=True))
     click.echo(click.style("  ========================\n", fg="green"))
     
-    click.echo(f"  - Mode:     Production")
-    click.echo(f"  - Host:     {host} (accessible at http://localhost:{port})")
-    click.echo(f"  - Port:     {port}")
-    click.echo(f"\n  ✨ Server ready at http://0.0.0.0:{port}")
+    click.echo(f"  🏭 Mode:     Production")
+    click.echo(f"  🌐 Host:     {host} (accessible at http://localhost:{port})")
+    click.echo(f"  🔌 Port:     {port}")
+    click.echo(f"  👥 Workers:   4 (multi-process)")
+    click.echo(f"  📝 Logging:  Warning level only")
+    
+    click.echo(f"\n  ✨ Production server ready at http://0.0.0.0:{port}")
     click.echo(f"  🌐 Open http://localhost:{port} in your browser\n")
+    click.echo(click.style(f"  💡 Press Ctrl+C to stop the server", fg="yellow"))
+    click.echo()
     
-    os.chdir(Path.cwd())
-    
-    uvicorn.run(
-        "main:app",
-        host=host,
-        port=port,
-        workers=4,
-        log_level="warning",
-    )
+    try:
+        os.chdir(Path.cwd())
+        
+        uvicorn.run(
+            "main:app",
+            host=host,
+            port=port,
+            workers=4,
+            log_level="warning",
+        )
+        
+    except KeyboardInterrupt:
+        click.echo(click.style("\n  👋 Server stopped gracefully", fg="cyan"))
+    except Exception as e:
+        click.echo(click.style(f"\n  ❌ Server error: {str(e)}", fg="red"))
+        click.echo(click.style(f"  💡 Make sure you have a main.py file with an app instance", fg="yellow"))
 
 
 @cli.command()
 @click.argument("name")
-@click.option("--template", "-t", help="Project template to use (blog, api, default)")
-def create(name: str, template: str):
-    """Create a new NextPy project"""
-    click.echo(click.style(f"\n  Creating NextPy project: {name}", fg="cyan", bold=True))
-    if template:
-        click.echo(click.style(f"  Template: {template}\n", fg="cyan"))
+def create(name: str):
+    """Create a new NextPy project with True JSX support"""
+    click.echo(click.style(f"\n  🚀 Creating NextPy project: {name}", fg="cyan", bold=True))
     click.echo(click.style("  " + "=" * (25 + len(name)) + "\n", fg="cyan"))
     
     project_dir = Path(name)
     
     if project_dir.exists():
-        click.echo(click.style(f"  Error: Directory '{name}' already exists", fg="red"))
+        click.echo(click.style(f"  ❌ Error: Directory '{name}' already exists", fg="red"))
+        click.echo(click.style(f"  💡 Try a different name or remove the existing directory", fg="yellow"))
         return
-        
-    _create_project_structure(project_dir, template)
     
-    click.echo(f"\n  Project created at: {project_dir.absolute()}")
-    click.echo(f"\n  Next steps:")
-    click.echo(f"    cd {name}")
-    click.echo(f"    pip install -r requirements.txt")
-    click.echo(f"    nextpy dev")
-    click.echo()
+    click.echo(f"  📁 Creating project structure...")
+    
+    try:
+        _create_project_structure(project_dir)
+        
+        click.echo(click.style(f"  ✅ Project successfully created!", fg="green", bold=True))
+        click.echo(f"\n  📍 Location: {project_dir.absolute()}")
+        click.echo(f"\n  🎯 Next steps:")
+        click.echo(f"    1️⃣  cd {name}")
+        click.echo(f"    2️⃣  pip install -r requirements.txt")
+        click.echo(f"    3️⃣  nextpy dev")
+        click.echo(f"\n  🌐 Your app will be available at: http://localhost:5000")
+        click.echo(f"\n  📚 Documentation: https://github.com/IBRAHIMFONYUY/nextpy-framework")
+        click.echo()
+        
+    except Exception as e:
+        click.echo(click.style(f"  ❌ Failed to create project: {str(e)}", fg="red"))
+        # Clean up partial creation
+        if project_dir.exists():
+            import shutil
+            shutil.rmtree(project_dir, ignore_errors=True)
+        click.echo(click.style(f"  🧹 Cleaned up partial files", fg="yellow"))
 
 
 @cli.command()
 def routes():
-    """Display all registered routes"""
-    click.echo(click.style("\n  NextPy Routes", fg="cyan", bold=True))
-    click.echo(click.style("  =============\n", fg="cyan"))
+    """Display all registered routes with detailed information"""
+    click.echo(click.style("\n  🛣️  NextPy Routes Overview", fg="cyan", bold=True))
+    click.echo(click.style("  =====================\n", fg="cyan"))
     
-    from nextpy.core.router import Router
-    
-    router = Router()
-    router.scan_pages()
-    
-    click.echo("  Page Routes:")
-    for route in router.routes:
-        dynamic = " (dynamic)" if route.is_dynamic else ""
-        click.echo(f"    {route.path}{dynamic} -> {route.file_path}")
+    try:
+        from nextpy.core.router import Router
         
-    click.echo("\n  API Routes:")
-    for route in router.api_routes:
-        dynamic = " (dynamic)" if route.is_dynamic else ""
-        click.echo(f"    {route.path}{dynamic} -> {route.file_path}")
+        router = Router()
+        router.scan_pages()
         
+        page_routes = [r for r in router.routes if not r.is_api]
+        api_routes = router.api_routes
+        
+        click.echo(click.style(f"  📄 Page Routes ({len(page_routes)} total)", fg="blue", bold=True))
+        if page_routes:
+            for i, route in enumerate(page_routes, 1):
+                dynamic = " 🔀" if route.is_dynamic else " 📄"
+                file_info = f"({route.file_path})"
+                click.echo(f"    {i:2d}. {dynamic} {route.path:<30} {file_info}")
+        else:
+            click.echo(f"    ℹ️  No page routes found")
+        
+        click.echo()
+        click.echo(click.style(f"  🔌 API Routes ({len(api_routes)} total)", fg="green", bold=True))
+        if api_routes:
+            for i, route in enumerate(api_routes, 1):
+                dynamic = " 🔀" if route.is_dynamic else " 🔌"
+                file_info = f"({route.file_path})"
+                methods = "[GET, POST, PUT, DELETE]" if hasattr(route, 'handler') else "[GET]"
+                click.echo(f"    {i:2d}. {dynamic} {route.path:<30} {methods:<20} {file_info}")
+        else:
+            click.echo(f"    ℹ️  No API routes found")
+        
+        click.echo()
+        click.echo(click.style(f"  📊 Summary:", fg="yellow", bold=True))
+        click.echo(f"    Total Routes: {len(page_routes + api_routes)}")
+        click.echo(f"    Dynamic Routes: {len([r for r in page_routes + api_routes if r.is_dynamic])}")
+        click.echo(f"    Static Routes: {len([r for r in page_routes + api_routes if not r.is_dynamic])}")
+        click.echo()
+        
+    except Exception as e:
+        click.echo(click.style(f"  ❌ Error scanning routes: {str(e)}", fg="red"))
+
+
+@cli.command()
+@click.option("--out", "-o", default="out", help="Output directory for static files")
+def export(out: str):
+    """Export static files with enhanced feedback"""
+    click.echo(click.style("\n  📦 NextPy Export", fg="green", bold=True))
+    click.echo(click.style("  =============\n", fg="green"))
+    
+    try:
+        from nextpy.core.builder import Builder
+        
+        click.echo(f"  📂 Output directory: {out}/")
+        click.echo(f"  ⚙️  Initializing exporter...")
+        
+        builder = Builder(out_dir=out)
+        
+        click.echo(f"  📤 Exporting static files...")
+        
+        async def run_export():
+            manifest = await builder.export_static()
+            return manifest
+            
+        manifest = asyncio.run(run_export())
+        
+        files_count = len(manifest.get("files", []))
+        total_size = manifest.get("total_size", 0)
+        
+        click.echo()
+        click.echo(click.style(f"  ✅ Export completed successfully!", fg="green", bold=True))
+        click.echo(f"  📁 Files exported: {files_count}")
+        click.echo(f"  💾 Total size: {_format_size(total_size)}")
+        click.echo(f"  📍 Output: {out}/")
+        click.echo()
+        click.echo(click.style(f"  🚀 Ready for static hosting!", fg="cyan", bold=True))
+        click.echo()
+        
+    except Exception as e:
+        click.echo(click.style(f"  ❌ Export failed: {str(e)}", fg="red"))
+        click.echo(click.style(f"  💡 Make sure you're in a NextPy project directory", fg="yellow"))
+
+
+@cli.command()
+def version():
+    """Show version and system information"""
+    click.echo(click.style("\n  📋 NextPy Framework Info", fg="cyan", bold=True))
+    click.echo(click.style("  ===================\n", fg="cyan"))
+    
+    click.echo(f"  🏷️  Version: 2.2.0")
+    click.echo(f"  🐍 Python: {sys.version.split()[0]}")
+    click.echo(f"  ⚡ Framework: NextPy")
+    click.echo(f"  🎨 Architecture: True JSX")
+    click.echo(f"  🖥️  Development Server: uvicorn")
+    click.echo(f"  🔄 Hot Reload: Available")
+    click.echo(f"  📁 Static Files: Available")
+    click.echo(f"  🔌 API Routes: Available")
+    click.echo(f"  📄 Page Routes: Available")
+    click.echo(f"  🧩 Component Routes: Available")
+    click.echo(f"  📚 Component Library: Available")
+    click.echo(f"  👨‍💻 Developer: Ibrahim Fonyuy")
+    click.echo(f"  📜 License: MIT")
+    click.echo(f"  🐙 GitHub: https://github.com/IBRAHIMFONYUY/nextpy-framework")
+    click.echo(f"  📖 Documentation: https://nextpy.org/docs")
+    click.echo(f"  🆘 Support: https://github.com/IBRAHIMFONYUY/nextpy-framework/issues")
+    
     click.echo()
 
 
+@cli.command()
+def info():
+    """Show comprehensive framework and system information"""
+    click.echo(click.style("\n  🖥️  NextPy System Information", fg="cyan", bold=True))
+    click.echo(click.style("  ==========================\n", fg="cyan"))
+    
+    # Framework info
+    click.echo(click.style("  📦 Framework Details:", fg="blue", bold=True))
+    click.echo(f"    Version: 2.0.0")
+    click.echo(f"    Architecture: True JSX")
+    click.echo(f"    Python: {sys.version.split()[0]}")
+    
+    # Feature status
+    click.echo(click.style("\n  ⚡ Feature Status:", fg="green", bold=True))
+    watchdog_status = "✅ Available" if WATCHDOG_AVAILABLE else "❌ Not Available (pip install watchdog)"
+    click.echo(f"    Hot Reload: {watchdog_status}")
+    click.echo(f"    Static Files: ✅ Available")
+    click.echo(f"    API Routes: ✅ Available")
+    click.echo(f"    Page Routes: ✅ Available")
+    click.echo(f"    Component Library: ✅ Available")
+    
+    # Project structure check
+    click.echo(click.style("\n  📁 Project Structure:", fg="yellow", bold=True))
+    required_dirs = ["pages", "components", "templates", "public"]
+    for dir_name in required_dirs:
+        status = "✅" if Path(dir_name).exists() else "❌"
+        click.echo(f"    {dir_name}/: {status}")
+    
+    # Available commands
+    click.echo(click.style("\n  🛠️  Available Commands:", fg="purple", bold=True))
+    commands = [
+        ("nextpy dev", "Start development server"),
+        ("nextpy build", "Build for production"),
+        ("nextpy start", "Start production server"),
+        ("nextpy create <name>", "Create new project"),
+        ("nextpy generate <type> <name>", "Generate components/pages/APIs"),
+        ("nextpy routes", "Show all routes"),
+        ("nextpy export", "Export static files"),
+        ("nextpy version", "Show version info"),
+        ("nextpy info", "Show this information")
+    ]
+    for cmd, desc in commands:
+        click.echo(f"    {cmd:<25} - {desc}")
+    
+    click.echo()
+
+
+@cli.command()
+@click.argument("type", type=click.Choice(["page", "api", "component"]))
+@click.argument("name")
+def generate(type: str, name: str):
+    """Generate new page, API endpoint, or component"""
+    click.echo(click.style(f"\n  Generating {type}: {name}", fg="cyan", bold=True))
+    click.echo(click.style("  " + "=" * (20 + len(name) + len(type)) + "\n", fg="cyan"))
+    
+    if type == "page":
+        _generate_page(name)
+    elif type == "api":
+        _generate_api(name)
+    elif type == "component":
+        _generate_component(name)
+    
+    click.echo(click.style(f"\n  {type.title()} '{name}' created successfully!\n", fg="green", bold=True))
+
+
 @cli.group()
-def db():
-    """Database management commands"""
+def plugin():
+    """Plugin management commands"""
     pass
 
 
-@db.command()
-def init():
-    """Initialize the database"""
-    click.echo(click.style("\n  NextPy Database Initialization", fg="cyan", bold=True))
-    click.echo(click.style("  ============================\n", fg="cyan"))
+@plugin.command()
+def list():
+    """List all available plugins"""
+    click.echo(click.style("\n  🔌 NextPy Plugins", fg="cyan", bold=True))
+    click.echo(click.style("  ================\n", fg="cyan"))
     
     try:
-        from nextpy.db import init_db
-        from nextpy.config import settings
+        from nextpy.plugins import plugin_manager
         
-        init_db(settings.database_url)
-        click.echo(click.style("  ✅ Database initialized successfully!\n", fg="green"))
-    except Exception as e:
-        click.echo(click.style(f"  ❌ Database initialization failed: {e}\n", fg="red"))
-
-
-@db.command()
-def migrate():
-    """Run database migrations"""
-    click.echo(click.style("\n  NextPy Database Migration", fg="cyan", bold=True))
-    click.echo(click.style("  ========================\n", fg="cyan"))
-    
-    try:
-        from nextpy.db import run_migrations
+        plugin_info = plugin_manager.get_plugin_info()
         
-        run_migrations()
-        click.echo(click.style("  ✅ Migrations completed successfully!\n", fg="green"))
+        click.echo(click.style(f"  📊 Overview:", fg="blue", bold=True))
+        click.echo(f"    Total plugins: {plugin_info['total_plugins']}")
+        click.echo(f"    Enabled: {plugin_info['enabled_plugins']}")
+        click.echo(f"    Disabled: {plugin_info['total_plugins'] - plugin_info['enabled_plugins']}")
+        
+        click.echo()
+        click.echo(click.style(f"  📋 Plugin Details:", fg="green", bold=True))
+        
+        for plugin in plugin_info['plugins']:
+            status = "✅" if plugin['enabled'] else "❌"
+            priority = plugin['priority']
+            click.echo(f"    {status} {plugin['name']:<15} v{plugin['version']:<8} (Priority: {priority})")
+            
+            if plugin['dependencies']:
+                click.echo(f"        Dependencies: {', '.join(plugin['dependencies'])}")
+        
+        click.echo()
+        
+    except ImportError:
+        click.echo(click.style("  ❌ Plugin system not available", fg="red"))
+        click.echo(click.style("  💡 Install with: pip install nextpy[plugins]", fg="yellow"))
     except Exception as e:
-        click.echo(click.style(f"  ❌ Migration failed: {e}\n", fg="red"))
+        click.echo(click.style(f"  ❌ Error: {str(e)}", fg="red"))
 
 
-@db.command()
+@plugin.command()
 @click.argument("name")
-def migration(name: str):
-    """Create a new database migration"""
-    click.echo(click.style(f"\n  Creating Migration: {name}", fg="cyan", bold=True))
-    click.echo(click.style("  " + "=" * (25 + len(name)) + "\n", fg="cyan"))
+@click.option("--enable/--disable", default=True, help="Enable or disable the plugin")
+def enable(name: str, enable: bool):
+    """Enable or disable a plugin"""
+    action = "Enabling" if enable else "Disabling"
+    click.echo(click.style(f"\n  {action} plugin: {name}", fg="cyan", bold=True))
+    click.echo(click.style("  " + "=" * (20 + len(name)) + "\n", fg="cyan"))
     
     try:
-        from nextpy.db import create_migration
+        from nextpy.plugins import plugin_manager
         
-        migration_file = create_migration(name)
-        click.echo(f"  ✅ Migration created: {migration_file}\n")
+        if enable:
+            plugin_manager.enable_plugin(name)
+            click.echo(click.style(f"  ✅ Plugin '{name}' enabled successfully", fg="green"))
+        else:
+            plugin_manager.disable_plugin(name)
+            click.echo(click.style(f"  ❌ Plugin '{name}' disabled", fg="yellow"))
+        
+        click.echo()
+        
+    except ImportError:
+        click.echo(click.style("  ❌ Plugin system not available", fg="red"))
     except Exception as e:
-        click.echo(click.style(f"  ❌ Migration creation failed: {e}\n", fg="red"))
+        click.echo(click.style(f"  ❌ Error: {str(e)}", fg="red"))
+
+
+@plugin.command()
+@click.argument("name")
+@click.option("--config", help="Plugin configuration as JSON string")
+def configure(name: str, config: str):
+    """Configure a plugin"""
+    click.echo(click.style(f"\n  ⚙️  Configuring plugin: {name}", fg="cyan", bold=True))
+    click.echo(click.style("  " + "=" * (20 + len(name)) + "\n", fg="cyan"))
+    
+    try:
+        from nextpy.plugins import plugin_manager
+        import json
+        
+        if config:
+            try:
+                config_dict = json.loads(config)
+            except json.JSONDecodeError:
+                click.echo(click.style("  ❌ Invalid JSON configuration", fg="red"))
+                return
+        else:
+            config_dict = {}
+        
+        plugin_manager.configure_plugin(name, config_dict)
+        click.echo(click.style(f"  ✅ Plugin '{name}' configured successfully", fg="green"))
+        
+        if config_dict:
+            click.echo(f"  Configuration: {json.dumps(config_dict, indent=2)}")
+        
+        click.echo()
+        
+    except ImportError:
+        click.echo(click.style("  ❌ Plugin system not available", fg="red"))
+    except Exception as e:
+        click.echo(click.style(f"  ❌ Error: {str(e)}", fg="red"))
+
+
+@plugin.command()
+@click.argument("file_path", type=click.Path(exists=True))
+def load(file_path: str):
+    """Load a plugin from file"""
+    click.echo(click.style(f"\n  📦 Loading plugin from: {file_path}", fg="cyan", bold=True))
+    click.echo(click.style("  " + "=" * (25 + len(file_path)) + "\n", fg="cyan"))
+    
+    try:
+        from nextpy.plugins import plugin_manager
+        from pathlib import Path
+        
+        plugin = plugin_manager.load_plugin_from_file(Path(file_path))
+        plugin_manager.register_plugin(plugin)
+        
+        click.echo(click.style(f"  ✅ Plugin '{plugin.name}' loaded successfully", fg="green"))
+        click.echo(f"  Version: {plugin.version}")
+        click.echo(f"  Priority: {plugin.priority.value}")
+        
+        click.echo()
+        
+    except ImportError:
+        click.echo(click.style("  ❌ Plugin system not available", fg="red"))
+    except Exception as e:
+        click.echo(click.style(f"  ❌ Error: {str(e)}", fg="red"))
+
+
+def _generate_page(name: str):
+    """Generate a new page"""
+    page_path = Path(f"pages/{name}.py")
+    page_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    content = f'''"""Generated {name} page"""
+
+def {name.title()}(props = None):
+    """{name.title()} page component"""
+    props = props or {{}}
+    
+    title = props.get("title", "{name.title()} Page")
+    
+    return (
+        <div class="max-w-4xl px-4 py-12 mx-auto">
+            <h1 class="mb-6 text-4xl font-bold text-gray-900">{{title}}</h1>
+            <p class="text-lg text-gray-600">
+                This is the {name} page generated by NextPy.
+            </p>
+        </div>
+    )
+
+def getServerSideProps(context):
+    return {{
+        "props": {{
+            "title": "{name.title()} Page"
+        }}
+    }}
+
+default = {name.title()}
+'''
+    
+    page_path.write_text(content)
+    click.echo(f"  Created: {page_path}")
+
+
+def _generate_api(name: str):
+    """Generate a new API endpoint"""
+    api_path = Path(f"pages/api/{name}.py")
+    api_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    content = f'''"""Generated {name} API endpoint"""
+
+async def get(request):
+    """GET /api/{name}"""
+    return {{
+        "message": "Hello from {name} API!",
+        "endpoint": "/api/{name}",
+        "method": "GET"
+    }}
+
+async def post(request):
+    """POST /api/{name}"""
+    body = await request.json()
+    return {{
+        "message": "POST request received",
+        "data": body,
+        "endpoint": "/api/{name}",
+        "method": "POST"
+    }}
+'''
+    
+    api_path.write_text(content)
+    click.echo(f"  Created: {api_path}")
+
+
+def _generate_component(name: str):
+    """Generate a new component"""
+    component_path = Path(f"components/{name}.py")
+    component_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    content = f'''"""Generated {name} component"""
+
+def {name.title()}(props = None):
+    """{name.title()} component"""
+    props = props or {{}}
+    
+    children = props.get("children", "")
+    className = props.get("className", "")
+    
+    return (
+        <div class="{name.lower()}-component " + className>
+            {{children}}
+        </div>
+    )
+
+default = {name.title()}
+'''
+    
+    component_path.write_text(content)
+    click.echo(f"  Created: {component_path}")
 
 
 def _ensure_project_structure():
@@ -309,13 +845,16 @@ def _ensure_project_structure():
         Path(dir_path).mkdir(parents=True, exist_ok=True)
 
 
-def _create_project_structure(project_dir: Path, template: str = None):
-    """Create a new project structure"""
+def _create_project_structure(project_dir: Path):
+    """Create a new project structure with True JSX architecture"""
     dirs = [
         "pages",
         "pages/api",
-        "templates",
-        "templates/components",
+        "components",
+        "components/ui",
+        "components/layout",
+        "pages/blog",
+        "pages/api/users",
         "public",
         "public/css",
         "public/js",
@@ -323,92 +862,273 @@ def _create_project_structure(project_dir: Path, template: str = None):
         "models",
     ]
     
-    # Add template-specific directories
-    if template == "blog":
-        dirs.extend([
-            "pages/blog",
-            "pages/api/posts",
-        ])
-    elif template == "api":
-        dirs.extend([
-            "pages/api/users",
-            "pages/api/posts",
-        ])
-    else:
-        # Default template
-        dirs.extend([
-            "pages/blog",
-            "pages/api/users",
-        ])
-    
     for dir_path in dirs:
         (project_dir / dir_path).mkdir(parents=True, exist_ok=True)
         click.echo(f"  Created: {dir_path}/")
         
-    (project_dir / "pages" / "index.py").write_text('''"""Homepage"""
+    # Create JSX-based homepage with .py extension
+    (project_dir / "pages" / "index.py").write_text('''"""Homepage with True JSX"""
 
-def get_template():
-    return "index.html"
+def Home(props = None):
+    """Homepage component"""
+    props = props or {}
+    
+    title = props.get("title", "Welcome to NextPy")
+    message = props.get("message", "Your Python-powered web framework with True JSX")
+    
+    return (
+        <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
+            <div class="text-center text-white">
+                <h1 class="mb-4 text-5xl font-bold">{title}</h1>
+                <p class="text-xl">{message}</p>
+                <a href="https://github.com/nextpy/nextpy-framework" target="_blank" 
+                   class="inline-block px-6 py-3 mt-8 font-semibold text-blue-600 transition-all duration-300 transform bg-white rounded-lg shadow-lg hover:bg-gray-100 hover:text-blue-700 hover:scale-105">
+                    Explore NextPy Framework
+                </a>
+            </div>
+        </div>
+    )
 
-async def get_server_side_props(context):
+def getServerSideProps(context):
     return {
         "props": {
             "title": "Welcome to NextPy",
-            "message": "Your Python-powered web framework"
+            "message": "Your Python-powered web framework with True JSX"
         }
     }
+
+default = Home
 ''')
     click.echo("  Created: pages/index.py")
     
-    (project_dir / "templates" / "_base.html").write_text('''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}NextPy App{% endblock %}</title>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    {% block head %}{% endblock %}
-</head>
-<body>
-    <div id="main-content">
-        {% block content %}{{ content | safe }}{% endblock %}
-    </div>
-    {% block scripts %}{% endblock %}
-</body>
-</html>
-''')
-    click.echo("  Created: templates/_base.html")
+    # Create about page with True JSX
+    (project_dir / "pages" / "about.py").write_text('''"""About page with True JSX"""
+
+def About(props = None):
+    """About page component"""
+    props = props or {}
     
-    (project_dir / "templates" / "index.html").write_text('''{% extends "_base.html" %}
-
-{% block title %}{{ title }}{% endblock %}
-
-{% block content %}
-<div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
-    <div class="text-center text-white">
-        <h1 class="mb-4 text-5xl font-bold">{{ title }}</h1>
-        <p class="text-xl">{{ message }}</p>
-        <a href="https://github.com/nextpy/nextpy-framework" target="_blank" class="inline-block px-6 py-3 mt-8 font-semibold text-blue-600 transition-all duration-300 transform bg-white rounded-lg shadow-lg hover:bg-gray-100 hover:text-blue-700 hover:scale-105">
-            Explore NextPy Framework
-        </a>
-    </div>
-</div>
-{% endblock %}
-''')
-    click.echo("  Created: templates/index.html")
+    title = props.get("title", "About NextPy")
+    description = props.get("description", "Learn about the NextPy framework")
     
-    (project_dir / "main.py").write_text('''"""NextPy Application Entry Point"""
+    return (
+        <div class="max-w-4xl px-4 py-12 mx-auto">
+            <h1 class="mb-6 text-4xl font-bold text-gray-900">{title}</h1>
+            <p class="mb-4 text-lg text-gray-600">{description}</p>
+            <p class="text-gray-700">
+                NextPy is a Python web framework inspired by Next.js, offering file-based routing, 
+                server-side rendering, static site generation, and a modern True JSX component-based architecture.
+            </p>
+        </div>
+    )
 
-from nextpy import create_app
+def getServerSideProps(context):
+    return {
+        "props": {
+            "title": "About NextPy",
+            "description": "Learn about the NextPy framework"
+        }
+    }
 
-app = create_app(debug=True)
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=5000)
+default = About
 ''')
-    click.echo("  Created: main.py")
+    click.echo("  Created: pages/about.py")
+    
+    # Create a reusable Button component
+    (project_dir / "components" / "ui" / "Button.py").write_text('''"""Button component"""
+
+def Button(props = None):
+    """Reusable Button component"""
+    props = props or {}
+    
+    variant = props.get("variant", "default")
+    children = props.get("children", "Button")
+    className = props.get("className", "")
+    
+    if variant == "primary":
+        variant_class = "bg-blue-600 text-white hover:bg-blue-700"
+    elif variant == "secondary":
+        variant_class = "bg-gray-200 text-gray-900 hover:bg-gray-300"
+    else:
+        variant_class = "bg-gray-600 text-white hover:bg-gray-700"
+    
+    class_attr = f"px-4 py-2 rounded-lg font-medium transition-colors {variant_class} {className}"
+    
+    return (
+        <button className={class_attr} 
+                id={props.get("id")}
+                disabled={props.get("disabled", False)}>
+            {children}
+        </button>
+    )
+
+default = Button
+''')
+    click.echo("  Created: components/ui/Button.py")
+    
+    # Create a Layout component
+    (project_dir / "components" / "layout" / "Layout.py").write_text('''"""Layout component"""
+
+def Layout(props = None):
+    """Layout component wrapper"""
+    props = props or {}
+    
+    title = props.get("title", "NextPy App")
+    children = props.get("children", "")
+    
+    return (
+        <div class="flex flex-col min-h-screen">
+            <header class="bg-white shadow-sm">
+                <div class="px-4 py-4 mx-auto max-w-7xl">
+                    <div class="flex items-center justify-between">
+                        <h1 class="text-2xl font-bold text-gray-900">{title}</h1>
+                        <nav class="flex space-x-4">
+                            <a href="/" class="text-gray-600 hover:text-gray-900">Home</a>
+                            <a href="/about" class="text-gray-600 hover:text-gray-900">About</a>
+                        </nav>
+                    </div>
+                </div>
+            </header>
+            <main class="flex-1">
+                {children}
+            </main>
+            <footer class="mt-auto bg-gray-100">
+                <div class="px-4 py-6 mx-auto text-center text-gray-600 max-w-7xl">
+                    <p>© 2025 NextPy Framework. All rights reserved.</p>
+                </div>
+            </footer>
+        </div>
+    )
+
+default = Layout
+''')
+    click.echo("  Created: components/layout/Layout.py")
+    
+    # Create VS Code configuration for JSX support
+    (project_dir / ".vscode").mkdir(exist_ok=True)
+    (project_dir / ".vscode" / "settings.json").write_text('''{
+  "files.associations": {
+    "*.py": "python",
+    "*.py.jsx": "python",
+    "*.jsx": "javascriptreact"
+  },
+  "emmet.includeLanguages": {
+    "python": "html",
+    "javascriptreact": "html",
+    "typescriptreact": "html"
+  },
+  "emmet.triggerExpansionOnTab": true,
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "editor.suggestSelection": "first",
+  "editor.wordBasedSuggestions": true,
+  "editor.snippetSuggestions": "top",
+  "editor.parameterHints": {
+    "enabled": true
+  },
+  "editor.snippetSuggestions": "top",
+  "html.autoClosingTags": true,
+  "css.autoClosingTags": true,
+  "javascript.autoClosingTags": true,
+  "typescript.autoClosingTags": true,
+  "editor.autoClosingBrackets": "always",
+  "editor.autoClosingQuotes": "always",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true,
+    "source.organizeImports": true
+  },
+  "emmet.preferences": {
+    "css.property.endWithSemicolon": true,
+    "css.value.unit": "rem"
+  },
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/node_modules": true,
+    "**/out": true,
+    "**/.next": true,
+    "**/.pytest_cache": true,
+    "**/.mypy_cache": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/out": true,
+    "**/.next": true,
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/.mypy_cache": true
+  },
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": false,
+  "python.linting.flake8Enabled": false,
+  "python.linting.pylintArgs": [
+    "--disable=C0114,C0115,C0116,E1132,E1131,E1130"
+  ],
+  "python.formatting.provider": "black",
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.rulers": [88],
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  }
+}''')
+    click.echo("  Created: .vscode/settings.json")
+    
+    (project_dir / ".vscode" / "extensions.json").write_text('''{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-json",
+    "formulahendry.auto-rename-tag",
+    "christian-kohler.path-intellisense",
+    "ms-vscode.vscode-html-css-class-completion",
+    "ms-vscode.vscode-emmet",
+    "ms-vscode.vscode-eslint",
+    "dbaeumer.vscode-eslint",
+    "ms-vscode.vscode-typescript-next",
+    "ritwickdey.liveserver",
+    "ms-vscode.vscode-jest",
+    "esbenp.prettier-vscode",
+    "streetsidesoftware.code-spell-checker",
+    "gruntfuggly.todo-tree",
+    "ms-vscode.vscode-git-graph",
+    "eamodio.gitlens",
+    "ms-vscode.vscode-docker",
+    "ms-vscode.remote-explorer",
+    "ms-vscode-remote.remote-containers",
+    "ms-vscode.vscode-remote-wsl",
+    "redhat.vscode-yaml",
+    "ms-vscode.vscode-markdown",
+    "yzhang.markdown-all-in-one",
+    "shd101wyy.markdown-preview-enhanced",
+    "ms-vscode.vscode-python",
+    "kevinrose.vsc-python-indent",
+    "ms-python.black-formatter",
+    "ms-python.isort",
+    "ms-python.flake8",
+    "ms-python.mypy-type-checker"
+  ]
+}''')
+    click.echo("  Created: .vscode/extensions.json")
+    
+    # Create API example
+    (project_dir / "pages" / "api" / "hello.py").write_text('''"""API example"""
+
+def get(request):
+    """GET /api/hello"""
+    return {"message": "Hello from NextPy API!", "status": "success"}
+
+def post(request):
+    """POST /api/hello"""
+    return {"message": "POST request received", "status": "success"}
+''')
+    click.echo("  Created: pages/api/hello.py")
     
     (project_dir / "requirements.txt").write_text('''fastapi>=0.100.0
 uvicorn>=0.23.0
@@ -428,771 +1148,7 @@ markdown>=3.0.0 # Added markdown for documentation rendering
 ''')
     click.echo("  Created: requirements.txt")
 
-    (project_dir / "pages" / "about.py").write_text('''"""About page"""
 
-def get_template():
-    return "about.html"
-
-async def get_server_side_props(context):
-    return {
-        "props": {
-            "title": "About NextPy",
-            "description": "Learn about the NextPy framework"
-        }
-    }
-''')
-    click.echo("  Created: pages/about.py")
-
-    # Add the documentation page and template to new projects
-    
-    (project_dir / "pages" / "documentation.py").write_text('''"""Framework Documentation Page"""
-                                                            
- 
-
-def get_template():
-    return "documentation.html"
-
-
-async def get_server_side_props(context):
-    """Fetch documentation data"""
-    return {
-        "props": {
-            "title": "Documentation",
-            "description": "Learn how to build with NextPy",
-        }
-    }
-
-
-
-''')
-    click.echo("  Created: pages/documentation.py")
-
-    (project_dir / "templates" / "documentation.html").write_text('''{% extends "_base.html" %}
-
-{% extends "_base.html" %}
-
-{% block content %}
-<!-- Header -->
-<div class="px-4 py-16 mb-12 bg-gradient-to-br from-blue-50 to-indigo-50">
-    <div class="max-w-6xl mx-auto">
-        <h1 class="mb-4 text-5xl font-bold text-gray-900">Complete Documentation</h1>
-        <p class="text-xl text-gray-600">Learn everything about NextPy with detailed guides and examples</p>
-    </div>
-</div>
-
-<div class="px-4 pb-16 mx-auto max-w-7xl">
-    <div class="grid gap-12 lg:grid-cols-4">
-        <!-- Sidebar Navigation -->
-        <aside class="lg:col-span-1">
-            <nav class="sticky space-y-8 text-sm top-20">
-                <div>
-                    <h3 class="flex items-center gap-2 mb-4 font-bold text-gray-900">
-                        <span class="text-lg">🚀</span> Getting Started
-                    </h3>
-                    <ul class="space-y-3 text-gray-600">
-                        <li><a href="#installation" class="hover:text-blue-600 hover:underline">Installation</a></li>
-                        <li><a href="#quickstart" class="hover:text-blue-600 hover:underline">Quick Start</a></li>
-                        <li><a href="#project-structure" class="hover:text-blue-600 hover:underline">Project Structure</a></li>
-                        <li><a href="#cli-commands" class="hover:text-blue-600 hover:underline">CLI Commands</a></li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h3 class="flex items-center gap-2 mb-4 font-bold text-gray-900">
-                        <span class="text-lg">📄</span> Core Concepts
-                    </h3>
-                    <ul class="space-y-3 text-gray-600">
-                        <li><a href="#file-based-routing" class="hover:text-blue-600 hover:underline">File-based Routing</a></li>
-                        <li><a href="#pages-rendering" class="hover:text-blue-600 hover:underline">Pages & Rendering</a></li>
-                        <li><a href="#data-fetching" class="hover:text-blue-600 hover:underline">Data Fetching (SSR/SSG)</a></li>
-                        <li><a href="#api-routes" class="hover:text-blue-600 hover:underline">API Routes</a></li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h3 class="flex items-center gap-2 mb-4 font-bold text-gray-900">
-                        <span class="text-lg">🔧</span> Advanced
-                    </h3>
-                    <ul class="space-y-3 text-gray-600">
-                        <li><a href="#database" class="hover:text-blue-600 hover:underline">Database Integration</a></li>
-                        <li><a href="#authentication" class="hover:text-blue-600 hover:underline">Authentication</a></li>
-                        <li><a href="#components" class="hover:text-blue-600 hover:underline">Components & Templates</a></li>
-                        <li><a href="#utilities" class="hover:text-blue-600 hover:underline">Built-in Utilities</a></li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h3 class="flex items-center gap-2 mb-4 font-bold text-gray-900">
-                        <span class="text-lg">📚</span> Resources
-                    </h3>
-                    <ul class="space-y-3 text-gray-600">
-                        <li><a href="#deployment" class="hover:text-blue-600 hover:underline">Deployment</a></li>
-                        <li><a href="#troubleshooting" class="hover:text-blue-600 hover:underline">Troubleshooting</a></li>
-                        <li><a href="#best-practices" class="hover:text-blue-600 hover:underline">Best Practices</a></li>
-                    </ul>
-                </div>
-
-                <div class="p-4 rounded-lg bg-blue-50">
-                    <p class="text-sm text-gray-700"><strong>📖 Full Reference:</strong> <a href="/documentation" class="text-blue-600 hover:underline">See DOCUMENTATION.md</a></p>
-                </div>
-            </nav>
-        </aside>
-
-        <!-- Main Content -->
-        <div class="space-y-16 lg:col-span-3">
-            <!-- Installation -->
-            <section id="installation">
-                <h2 class="pb-4 mb-6 text-3xl font-bold text-gray-900 border-b-2 border-blue-200">Installation</h2>
-                <p class="mb-6 text-gray-700">Get NextPy running in seconds:</p>
-                
-                <div class="p-6 mb-6 overflow-x-auto font-mono text-sm text-gray-100 bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl">
-                    <code class="text-green-400">$ pip install nextpy-framework</code>
-                </div>
-
-                <p class="mb-4 text-gray-700">Or create a new project:</p>
-                <div class="p-6 overflow-x-auto font-mono text-sm text-gray-100 bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl">
-                    <code class="text-green-400">$ nextpy create my-awesome-app<br/>$ cd my-awesome-app<br/>$ nextpy dev</code>
-                </div>
-
-                <p class="p-4 mt-6 text-gray-600 border-l-4 border-green-600 rounded-lg bg-green-50">
-                    ✨ Your app is now running at <code class="px-2 py-1 bg-green-100 rounded">http://localhost:5000</code>
-                </p>
-            </section>
-
-            <!-- Quick Start -->
-            <section id="quickstart">
-                <h2 class="pb-4 mb-6 text-3xl font-bold text-gray-900 border-b-2 border-blue-200">Quick Start</h2>
-                
-                <div class="p-6 mb-6 bg-gray-50 rounded-xl">
-                    <h3 class="mb-3 text-xl font-bold text-gray-900">1. Create Your First Page</h3>
-                    <p class="mb-4 text-gray-700">Create <code class="px-2 py-1 text-sm bg-gray-200 rounded">pages/hello.py</code>:</p>
-                    <pre class="p-4 overflow-x-auto text-sm text-green-400 bg-gray-900 rounded-lg"><code>def get_template():
-    return "hello.html"
-
-async def get_server_side_props(context):
-    return {
-        "props": {
-            "message": "Hello, NextPy!"
-        }
-    }</code></pre>
-                </div>
-
-                <div class="p-6 mb-6 bg-gray-50 rounded-xl">
-                    <h3 class="mb-3 text-xl font-bold text-gray-900">2. Create Template</h3>
-                    <p class="mb-4 text-gray-700">Create <code class="px-2 py-1 text-sm bg-gray-200 rounded">templates/hello.html</code>:</p>
-                    <pre class="p-4 overflow-x-auto text-sm text-green-400 bg-gray-900 rounded-lg"><code>{% raw %}{% extends "_base.html" %}
-{% block content %}
-<h1>{{ message }}</h1>
-{% endblock %}{% endraw %}</code></pre>
-                </div>
-
-                <div class="p-6 border-l-4 border-blue-600 bg-blue-50 rounded-xl">
-                    <h3 class="mb-3 text-xl font-bold text-gray-900">✅ Done!</h3>
-                    <p class="text-gray-700">Visit <code class="px-2 py-1 bg-blue-100 rounded">http://localhost:5000/hello</code> - changes auto-reload!</p>
-                </div>
-            </section>
-
-            <!-- Project Structure -->
-            <section id="project-structure">
-                <h2 class="pb-4 mb-6 text-3xl font-bold text-gray-900 border-b-2 border-blue-200">Project Structure</h2>
-                
-                <pre class="p-6 overflow-x-auto text-sm text-green-400 bg-gray-900 rounded-xl"><code>my-app/
-├── pages/                    # File-based routes
-│   ├── index.py             # Homepage (/)
-│   ├── about.py             # About page (/about)
-│   ├── blog/
-│   │   ├── index.py        # Blog listing (/blog)
-│   │   └── [slug].py       # Dynamic posts (/blog/:slug)
-│   └── api/
-│       ├── posts.py        # GET /api/posts
-│       └── users/[id].py   # GET /api/users/123
-├── templates/              # Jinja2 templates
-│   ├── _base.html         # Root layout
-│   ├── index.html         # Home template
-│   └── components/        # Reusable components
-├── models/                 # Database models
-├── main.py                # Application entry
-├── nextpy.config.py       # Configuration
-└── .env                   # Secrets</code></pre>
-            </section>
-
-            <!-- CLI Commands -->
-            <section id="cli-commands">
-                <h2 class="pb-4 mb-6 text-3xl font-bold text-gray-900 border-b-2 border-blue-200">CLI Commands</h2>
-                
-                <div class="space-y-4">
-                    <div class="p-4 bg-white border border-gray-200 rounded-lg">
-                        <p class="mb-2 font-mono text-sm text-gray-900"><strong>$ nextpy create my-app</strong></p>
-                        <p class="text-sm text-gray-600">Create new NextPy project</p>
-                    </div>
-                    
-                    <div class="p-4 bg-white border border-gray-200 rounded-lg">
-                        <p class="mb-2 font-mono text-sm text-gray-900"><strong>$ nextpy dev</strong></p>
-                        <p class="text-sm text-gray-600">Start development server with hot reload</p>
-                    </div>
-                    
-                    <div class="p-4 bg-white border border-gray-200 rounded-lg">
-                        <p class="mb-2 font-mono text-sm text-gray-900"><strong>$ nextpy build</strong></p>
-                        <p class="text-sm text-gray-600">Build static site to out/ directory</p>
-                    </div>
-                    
-                    <div class="p-4 bg-white border border-gray-200 rounded-lg">
-                        <p class="mb-2 font-mono text-sm text-gray-900"><strong>$ nextpy start</strong></p>
-                        <p class="text-sm text-gray-600">Start production server</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- File-based Routing -->
-            <section id="file-based-routing">
-                <h2 class="pb-4 mb-6 text-3xl font-bold text-gray-900 border-b-2 border-blue-200">File-based Routing</h2>
-                <p class="mb-6 text-gray-700">Files in pages/ automatically become routes:</p>
-
-                <div class="mb-6 overflow-x-auto">
-                    <table class="w-full bg-white shadow-sm rounded-xl">
-                        <thead class="bg-gray-100 border-b-2 border-gray-200">
-                            <tr>
-                                <th class="px-6 py-4 font-bold text-left">File</th>
-                                <th class="px-6 py-4 font-bold text-left">Route</th>
-                                <th class="px-6 py-4 font-bold text-left">Example</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="border-b hover:bg-gray-50">
-                                <td class="px-6 py-4 font-mono text-sm">pages/index.py</td>
-                                <td class="px-6 py-4 text-blue-600">/</td>
-                                <td class="px-6 py-4 text-sm">Home page</td>
-                            </tr>
-                            <tr class="border-b hover:bg-gray-50">
-                                <td class="px-6 py-4 font-mono text-sm">pages/about.py</td>
-                                <td class="px-6 py-4 text-blue-600">/about</td>
-                                <td class="px-6 py-4 text-sm">About page</td>
-                            </tr>
-                            <tr class="border-b hover:bg-gray-50">
-                                <td class="px-6 py-4 font-mono text-sm">pages/blog/[slug].py</td>
-                                <td class="px-6 py-4 text-blue-600">/blog/:slug</td>
-                                <td class="px-6 py-4 text-sm">Dynamic posts</td>
-                            </tr>
-                            <tr class="border-b hover:bg-gray-50">
-                                <td class="px-6 py-4 font-mono text-sm">pages/api/posts.py</td>
-                                <td class="px-6 py-4 text-blue-600">/api/posts</td>
-                                <td class="px-6 py-4 text-sm">API endpoint</td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 font-mono text-sm">pages/docs/[...path].py</td>
-                                <td class="px-6 py-4 text-blue-600">/docs/*</td>
-                                <td class="px-6 py-4 text-sm">Catch-all route</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="p-4 border-l-4 border-blue-600 rounded-lg bg-blue-50">
-                    <p class="text-sm text-gray-700"><strong>💡 Tip:</strong> Files starting with _ (underscore) are not routes - they're templates like _base.html</p>
-                </div>
-            </section>
-
-            <!-- Data Fetching -->
-            <section id="data-fetching">
-                <h2 class="pb-4 mb-6 text-3xl font-bold text-gray-900 border-b-2 border-blue-200">Data Fetching (SSR/SSG)</h2>
-                
-                <div class="p-6 mb-6 bg-gray-50 rounded-xl">
-                    <h3 class="mb-3 text-xl font-bold text-gray-900">Server-Side Rendering (SSR)</h3>
-                    <p class="mb-4 text-gray-700">Fetch data <strong>per request</strong>:</p>
-                    <pre class="p-4 overflow-x-auto text-sm text-green-400 bg-gray-900 rounded-lg"><code>async def get_server_side_props(context):
-    data = await fetch_from_database()
-    return {
-        "props": {"data": data},
-        "revalidate": 60  # Cache 60 seconds
-    }</code></pre>
-                </div>
-
-                <div class="p-6 bg-gray-50 rounded-xl">
-                    <h3 class="mb-3 text-xl font-bold text-gray-900">Static Generation (SSG)</h3>
-                    <p class="mb-4 text-gray-700">Fetch data <strong>at build time</strong>:</p>
-                    <pre class="p-4 overflow-x-auto text-sm text-green-400 bg-gray-900 rounded-lg"><code>async def get_static_props():
-    posts = await get_all_posts()
-    return {
-        "props": {"posts": posts},
-        "revalidate": 3600  # Regenerate hourly
-    }
-
-async def get_static_paths():
-    posts = await get_all_posts()
-    return ["/blog/" + p.slug for p in posts]</code></pre>
-                </div>
-            </section>
-
-            <!-- API Routes -->
-            <section id="api-routes">
-                <h2 class="pb-4 mb-6 text-3xl font-bold text-gray-900 border-b-2 border-blue-200">API Routes</h2>
-                
-                <p class="mb-6 text-gray-700">Create REST APIs with simple Python functions:</p>
-
-                <div class="p-6 mb-6 bg-gray-50 rounded-xl">
-                    <h3 class="mb-3 text-xl font-bold text-gray-900">Basic GET</h3>
-                    <pre class="p-4 overflow-x-auto text-sm text-green-400 bg-gray-900 rounded-lg"><code>async def get(request):
-    posts = await fetch_posts()
-    return {"posts": posts}</code></pre>
-                </div>
-
-                <div class="p-6 bg-gray-50 rounded-xl">
-                    <h3 class="mb-3 text-xl font-bold text-gray-900">POST with Validation</h3>
-                    <pre class="p-4 overflow-x-auto text-sm text-green-400 bg-gray-900 rounded-lg"><code>from pydantic import BaseModel
-
-class CreatePost(BaseModel):
-    title: str
-    content: str
-
-async def post(request):
-    body = await request.json()
-    post = CreatePost(**body)
-    new_post = await save_post(post)
-    return {"id": new_post.id}, 201</code></pre>
-                </div>
-            </section>
-
-            <!-- Database -->
-            <section id="database">
-                <h2 class="pb-4 mb-6 text-3xl font-bold text-gray-900 border-b-2 border-blue-200">Database Integration</h2>
-                
-                <p class="mb-6 text-gray-700">NextPy uses SQLAlchemy ORM with support for SQLite, PostgreSQL, and MySQL.</p>
-
-                <div class="p-6 mb-6 bg-gray-50 rounded-xl">
-                    <h3 class="mb-3 font-bold">Define a Model</h3>
-                    <pre class="p-4 overflow-x-auto text-sm text-green-400 bg-gray-900 rounded-lg"><code>from nextpy.db import Base
-from sqlalchemy import Column, String, Integer
-
-class Post(Base):
-    __tablename__ = "posts"
-    
-    id = Column(Integer, primary_key=True)
-    title = Column(String(255))
-    content = Column(String)</code></pre>
-                </div>
-
-                <div class="p-6 bg-gray-50 rounded-xl">
-                    <h3 class="mb-3 font-bold">Query Data</h3>
-                    <pre class="p-4 overflow-x-auto text-sm text-green-400 bg-gray-900 rounded-lg"><code>from nextpy.db import Session
-from models.post import Post
-
-async def get_server_side_props(context):
-    with Session() as session:
-        posts = session.query(Post).all()
-        return {"props": {"posts": posts}}</code></pre>
-                </div>
-            </section>
-
-            <!-- Authentication -->
-            <section id="authentication">
-                <h2 class="pb-4 mb-6 text-3xl font-bold text-gray-900 border-b-2 border-blue-200">Authentication</h2>
-                
-                <p class="mb-6 text-gray-700">Built-in JWT authentication for secure API endpoints.</p>
-
-                <pre class="p-4 mb-6 overflow-x-auto text-sm text-green-400 bg-gray-900 rounded-lg"><code>from nextpy.auth import AuthManager
-
-# Create token
-token = AuthManager.create_token(user_id=123)
-
-# Verify token  
-user_id = AuthManager.verify_token(token)</code></pre>
-
-                <p class="p-4 text-gray-600 rounded-lg bg-blue-50">
-                    📖 See <strong>AUTHENTICATION.md</strong> for complete guide with login examples
-                </p>
-            </section>
-
-            <!-- Components -->
-            <section id="components">
-                <h2 class="pb-4 mb-6 text-3xl font-bold text-gray-900 border-b-2 border-blue-200">Components & Templates</h2>
-                
-                <div class="p-6 mb-6 bg-gray-50 rounded-xl">
-                    <h3 class="mb-3 font-bold">Use Built-in Components</h3>
-                    <pre class="p-4 overflow-x-auto text-sm text-green-400 bg-gray-900 rounded-lg"><code>{% raw %}{% from 'components/button.html' import button %}
-{{ button('Click me', href='/page', variant='primary') }}
-
-{% from 'components/card.html' import card %}
-{{ card(title='Title', content='Content') }}{% endraw %}</code></pre>
-                </div>
-
-                <div class="p-6 bg-gray-50 rounded-xl">
-                    <h3 class="mb-3 font-bold">Create Custom Components</h3>
-                    <pre class="p-4 overflow-x-auto text-sm text-green-400 bg-gray-900 rounded-lg"><code>{% raw %}{% macro custom_card(title) %}
-<div class="card">
-    <h3>{{ title }}</h3>
-    {{ caller() }}
-</div>
-{% endmacro %}{% endraw %}</code></pre>
-                </div>
-            </section>
-
-            <!-- Utilities -->
-            <section id="utilities">
-                <h2 class="pb-4 mb-6 text-3xl font-bold text-gray-900 border-b-2 border-blue-200">Built-in Utilities</h2>
-                
-                <div class="grid gap-6 md:grid-cols-2">
-                    <div class="p-6 bg-white border border-gray-200 rounded-lg">
-                        <h3 class="mb-3 font-bold text-gray-900">💾 Caching</h3>
-                        <pre class="p-3 overflow-x-auto text-xs text-gray-900 bg-gray-100 rounded"><code>from nextpy.utils.cache import cached
-
-@cached(ttl=3600)
-async def fetch_data():
-    return await db.get_data()</code></pre>
-                    </div>
-                    
-                    <div class="p-6 bg-white border border-gray-200 rounded-lg">
-                        <h3 class="mb-3 font-bold text-gray-900">📧 Email</h3>
-                        <pre class="p-3 overflow-x-auto text-xs text-gray-900 bg-gray-100 rounded"><code>from nextpy.utils.email import send_email
-
-await send_email(
-    to="user@example.com",
-    subject="Hello",
-    html="<p>Welcome</p>"
-)</code></pre>
-                    </div>
-                    
-                    <div class="p-6 bg-white border border-gray-200 rounded-lg">
-                        <h3 class="mb-3 font-bold text-gray-900">📁 File Uploads</h3>
-                        <pre class="p-3 overflow-x-auto text-xs text-gray-900 bg-gray-100 rounded"><code>from nextpy.utils.uploads import handle_upload
-
-file_name = await handle_upload(
-    file,
-    upload_dir="public/uploads"
-)</code></pre>
-                    </div>
-                    
-                    <div class="p-6 bg-white border border-gray-200 rounded-lg">
-                        <h3 class="mb-3 font-bold text-gray-900">🔍 Search</h3>
-                        <pre class="p-3 overflow-x-auto text-xs text-gray-900 bg-gray-100 rounded"><code>from nextpy.utils.search import FuzzySearch
-
-search = FuzzySearch(data)
-results = search.search("query")</code></pre>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Deployment -->
-            <section id="deployment">
-                <h2 class="pb-4 mb-6 text-3xl font-bold text-gray-900 border-b-2 border-blue-200">Deployment</h2>
-                
-                <div class="p-6 mb-6 bg-gray-50 rounded-xl">
-                    <h3 class="mb-3 text-xl font-bold text-gray-900">Build for Production</h3>
-                    <pre class="p-4 overflow-x-auto text-sm text-green-400 bg-gray-900 rounded-lg"><code>$ nextpy build
-# Creates optimized static files in out/</code></pre>
-                </div>
-
-                <div class="p-6 bg-gray-50 rounded-xl">
-                    <h3 class="mb-3 text-xl font-bold text-gray-900">Environment Variables</h3>
-                    <pre class="p-4 overflow-x-auto text-sm text-green-400 bg-gray-900 rounded-lg"><code>DATABASE_URL=postgresql://user:pass@host/db
-DEBUG=False
-SECRET_KEY=your-secret-key</code></pre>
-                </div>
-            </section>
-
-            <!-- Troubleshooting -->
-            <section id="troubleshooting">
-                <h2 class="pb-4 mb-6 text-3xl font-bold text-gray-900 border-b-2 border-blue-200">Troubleshooting</h2>
-                
-                <div class="space-y-4">
-                    <div class="p-6 border-l-4 border-red-600 rounded-lg bg-red-50">
-                        <h3 class="mb-2 font-bold text-gray-900">Hot Reload Not Working</h3>
-                        <p class="text-sm text-gray-700">Check if watchdog is installed: <code class="px-2 py-1 bg-red-100 rounded">pip install watchdog</code></p>
-                    </div>
-                    
-                    <div class="p-6 border-l-4 border-red-600 rounded-lg bg-red-50">
-                        <h3 class="mb-2 font-bold text-gray-900">Database Connection Error</h3>
-                        <p class="text-sm text-gray-700">Verify DATABASE_URL in .env and database server is running</p>
-                    </div>
-                    
-                    <div class="p-6 border-l-4 border-red-600 rounded-lg bg-red-50">
-                        <h3 class="mb-2 font-bold text-gray-900">Template Not Found</h3>
-                        <p class="text-sm text-gray-700">Check template filename in get_template() and file exists in templates/</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Best Practices -->
-            <section id="best-practices">
-                <h2 class="pb-4 mb-6 text-3xl font-bold text-gray-900 border-b-2 border-blue-200">Best Practices</h2>
-                
-                <ul class="space-y-3 text-gray-700">
-                    <li class="flex gap-3">
-                        <span class="font-bold text-green-600">✓</span>
-                        <span><strong>Use SSG for static content</strong> - Improves performance significantly</span>
-                    </li>
-                    <li class="flex gap-3">
-                        <span class="font-bold text-green-600">✓</span>
-                        <span><strong>Cache expensive operations</strong> - Use @cached decorator</span>
-                    </li>
-                    <li class="flex gap-3">
-                        <span class="font-bold text-green-600">✓</span>
-                        <span><strong>Validate all inputs</strong> - Use Pydantic models in APIs</span>
-                    </li>
-                    <li class="flex gap-3">
-                        <span class="font-bold text-green-600">✓</span>
-                        <span><strong>Use environment variables</strong> - Never hardcode secrets</span>
-                    </li>
-                    <li class="flex gap-3">
-                        <span class="font-bold text-green-600">✓</span>
-                        <span><strong>Create reusable components</strong> - Follow DRY principle</span>
-                    </li>
-                </ul>
-            </section>
-
-            <!-- Next Steps -->
-            <div class="p-12 mt-16 border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl">
-                <h2 class="mb-6 text-3xl font-bold">Ready to Build?</h2>
-                <div class="grid gap-6 md:grid-cols-2">
-                    <a href="/examples" class="group">
-                        <div class="p-6 transition bg-white rounded-xl hover:shadow-lg">
-                            <div class="mb-4 text-4xl">🎨</div>
-                            <h3 class="font-bold text-gray-900">Components</h3>
-                            <p class="text-sm text-gray-600">Explore 20+ pre-built UI components</p>
-                        </div>
-                    </a>
-                    
-                    <a href="/blog" class="group">
-                        <div class="p-6 transition bg-white rounded-xl hover:shadow-lg">
-                            <div class="mb-4 text-4xl">📚</div>
-                            <h3 class="font-bold text-gray-900">Blog</h3>
-                            <p class="text-sm text-gray-600">Tutorials and best practices</p>
-                        </div>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-''')
-    click.echo("  Created: templates/documentation.html")
-
-    (project_dir / "pages" / "blog" / "index.py").write_text('''"""Blog listing"""
-
-def get_template():
-    return "blog/index.html"
-
-async def get_server_side_props(context):
-    posts = [
-        {"slug": "hello", "title": "Hello World"},
-        {"slug": "welcome", "title": "Welcome to NextPy"}
-    ]
-    return {"props": {"posts": posts}}
-''')
-    click.echo("  Created: pages/blog/index.py")
-
-    (project_dir / "pages" / "blog" / "[slug].py").write_text('''"""Dynamic blog post"""
-
-def get_template():
-    return "blog/post.html"
-
-async def get_server_side_props(context):
-    slug = context["params"]["slug"]
-    return {
-        "props": {
-            "slug": slug,
-            "title": f"Post: {slug}",
-            "content": "Blog post content here"
-        }
-    }
-''')
-    click.echo("  Created: pages/blog/[slug].py")
-
-    (project_dir / "pages" / "api" / "posts.py").write_text('''"""API route for posts"""
-
-async def get(request):
-    """GET /api/posts"""
-    return {"posts": [{"id": 1, "title": "Post 1"}]}
-
-async def post(request):
-    """POST /api/posts"""
-    body = await request.json()
-    return {"id": 2, "title": body.get("title")}, 201
-''')
-    click.echo("  Created: pages/api/posts.py")
-
-    (project_dir / "pages" / "api" / "users" / "[id].py").write_text('''"""Dynamic API route"""
-
-async def get(request):
-    """GET /api/users/:id"""
-    user_id = request.path_params["id"]
-    return {"id": user_id, "name": f"User {user_id}"}
-
-async def put(request):
-    """PUT /api/users/:id"""
-    user_id = request.path_params["id"]
-    body = await request.json()
-    return {"id": user_id, "updated": True}
-
-async def delete(request):
-    """DELETE /api/users/:id"""
-    user_id = request.path_params["id"]
-    return {"deleted": True}, 204
-''')
-    click.echo("  Created: pages/api/users/[id].py")
-
-    (project_dir / "templates" / "components" / "button.html").write_text('''{% macro button(text, href="", onclick="", variant="primary", disabled=false) %}
-<a href="{{ href }}" class="px-4 py-2 font-semibold transition rounded-lg" style="background: {% if variant == 'primary' %}#3b82f6{% else %}#6b7280{% endif %}; color: white;">
-    {{ text }}
-</a>
-{% endmacro %}
-''')
-    click.echo("  Created: templates/components/button.html")
-
-    (project_dir / "templates" / "components" / "card.html").write_text('''{% macro card(title="", content="", footer="") %}
-<div class="p-6 mb-4 bg-white rounded-lg shadow-md">
-    {% if title %}<h3 class="mb-2 text-lg font-bold">{{ title }}</h3>{% endif %}
-    {% if content %}<p class="text-gray-600">{{ content }}</p>{% endif %}
-    {% if footer %}<div class="mt-4 text-sm text-gray-500">{{ footer }}</div>{% endif %}
-</div>
-{% endmacro %}
-''')
-    click.echo("  Created: templates/components/card.html")
-
-    (project_dir / "templates" / "components" / "modal.html").write_text('''{% macro modal(id="", title="", content="") %}
-<div id="{{ id }}" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000;">
-    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 24px; border-radius: 8px; min-width: 400px;">
-        {% if title %}<h2 class="mb-4 text-2xl font-bold">{{ title }}</h2>{% endif %}
-        {% if content %}<p class="mb-6 text-gray-600">{{ content }}</p>{% endif %}
-        <button onclick="document.getElementById('{{ id }}').style.display = 'none';" class="px-4 py-2 text-white bg-blue-600 rounded">Close</button>
-    </div>
-</div>
-{% endmacro %}
-''')
-    click.echo("  Created: templates/components/modal.html")
-
-    (project_dir / "models" / "user.py").write_text('''"""User database model"""
-
-from nextpy.db import Base
-from sqlalchemy import Column, Integer, String, DateTime
-from datetime import datetime
-
-class User(Base):
-    __tablename__ = "users"
-    
-    id = Column(Integer, primary_key=True)
-    name = Column(String(255))
-    email = Column(String(255), unique=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    def __repr__(self):
-        return f"<User {self.name}>"
-''')
-    click.echo("  Created: models/user.py")
-
-    (project_dir / "nextpy.config.py").write_text('''"""NextPy Configuration"""
-
-from pydantic_settings import BaseSettings
-
-class Settings(BaseSettings):
-    app_name: str = "MyNextPyApp"
-    debug: bool = True
-    database_url: str = "sqlite:///app.db"
-    secret_key: str = "your-secret-key-change-in-production"
-    
-    class Config:
-        env_file = ".env"
-
-settings = Settings()
-''')
-    click.echo("  Created: nextpy.config.py")
-
-    (project_dir / ".env").write_text('''DATABASE_URL=sqlite:///app.db
-DEBUG=True
-SECRET_KEY=your-secret-key-change-in-production
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-password
-''')
-    click.echo("  Created: .env")
-
-    (project_dir / ".gitignore").write_text('''# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-*.egg-info/
-dist/
-build/
-
-# Database
-*.db
-*.sqlite3
-
-# Environment
-.env
-.env.local
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Build output
-out/
-.nextpy/
-''')
-    click.echo("  Created: .gitignore")
-    
-    # Copy DOCUMENTATION.md to the new project
-    try:
-        current_dir = Path(__file__).parent.parent.parent.parent # Adjust based on actual cli.py location
-        doc_path = current_dir / "DOCUMENTATION.md"
-        if doc_path.exists():
-            (project_dir / "DOCUMENTATION.md").write_text(doc_path.read_text())
-            click.echo("  Copied: DOCUMENTATION.md")
-        else:
-            click.echo(click.style("  Warning: DOCUMENTATION.md not found in framework root. Docs page might be empty.", fg="yellow"))
-    except Exception as e:
-        click.echo(click.style(f"  Error copying DOCUMENTATION.md: {e}", fg="red"))
-
-    # Update _base.html to use /documentation route
-    base_html_path = project_dir / "templates" / "_base.html"
-    if base_html_path.exists():
-        base_html_content = base_html_path.read_text()
-        # Ensure the 'Docs' link correctly points to /documentation
-        updated_base_html_content = base_html_content.replace(
-            '<a href="/docs" class="font-medium text-gray-600 transition-colors hover:text-blue-600" hx-get="/docs" hx-target="#main-content" hx-push-url="true">Docs</a>',
-            '<a href="/documentation" class="font-medium text-gray-600 transition-colors hover:text-blue-600" hx-get="/documentation" hx-target="#main-content" hx-push-url="true">Docs</a>'
-        ).replace(
-            '<li><a href="/docs" class="transition hover:text-white">Getting Started</a></li>',
-            '<li><a href="/documentation" class="transition hover:text-white">Getting Started</a></li>'
-        ).replace(
-            '<li><a href="/docs" class="transition hover:text-white">API Reference</a></li>',
-            '<li><a href="/documentation" class="transition hover:text-white">API Reference</a></li>'
-        )
-        base_html_path.write_text(updated_base_html_content)
-        click.echo("  Updated: templates/_base.html with /documentation link")
-    else:
-        click.echo(click.style("  Warning: templates/_base.html not found in new project. Could not update documentation link.", fg="yellow"))
-
-    # Update index.html to include a link to the NextPy GitHub repository
-    index_html_path = project_dir / "templates" / "index.html"
-    if index_html_path.exists():
-        index_html_content = index_html_path.read_text()
-        # Find the closing tag of the <p> element and insert the new link after it
-        insertion_point = index_html_content.find('</p>')
-        if insertion_point != -1:
-            updated_index_html_content = index_html_content[:insertion_point + 4] + \
-                                         '        <a href="https://github.com/nextpy/nextpy-framework" target="_blank" class="inline-block px-6 py-3 mt-8 font-semibold text-blue-600 transition-all duration-300 transform bg-white rounded-lg shadow-lg hover:bg-gray-100 hover:text-blue-700 hover:scale-105">\n            Explore NextPy Framework\n        </a>' + \
-                                         index_html_content[insertion_point + 4:]
-            index_html_path.write_text(updated_index_html_content)
-            click.echo("  Updated: templates/index.html with NextPy Framework link")
-        else:
-            click.echo(click.style("  Warning: Could not find insertion point in templates/index.html to add NextPy Framework link.", fg="yellow"))
-    else:
-        click.echo(click.style("  Warning: templates/index.html not found in new project. Could not add NextPy Framework link.", fg="yellow"))
 
 
 if __name__ == "__main__":
