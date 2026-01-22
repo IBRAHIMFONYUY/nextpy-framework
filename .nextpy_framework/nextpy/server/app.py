@@ -18,7 +18,7 @@ from starlette.middleware.cors import CORSMiddleware
 from nextpy.core.router import Router
 from nextpy.core.component_router import ComponentRouter, ComponentRoute
 from nextpy.core.demo_router import demo_router
-from nextpy.core.renderer import Renderer
+from nextpy.core.component_renderer import ComponentRenderer, render_api, render_component
 from nextpy.core.data_fetching import (
     PageContext,
     execute_data_fetching,
@@ -55,10 +55,8 @@ class NextPyApp:
             self.router = Router(str(self.pages_dir), str(self.templates_dir))
         else:
             self.router = ComponentRouter(str(self.pages_dir), str(self.templates_dir))
-        self.renderer = Renderer(
-            str(self.templates_dir),
-            str(self.pages_dir),
-            str(self.public_dir),
+        self.renderer = ComponentRenderer(
+            debug=debug
         )
         
         # Check if we should enable demo mode
@@ -124,17 +122,29 @@ class NextPyApp:
                 name="nextpy_static",
             )
             
-    def _setup_routes(self) -> None:
-        """Set up the catch-all route handler"""
-        self.router.scan_pages()
-        
-        @self.app.get("/")
-        async def index(request: Request) -> Response:
-            return await self._handle_request(request, "/")
             
-        @self.app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
-        async def catch_all(request: Request, path: str = "") -> Response:
-            return await self._handle_request(request, f"/{path}")
+    def _setup_routes(self) -> None:
+        self.app.add_api_route("/{full_path:path}", handle_page, methods=["GET", "POST", "PUT", "DELETE"])
+        async def handle_page(full_path: str, request: Request):
+            file_path = self.pages_dir / f"{full_path}.py"
+            
+            if not file_path.exists():
+                # Fallback to index.py in folder
+                index_path = self.pages_dir / full_path / "index.py"
+                if index_path.exists():
+                    file_path = index_path
+                else:
+                    return HTMLResponse(content="404 Not Found", status_code=404)
+
+            # API route detection (simple example)
+            if full_path.startswith("api/"):
+                request_data = {"method": request.method, "query": dict(request.query_params)}
+                result = render_api(file_path, request_data)
+                return JSONResponse(content=result)
+
+            # Render component page
+            html = render_component(file_path, {"request": request})
+            return HTMLResponse(content=html)
         
     def _load_module_from_file(self, file_path: Path) -> Optional[Any]:
         """Load a Python module from a file path"""

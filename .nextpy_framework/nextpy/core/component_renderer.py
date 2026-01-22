@@ -9,9 +9,11 @@ import time
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
-from ..jsx import JSXElement, render_jsx
+from ..true_jsx import JSXElement, render_jsx, JSXComponent
+
 from ..jsx_transformer import load_jsx_module
 from ..jsx_preprocessor import is_jsx_file, JSXSyntaxError
+
 
 # Import auto-debug system
 try:

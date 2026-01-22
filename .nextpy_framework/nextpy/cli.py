@@ -430,6 +430,9 @@ def create(name: str):
         
     except Exception as e:
         click.echo(click.style(f"  ❌ Failed to create project: {str(e)}", fg="red"))
+        click.echo(click.style(f"  💡 Check the error message above for more details", fg="yellow"))
+        # Clean up partial creation
+        
         # Clean up partial creation
         if project_dir.exists():
             import shutil
@@ -529,7 +532,7 @@ def version():
     click.echo(click.style("\n  📋 NextPy Framework Info", fg="cyan", bold=True))
     click.echo(click.style("  ===================\n", fg="cyan"))
     
-    click.echo(f"  🏷️  Version: 2.2.0")
+    click.echo(f"  🏷️  Version: 2.3.1")
     click.echo(f"  🐍 Python: {sys.version.split()[0]}")
     click.echo(f"  ⚡ Framework: NextPy")
     click.echo(f"  🎨 Architecture: True JSX")
@@ -1238,14 +1241,14 @@ NEXTPY_LOG_LEVEL=info
                     click.echo(click.style("  ✅ NextPy VS Code extension installed!", fg="green"))
                     click.echo(click.style("  📝 Restart VS Code to activate", fg="yellow"))
                 else:
-                    click.echo(click.style("  ⚠️  Extension installation failed", fg="orange"))
+                    click.echo(click.style("  ⚠️  Extension installation failed", fg="yellow"))
                     click.echo("  💡 Install manually: code --install-extension nextpy.nextpy-vscode")
             else:
                 click.echo(click.style("  ✅ NextPy VS Code extension already installed", fg="green"))
         else:
-            click.echo(click.style("  ⚠️  VS Code not available", fg="orange"))
+            click.echo(click.style("  ⚠️  VS Code not available", fg="yellow"))
     except Exception as e:
-        click.echo(click.style(f"  ⚠️  Could not install VS Code extension: {e}", fg="orange"))
+        click.echo(click.style(f"  ⚠️  Could not install VS Code extension: {e}", fg="yellow"))
 
 
 

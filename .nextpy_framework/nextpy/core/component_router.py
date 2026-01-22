@@ -80,9 +80,11 @@ class ComponentRouter:
         is_catch_all = False
         
         for part in parts:
-            if part.endswith(".py"):
+            if part.endswith(".py.jsx"):
+                part = part[:-7]
+            elif part.endswith(".py"):
                 part = part[:-3]
-                
+
             if part == "index":
                 continue
                 
