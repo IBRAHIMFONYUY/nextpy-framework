@@ -533,7 +533,7 @@ def version():
     click.echo(click.style("\n  📋 NextPy Framework Info", fg="cyan", bold=True))
     click.echo(click.style("  ===================\n", fg="cyan"))
     
-    click.echo(f"  🏷️  Version: 2.4.4")
+    click.echo(f"  🏷️  Version: 2.4.5")
     click.echo(f"  🐍 Python: {sys.version.split()[0]}")
     click.echo(f"  ⚡ Framework: NextPy")
     click.echo(f"  🎨 Architecture: True JSX")
@@ -951,10 +951,10 @@ body {
     # Create tailwind.config.js with Python support
     (project_dir / "tailwind.config.js").write_text('''module.exports = {
   content: [
-    './pages/*}*.{js,ts,jsx,tsx,mdx,py}',
-    './components/*}*.{js,ts,jsx,tsx,mdx,py}',
-    './templates/*}*.{html,htm}',
-    './app/*}*.{js,ts,jsx,tsx,mdx,py}',
+    './pages/**/*.{js,ts,jsx,tsx,mdx,py}',
+    './components/**/*.{js,ts,jsx,tsx,mdx,py}',
+    './templates/**/*.{html,htm}',
+    './app/**/*.{js,ts,jsx,tsx,mdx,py}',
   ],
   theme: {
     extend: {
@@ -1019,7 +1019,7 @@ body {
     # Create postcss.config.js with new Tailwind plugin
     (project_dir / "postcss.config.js").write_text('''module.exports = {
   plugins: {
-    '@tailwindcss/postcss': {},
+    tailwindcss: {},
     autoprefixer: {},
   },
 };''')
@@ -1042,11 +1042,8 @@ body {
   "devDependencies": {
     "autoprefixer": "^10.4.22",
     "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.17"
-  },
-  "dependencies": {
-    "@tailwindcss/postcss": "^4.1.18",
-    "postcss-cli": "^11.0.1"
+    "postcss-cli": "^11.0.1",
+    "tailwindcss": "^3.4.1"
   }
 }''')
     click.echo("  Created: package.json")
@@ -2304,7 +2301,7 @@ except subprocess.CalledProcessError as e:
         print(f"CSS Error: {e.stderr}")
 except FileNotFoundError:
     print("Error: PostCSS not found. Make sure Node.js and Tailwind CSS are installed.")
-    print("Install with: npm install postcss-cli @tailwindcss/postcss")
+    print("Install with: npm install postcss-cli tailwindcss autoprefixer")
 
 # Import NextPy modules (works when installed via pip)
 from nextpy.server.app import create_app
