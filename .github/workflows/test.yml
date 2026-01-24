@@ -40,13 +40,12 @@ jobs:
     
     - name: Run tests
       run: |
-        cd .nextpy_framework
-        pytest tests/ --cov=nextpy --cov-report=term-missing || echo "Tests completed"
+        pytest .nextpy_framework/tests/ --cov=nextpy --cov-report=term-missing || echo "Tests completed"
     
     - name: Upload coverage
       uses: codecov/codecov-action@v4
       with:
-        file: ./.nextpy_framework/coverage.xml
+        file: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: false
