@@ -139,9 +139,12 @@ class NextPyApp:
                 )
             else:
                 # Page routes
+                async def page_handler(request):
+                    return await self._handle_request(request, route.path)
+                
                 self.app.add_route(
                     route.path,
-                    lambda request: self._handle_request(request, route.path),
+                    page_handler,
                     methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
                 )
         
