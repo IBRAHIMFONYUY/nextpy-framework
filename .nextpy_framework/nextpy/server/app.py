@@ -141,7 +141,7 @@ class NextPyApp:
                 # Page routes
                 self.app.add_route(
                     route.path,
-                    lambda request, r=route: self._handle_request(request, r, {}),
+                    lambda request: self._handle_request(request, route.path),
                     methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
                 )
         
