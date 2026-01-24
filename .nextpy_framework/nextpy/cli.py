@@ -426,6 +426,7 @@ def create(name: str):
         click.echo(f"    3️⃣  nextpy dev")
         click.echo(f"\n  🌐 Your app will be available at: http://localhost:5000")
         click.echo(f"\n  📚 Documentation: https://github.com/IBRAHIMFONYUY/nextpy-framework")
+        
         click.echo()
         
     except Exception as e:
@@ -532,7 +533,7 @@ def version():
     click.echo(click.style("\n  📋 NextPy Framework Info", fg="cyan", bold=True))
     click.echo(click.style("  ===================\n", fg="cyan"))
     
-    click.echo(f"  🏷️  Version: 2.4.1")
+    click.echo(f"  🏷️  Version: 2.4.2")
     click.echo(f"  🐍 Python: {sys.version.split()[0]}")
     click.echo(f"  ⚡ Framework: NextPy")
     click.echo(f"  🎨 Architecture: True JSX")
