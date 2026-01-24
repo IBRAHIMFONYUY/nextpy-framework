@@ -54,11 +54,12 @@ class TailwindPlugin(JSXPlugin):
     
     def _optimize_tailwind_classes(self, content: str) -> str:
         """Optimize Tailwind CSS classes"""
-        # Remove duplicate classes
-        class_pattern = r'className="([^"]+)"'
+        # Handle both className and class attributes
+        class_pattern = r'(className|class)="([^"]+)"'
         
         def optimize_classes(match):
-            classes = match.group(1).split()
+            attr_name = match.group(1)  # className or class
+            classes = match.group(2).split()
             # Remove duplicates while preserving order
             seen = set()
             unique_classes = []
@@ -66,7 +67,7 @@ class TailwindPlugin(JSXPlugin):
                 if cls not in seen:
                     seen.add(cls)
                     unique_classes.append(cls)
-            return f'className="{" ".join(unique_classes)}"'
+            return f'{attr_name}="{" ".join(unique_classes)}"'
         
         return re.sub(class_pattern, optimize_classes, content)
     

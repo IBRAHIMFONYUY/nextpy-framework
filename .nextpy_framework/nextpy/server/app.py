@@ -124,27 +124,23 @@ class NextPyApp:
             
             
     def _setup_routes(self) -> None:
-        self.app.add_api_route("/{full_path:path}", handle_page, methods=["GET", "POST", "PUT", "DELETE"])
-        async def handle_page(full_path: str, request: Request):
-            file_path = self.pages_dir / f"{full_path}.py"
-            
-            if not file_path.exists():
-                # Fallback to index.py in folder
-                index_path = self.pages_dir / full_path / "index.py"
-                if index_path.exists():
-                    file_path = index_path
-                else:
-                    return HTMLResponse(content="404 Not Found", status_code=404)
-
-            # API route detection (simple example)
-            if full_path.startswith("api/"):
-                request_data = {"method": request.method, "query": dict(request.query_params)}
-                result = render_api(file_path, request_data)
-                return JSONResponse(content=result)
-
-            # Render component page
-            html = render_component(file_path, {"request": request})
-            return HTMLResponse(content=html)
+        """Setup page routes using the router"""
+        # Add all routes from the router
+        for route in self.router.get_all_routes():
+            if route.is_api:
+                # API routes
+                self.app.add_api_route(
+                    route.path,
+                    lambda request, r=route: self._handle_api_request(request, r, {}),
+                    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+                )
+            else:
+                # Page routes
+                self.app.add_route(
+                    route.path,
+                    lambda request, r=route: self._handle_request(request, r, {}),
+                    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+                )
         
     def _load_module_from_file(self, file_path: Path) -> Optional[Any]:
         """Load a Python module from a file path"""

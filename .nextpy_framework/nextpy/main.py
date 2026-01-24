@@ -15,15 +15,17 @@ sys.path.insert(0, str(Path(__file__).parent / ".nextpy_framework"))
 
 print(f"DEBUG: sys.path after modification: {sys.path}")
 
-# Compile Tailwind CSS
+# Compile Tailwind CSS using PostCSS
 try:
     print("Compiling Tailwind CSS...")
-    subprocess.run(["npx", "tailwindcss", "-i", "./styles.css", "-o", "./public/tailwind.css"], check=True)
+    # Use PostCSS with the new Tailwind plugin
+    subprocess.run(["./node_modules/.bin/postcss", "styles.css", "-o", "public/tailwind.css"], check=True)
     print("Tailwind CSS compiled successfully.")
 except subprocess.CalledProcessError as e:
     print(f"Error compiling Tailwind CSS: {e}")
 except FileNotFoundError:
-    print("Error: npx or tailwindcss command not found. Make sure Node.js and Tailwind CSS are installed.")
+    print("Error: PostCSS not found. Make sure Node.js and Tailwind CSS are installed.")
+    print("Install with: npm install postcss-cli @tailwindcss/postcss")
 
 
 from nextpy.server.app import create_app

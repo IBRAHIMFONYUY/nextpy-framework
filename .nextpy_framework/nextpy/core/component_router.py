@@ -103,7 +103,7 @@ class ComponentRouter:
                 route_parts.append(f"(?P<{param_name}>[^/]+)")
                 is_dynamic = True
             else:
-                route_parts.append(re.escape(part))
+                route_parts.append(part)
                 
         if is_api and route_parts and route_parts[0] == "api":
             route_parts = route_parts[1:]
