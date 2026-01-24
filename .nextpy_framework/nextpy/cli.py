@@ -196,7 +196,7 @@ def _format_size(size_bytes: int) -> str:
     return f"{size:.1f} {size_names[i]}"
 
 @click.group()
-@click.version_option(version="1.0.0", prog_name="NextPy")
+@click.version_option(version="2.4.4", prog_name="NextPy")
 def cli():
     """NextPy - A Python web framework inspired by Next.js"""
     pass
@@ -561,7 +561,7 @@ def info():
     
     # Framework info
     click.echo(click.style("  📦 Framework Details:", fg="blue", bold=True))
-    click.echo(f"    Version: 2.0.0")
+    click.echo(f"    Version: 2.4.4")
     click.echo(f"    Architecture: True JSX")
     click.echo(f"    Python: {sys.version.split()[0]}")
     
@@ -2287,9 +2287,6 @@ import sys
 import subprocess
 from pathlib import Path
 
-print(f"DEBUG: Current working directory: {Path.cwd()}")
-print(f"DEBUG: sys.path before modification: {sys.path}")
-
 # Compile Tailwind CSS using PostCSS
 try:
     print("Compiling Tailwind CSS...")
@@ -2301,8 +2298,6 @@ try:
         check=True
     )
     print("Tailwind CSS compiled successfully.")
-    if result.stdout:
-        print(f"CSS Output: {result.stdout[:200]}...")
 except subprocess.CalledProcessError as e:
     print(f"Error compiling Tailwind CSS: {e}")
     if e.stderr:

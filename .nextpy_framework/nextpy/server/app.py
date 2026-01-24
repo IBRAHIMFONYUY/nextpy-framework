@@ -131,10 +131,10 @@ class NextPyApp:
         # Add all routes from the router
         for route in self.router.get_all_routes():
             if route.is_api:
-                # API routes
+                # API routes - FIXED: use default argument to capture route correctly
                 def create_api_handler(route_obj):
-                    def api_handler(request):
-                        return self._handle_api_request(request, route_obj, {})
+                    def api_handler(request, route=route_obj):
+                        return self._handle_api_request(request, route, {})
                     return api_handler
                 
                 self.app.add_api_route(
@@ -143,10 +143,10 @@ class NextPyApp:
                     methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
                 )
             else:
-                # Page routes
+                # Page routes - FIXED: use default argument to capture route correctly
                 def create_page_handler(route_path):
-                    async def page_handler(request):
-                        return await self._handle_request(request, route_path)
+                    async def page_handler(request, path=route_path):
+                        return await self._handle_request(request, path)
                     return page_handler
                 
                 self.app.add_route(
@@ -156,16 +156,32 @@ class NextPyApp:
                 )
         
     def _load_module_from_file(self, file_path: Path) -> Optional[Any]:
-        """Load a Python module from a file path"""
+        """Load a Python module from a file path with caching"""
         try:
+            # Convert relative path to absolute path
+            if not file_path.is_absolute():
+                file_path = Path.cwd() / file_path
+            
+            # Create cache key
+            cache_key = str(file_path.resolve())
+            
+            # Check cache first (unless in debug mode)
+            if not self.debug and cache_key in self._modules_cache:
+                return self._modules_cache[cache_key]
+            
             module_name = f"nextpy_page_{file_path.stem}_{hash(str(file_path))}"
             
-            spec = importlib.util.spec_from_file_location(module_name, file_path)
-            if spec and spec.loader:
-                module = importlib.util.module_from_spec(spec)
-                sys.modules[module_name] = module
-                spec.loader.exec_module(module)
-                return module
+            # Use JSX transformer for JSX files
+            from nextpy.jsx_transformer import JSXTransformer
+            transformer = JSXTransformer()
+            module = transformer.load_jsx_module(file_path, module_name)
+            
+            # Cache the module (unless in debug mode)
+            if module and not self.debug:
+                self._modules_cache[cache_key] = module
+            
+            return module
+            
         except Exception as e:
             if self.debug:
                 print(f"Error loading module from {file_path}: {e}")
@@ -217,13 +233,29 @@ class NextPyApp:
             
             if module:
                 props = await execute_data_fetching(module, context)
+                
+                # Execute the page component to get JSX
+                content = ""
+                if hasattr(module, 'default'):
+                    component = module.default
+                    component_props = {**props, "params": params}
+                    jsx_element = component(component_props)
                     
+                    # Convert JSX to HTML
+                    try:
+                        from nextpy.jsx import render_jsx
+                        content = render_jsx(jsx_element)
+                    except ImportError:
+                        # Fail fast - JSX renderer is required
+                        raise RuntimeError("JSX renderer not available. Please install nextpy.jsx module.")
+                        
             template_name = self._get_template_name(route, module)
             
             html = await self.renderer.render_async(
                 template_name,
                 context={
                     **props,
+                    "content": content,
                     "params": params,
                     "query": dict(request.query_params),
                     "request": request,

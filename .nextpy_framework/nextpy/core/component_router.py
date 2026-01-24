@@ -342,26 +342,34 @@ class ComponentRouter:
         return handler
     
     def _create_template_handler(self, file_path: Path) -> Optional[Callable]:
-        """Load the traditional template-based handler"""
+        """Load the traditional template-based handler using JSX transformer"""
         try:
-            spec = importlib.util.spec_from_file_location(
-                file_path.stem, 
-                file_path
-            )
-            if spec and spec.loader:
-                module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(module)
-                
+            # Use JSX transformer for consistent loading
+            from ..jsx_transformer import JSXTransformer
+            transformer = JSXTransformer()
+            module = transformer.load_jsx_module(file_path, file_path.stem)
+            
+            if module:
                 for func_name in ["handler", "page", "get", "post", "default"]:
                     if hasattr(module, func_name):
                         return getattr(module, func_name)
-                        
-                if hasattr(module, "Page"):
-                    return module.Page
+        except Exception:
+            # Fallback to regular import if JSX transformer fails
+            try:
+                spec = importlib.util.spec_from_file_location(
+                    file_path.stem, 
+                    file_path
+                )
+                if spec and spec.loader:
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
                     
-        except Exception as e:
-            print(f"Error loading handler from {file_path}: {e}")
-            
+                    for func_name in ["handler", "page", "get", "post", "default"]:
+                        if hasattr(module, func_name):
+                            return getattr(module, func_name)
+            except Exception:
+                pass  # Silently fail if both methods fail
+                
         return None
         
     def _sort_routes(self) -> None:
