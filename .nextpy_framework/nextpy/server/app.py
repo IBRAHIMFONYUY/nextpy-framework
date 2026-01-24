@@ -59,6 +59,9 @@ class NextPyApp:
             debug=debug
         )
         
+        # Scan pages for routes
+        self.router.scan_pages()
+        
         # Check if we should enable demo mode
         if isinstance(self.router, Router) and demo_router.should_serve_demo():
             self.router.enable_demo_mode()
