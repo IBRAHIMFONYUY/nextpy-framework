@@ -533,7 +533,7 @@ def version():
     click.echo(click.style("\n  📋 NextPy Framework Info", fg="cyan", bold=True))
     click.echo(click.style("  ===================\n", fg="cyan"))
     
-    click.echo(f"  🏷️  Version: 2.4.3")
+    click.echo(f"  🏷️  Version: 2.4.4")
     click.echo(f"  🐍 Python: {sys.version.split()[0]}")
     click.echo(f"  ⚡ Framework: NextPy")
     click.echo(f"  🎨 Architecture: True JSX")
@@ -878,6 +878,43 @@ def _create_project_structure(project_dir: Path):
         (project_dir / dir_path).mkdir(parents=True, exist_ok=True)
         click.echo(f"  Created: {dir_path}/")
         
+    # Create essential templates
+    (project_dir / "templates" / "_page.html").write_text('''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title or "NextPy App" }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="app">
+        {{ content }}
+    </div>
+</body>
+</html>''')
+    click.echo("  Created: templates/_page.html")
+    
+    (project_dir / "templates" / "_404.html").write_text('''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>404 - Page Not Found</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-100 flex items-center justify-center">
+    <div class="text-center">
+        <h1 class="text-6xl font-bold text-gray-900 mb-4">404</h1>
+        <p class="text-xl text-gray-600 mb-8">Page not found</p>
+        <a href="/" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Go Home
+        </a>
+    </div>
+</body>
+</html>''')
+    click.echo("  Created: templates/_404.html")
+    
     # Create styles.css with Tailwind directives
     (project_dir / "styles.css").write_text('''/* NextPy Styles */
 @tailwind base;
@@ -914,10 +951,10 @@ body {
     # Create tailwind.config.js with Python support
     (project_dir / "tailwind.config.js").write_text('''module.exports = {
   content: [
-    './pages/**/*.{js,ts,jsx,tsx,mdx,py}',
-    './components/**/*.{js,ts,jsx,tsx,mdx,py}',
-    './templates/**/*.{html,htm}',
-    './app/**/*.{js,ts,jsx,tsx,mdx,py}',
+    './pages/*}*.{js,ts,jsx,tsx,mdx,py}',
+    './components/*}*.{js,ts,jsx,tsx,mdx,py}',
+    './templates/*}*.{html,htm}',
+    './app/*}*.{js,ts,jsx,tsx,mdx,py}',
   ],
   theme: {
     extend: {
@@ -1024,7 +1061,6 @@ def Home(props=None):
     
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600">
-            {/* Navigation */}
             <nav className="bg-white border-b border-white bg-opacity-10 backdrop-blur-md border-opacity-20">
                 <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
@@ -1046,7 +1082,6 @@ def Home(props=None):
                 </div>
             </nav>
             
-            {/* Hero Section */}
             <div className="relative overflow-hidden">
                 <div className="mx-auto max-w-7xl">
                     <div className="relative z-10 pb-8 bg-transparent sm:pb-16 md:pb-20 lg:pb-28 xl:pb-32">
@@ -1072,8 +1107,7 @@ def Home(props=None):
                     </div>
                 </div>
                 
-                {/* Background decoration */}
-                <div className="absolute inset-0 -z-10">
+                                <div className="absolute inset-0 -z-10">
                     <div className="absolute top-0 transform -translate-x-1/2 left-1/2 blur-3xl opacity-20">
                         <div className="rounded-full aspect-square w-96 h-96 bg-gradient-to-r from-blue-400 to-purple-600"></div>
                     </div>
@@ -1083,7 +1117,7 @@ def Home(props=None):
                 </div>
             </div>
             
-            {/* Features Section */}
+            
             <div className="py-12 bg-white">
                 <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <div className="lg:text-center">
@@ -1097,10 +1131,10 @@ def Home(props=None):
                     
                     <div className="mt-10">
                         <div className="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10 lg:grid-cols-3">
-                            {/* Feature 1 */}
+                            
                             <div className="relative">
                                 <div className="absolute flex items-center justify-center w-12 h-12 text-white bg-blue-500 rounded-md">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-6 h-6" fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7m0 0v7l9-11h-7z" />
                                     </svg>
                                 </div>
@@ -1111,14 +1145,14 @@ def Home(props=None):
                                     Write React-like components directly in Python with full JSX support.
                                 </p>
                                 <a href="/jsx-demo" className="mt-4 ml-16 text-base font-medium text-blue-600 hover:text-blue-500">
-                                    Learn more →
+                                    Learn more &rarr;
                                 </a>
                             </div>
                             
-                            {/* Feature 2 */}
+                            
                             <div className="relative">
                                 <div className="absolute flex items-center justify-center w-12 h-12 text-white bg-purple-500 rounded-md">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-6 h-6" fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
                                     </svg>
                                 </div>
@@ -1129,14 +1163,14 @@ def Home(props=None):
                                     Built-in Tailwind CSS v4 with PostCSS compilation and utility classes.
                                 </p>
                                 <a href="/tailwind-demo" className="mt-4 ml-16 text-base font-medium text-blue-600 hover:text-blue-500">
-                                    Learn more →
+                                    Learn more &rarr;
                                 </a>
                             </div>
                             
-                            {/* Feature 3 */}
+                            
                             <div className="relative">
                                 <div className="absolute flex items-center justify-center w-12 h-12 text-white bg-green-500 rounded-md">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-6 h-6" fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 2 9 9 0 0118 0z" />
                                     </svg>
                                 </div>
@@ -1147,7 +1181,7 @@ def Home(props=None):
                                     Automatic route discovery with support for dynamic routes and API endpoints.
                                 </p>
                                 <a href="/routing-demo" className="mt-4 ml-16 text-base font-medium text-blue-600 hover:text-blue-500">
-                                    Learn more →
+                                    Learn more &rarr;
                                 </a>
                             </div>
                         </div>
@@ -1155,7 +1189,7 @@ def Home(props=None):
                 </div>
             </div>
             
-            {/* Interactive Demo Section */}
+            
             <div className="py-12 bg-gray-50">
                 <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <div className="text-center">
@@ -1168,7 +1202,7 @@ def Home(props=None):
                     </div>
                     
                     <div className="grid grid-cols-1 gap-8 mt-12 sm:grid-cols-2 lg:grid-cols-3">
-                        {/* Interactive Counter */}
+                        
                         <div className="p-6 bg-white rounded-lg shadow-lg">
                             <h3 className="text-lg font-medium text-gray-900">Live Counter</h3>
                             <p className="mt-2 text-sm text-gray-500">Interactive state management demo</p>
@@ -1180,7 +1214,7 @@ def Home(props=None):
                             </div>
                         </div>
                         
-                        {/* Form Demo */}
+                        
                         <div className="p-6 bg-white rounded-lg shadow-lg">
                             <h3 className="text-lg font-medium text-gray-900">Form Handling</h3>
                             <p className="mt-2 text-sm text-gray-500">Server-side form processing</p>
@@ -1192,7 +1226,7 @@ def Home(props=None):
                             </div>
                         </div>
                         
-                        {/* API Demo */}
+                        
                         <div className="p-6 bg-white rounded-lg shadow-lg">
                             <h3 className="text-lg font-medium text-gray-900">API Integration</h3>
                             <p className="mt-2 text-sm text-gray-500">RESTful API endpoints</p>
@@ -1207,12 +1241,12 @@ def Home(props=None):
                 </div>
             </div>
             
-            {/* Footer */}
+            
             <footer className="bg-gray-900">
                 <div className="px-4 py-12 mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <div className="flex flex-col items-center space-y-4">
                         <p className="text-base text-center text-gray-400">
-                            Built with ❤️ using NextPy Framework
+                            Built with &hearts; using NextPy Framework
                         </p>
                         <div className="flex space-x-6">
                             <a href="/about" className="text-gray-400 hover:text-gray-300">About</a>
@@ -1249,8 +1283,7 @@ def About(props=None):
     
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Hero Section */}
-            <div className="text-white bg-gradient-to-r from-blue-600 to-purple-600">
+                        <div className="text-white bg-gradient-to-r from-blue-600 to-purple-600">
                 <div className="px-4 py-16 mx-auto max-w-7xl sm:py-24 sm:px-6 lg:px-8">
                     <div className="text-center">
                         <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
@@ -1271,7 +1304,7 @@ def About(props=None):
                 </div>
             </div>
             
-            {/* Features Grid */}
+            
             <div className="py-12 bg-white">
                 <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <div className="lg:text-center">
@@ -1285,10 +1318,10 @@ def About(props=None):
                     
                     <div className="mt-10">
                         <div className="gap-8 space-y-10 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3">
-                            {/* Feature 1 */}
+                            
                             <div className="relative">
                                 <div className="absolute flex items-center justify-center w-12 h-12 text-white bg-blue-500 rounded-md">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-6 h-6" fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7m0 0v7l9-11h-7z" />
                                     </svg>
                                 </div>
@@ -1298,10 +1331,10 @@ def About(props=None):
                                 </p>
                             </div>
                             
-                            {/* Feature 2 */}
+                            
                             <div className="relative">
                                 <div className="absolute flex items-center justify-center w-12 h-12 text-white bg-purple-500 rounded-md">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-6 h-6" fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
                                     </svg>
                                 </div>
@@ -1311,10 +1344,10 @@ def About(props=None):
                                 </p>
                             </div>
                             
-                            {/* Feature 3 */}
+                            
                             <div className="relative">
                                 <div className="absolute flex items-center justify-center w-12 h-12 text-white bg-green-500 rounded-md">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-6 h-6" fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 2 9 9 0 0118 0z" />
                                     </svg>
                                 </div>
@@ -1324,10 +1357,10 @@ def About(props=None):
                                 </p>
                             </div>
                             
-                            {/* Feature 4 */}
+                            
                             <div className="relative">
                                 <div className="absolute flex items-center justify-center w-12 h-12 text-white bg-red-500 rounded-md">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-6 h-6" fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7m0 0v7l9-11h-7z" />
                                     </svg>
                                 </div>
@@ -1337,10 +1370,10 @@ def About(props=None):
                                 </p>
                             </div>
                             
-                            {/* Feature 5 */}
+                            
                             <div className="relative">
                                 <div className="absolute flex items-center justify-center w-12 h-12 text-white bg-yellow-500 rounded-md">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-6 h-6" fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 00-1.065 2.572c1.756.426 1.756 2.924 0 3.35-1.756a1.724 1.724 0 00-1.066-2.573c1.756-.426 1.756-2.924 0-3.35 1.756a1.724 1.724 0 00-2.573-1.066c-1.756.426-1.756-2.924 0-3.35 1.756A1.724 1.724 0 006.573 2.572C3.31 7.76 1.574 8.686 4.317 8.686a1.724 1.724 0 00-1.066-2.572c1.756-.426 1.756-2.924 0-3.35 1.756a1.724 1.724 0 00-2.573-1.066c-1.756.426-1.756-2.924 0-3.35 1.756A1.724 1.724 0 001.066 2.572c1.756.426 1.756 2.924 0 3.35-1.756a1.724 1.724 0 002.573 1.066z" />
                                     </svg>
                                 </div>
@@ -1350,10 +1383,10 @@ def About(props=None):
                                 </p>
                             </div>
                             
-                            {/* Feature 6 */}
+                            
                             <div className="relative">
                                 <div className="absolute flex items-center justify-center w-12 h-12 text-white bg-indigo-500 rounded-md">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-6 h-6" fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
                                 </div>
@@ -1367,7 +1400,7 @@ def About(props=None):
                 </div>
             </div>
             
-            {/* Interactive Demo Section */}
+            
             <div className="py-12 bg-gray-50">
                 <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <div className="text-center">
@@ -1380,11 +1413,11 @@ def About(props=None):
                     </div>
                     
                     <div className="grid grid-cols-1 gap-8 mt-12 sm:grid-cols-2 lg:grid-cols-3">
-                        {/* JSX Demo */}
+                        
                         <div className="p-6 transition-shadow bg-white rounded-lg shadow-lg hover:shadow-xl">
                             <div className="text-center">
                                 <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 text-white bg-blue-500 rounded-md">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-6 h-6" fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7m0 0v7l9-11h-7z" />
                                     </svg>
                                 </div>
@@ -1395,11 +1428,11 @@ def About(props=None):
                                 </button>
                             </div>
                             
-                        {/* Tailwind Demo */}
+                        
                         <div className="p-6 transition-shadow bg-white rounded-lg shadow-lg hover:shadow-xl">
                             <div className="text-center">
                                 <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 text-white bg-purple-500 rounded-md">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-6 h-6" fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
                                     </svg>
                                 </div>
@@ -1410,11 +1443,11 @@ def About(props=None):
                                 </button>
                             </div>
                             
-                        {/* API Demo */}
+                        
                         <div className="p-6 transition-shadow bg-white rounded-lg shadow-lg hover:shadow-xl">
                             <div className="text-center">
                                 <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 text-white bg-green-500 rounded-md">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-6 h-6" fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 2 9 9 0 0118 0z" />
                                     </svg>
                                 </div>
@@ -1429,7 +1462,7 @@ def About(props=None):
                 </div>
             </div>
             
-            {/* Stats Section */}
+            
             <div className="bg-blue-600">
                 <div className="px-4 py-12 mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
@@ -1453,12 +1486,12 @@ def About(props=None):
                 </div>
             </div>
             
-            {/* Footer */}
+            
             <footer className="bg-gray-900">
                 <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <div className="flex flex-col items-center space-y-4">
                         <p className="text-base text-center text-gray-400">
-                            Built with ❤️ using NextPy Framework
+                            Built with &hearts; using NextPy Framework
                         </p>
                         <div className="flex space-x-6">
                             <a href="/" className="text-gray-400 hover:text-gray-300">Home</a>
@@ -1497,7 +1530,7 @@ def InteractiveDemo(props=None):
                 </h1>
                 
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-                    {/* Counter Demo */}
+                    
                     <div className="p-6 bg-white shadow-lg rounded-xl">
                         <h2 className="mb-4 text-2xl font-bold text-gray-900">Live Counter</h2>
                         <div className="text-center">
@@ -1516,7 +1549,7 @@ def InteractiveDemo(props=None):
                         </div>
                     </div>
                     
-                    {/* Todo List Demo */}
+                    
                     <div className="p-6 bg-white shadow-lg rounded-xl">
                         <h2 className="mb-4 text-2xl font-bold text-gray-900">Todo List</h2>
                         <div className="space-y-4">
@@ -1527,12 +1560,12 @@ def InteractiveDemo(props=None):
                                 </button>
                             </div>
                             <ul id="todoList" className="space-y-2">
-                                {/* Todos will be added here dynamically */}
+                                
                             </ul>
                         </div>
                     </div>
                     
-                    {/* Color Picker Demo */}
+                    
                     <div className="p-6 bg-white shadow-lg rounded-xl">
                         <h2 className="mb-4 text-2xl font-bold text-gray-900">Color Picker</h2>
                         <div className="space-y-4">
@@ -1543,7 +1576,7 @@ def InteractiveDemo(props=None):
                         </div>
                     </div>
                     
-                    {/* Form Validation Demo */}
+                    
                     <div className="p-6 bg-white shadow-lg rounded-xl">
                         <h2 className="mb-4 text-2xl font-bold text-gray-900">Form Validation</h2>
                         <form onsubmit="validateForm(event)" className="space-y-4">
@@ -1560,7 +1593,7 @@ def InteractiveDemo(props=None):
                             </button>
                         </form>
                         <div id="validationResult" className="hidden p-4 mt-4 rounded-lg">
-                            {/* Validation results will appear here */}
+                            
                         </div>
                     </div>
                 </div>
@@ -1594,13 +1627,13 @@ def Features(props=None):
                 
                 <div className="grid grid-cols-1 gap-12 md:grid-cols-2">
                     <div className="space-y-12">
-                        {/* Core Features */}
+                        
                         <div>
                             <h2 className="mb-6 text-2xl font-bold text-gray-900">Core Features</h2>
                             <div className="space-y-6">
                                 <div className="flex items-start space-x-4">
                                     <div className="flex-shrink-0 w-6 h-6 text-green-500">
-                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                         </svg>
                                     </div>
@@ -1612,7 +1645,7 @@ def Features(props=None):
                                 
                                 <div className="flex items-start space-x-4">
                                     <div className="flex-shrink-0 w-6 h-6 text-blue-500">
-                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
                                         </svg>
                                     </div>
@@ -1624,7 +1657,7 @@ def Features(props=None):
                                 
                                 <div className="flex items-start space-x-4">
                                     <div className="flex-shrink-0 w-6 h-6 text-purple-500">
-                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 2 9 9 0 0118 0z" />
                                         </svg>
                                     </div>
@@ -1636,13 +1669,13 @@ def Features(props=None):
                             </div>
                         </div>
                         
-                        {/* Development Features */}
+                        
                         <div>
                             <h2 className="mb-6 text-2xl font-bold text-gray-900">Development Experience</h2>
                             <div className="space-y-6">
                                 <div className="flex items-start space-x-4">
                                     <div className="flex-shrink-0 w-6 h-6 text-red-500">
-                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v16h16V4H4z" />
                                         </svg>
                                     </div>
@@ -1654,7 +1687,7 @@ def Features(props=None):
                                 
                                 <div className="flex items-start space-x-4">
                                     <div className="flex-shrink-0 w-6 h-6 text-yellow-500">
-                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.75 5H6.25v13l4.5 4.5z" />
                                         </svg>
                                     </div>
@@ -1666,7 +1699,7 @@ def Features(props=None):
                                 
                                 <div className="flex items-start space-x-4">
                                     <div className="flex-shrink-0 w-6 h-6 text-indigo-500">
-                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
                                     </div>
@@ -1707,7 +1740,7 @@ def GettingStarted(props=None):
                 </div>
                 
                 <div className="space-y-16">
-                    {/* Step 1 */}
+                    
                     <div className="p-8 rounded-lg bg-blue-50">
                         <div className="flex items-center mb-4">
                             <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 font-bold text-white bg-blue-500 rounded-full">
@@ -1727,7 +1760,7 @@ def GettingStarted(props=None):
                         </div>
                     </div>
                     
-                    {/* Step 2 */}
+                    
                     <div className="p-8 rounded-lg bg-green-50">
                         <div className="flex items-center mb-4">
                             <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 font-bold text-white bg-green-500 rounded-full">
@@ -1744,18 +1777,18 @@ def GettingStarted(props=None):
                                 <h3 className="mb-2 font-semibold text-gray-900">Project Structure</h3>
                                 <pre className="p-4 overflow-x-auto text-sm bg-gray-100 rounded">
 {`my-app/
-├── pages/           # Your pages and API routes
-├── components/      # Reusable components  
-├── templates/       # HTML templates
-├── public/          # Static assets
-├── styles.css        # Tailwind CSS
-├── main.py          # Application entry point
-└── requirements.txt  # Python dependencies`}</pre>
+|-- pages/           # Your pages and API routes
+|-- components/      # Reusable components  
+|-- templates/       # HTML templates
+|-- public/          # Static assets
+|-- styles.css        # Tailwind CSS
+|-- main.py          # Application entry point
+`-- requirements.txt  # Python dependencies`}</pre>
                             </div>
                         </div>
                     </div>
                     
-                    {/* Step 3 */}
+                    
                     <div className="p-8 rounded-lg bg-purple-50">
                         <div className="flex items-center mb-4">
                             <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 font-bold text-white bg-purple-500 rounded-full">
@@ -1775,7 +1808,7 @@ def GettingStarted(props=None):
                         </div>
                     </div>
                     
-                    {/* Step 4 */}
+                    
                     <div className="p-8 rounded-lg bg-yellow-50">
                         <div className="flex items-center mb-4">
                             <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 font-bold text-white bg-yellow-500 rounded-full">
@@ -1927,21 +1960,21 @@ default = Layout
     "css.value.unit": "rem"
   },
   "files.exclude": {
-    "**/__pycache__": true,
-    "**/*.pyc": true,
-    "**/node_modules": true,
-    "**/out": true,
-    "**/.next": true,
-    "**/.pytest_cache": true,
-    "**/.mypy_cache": true
+    "*}__pycache__": true,
+    "*}*.pyc": true,
+    "*}node_modules": true,
+    "*}out": true,
+    "*}.next": true,
+    "*}.pytest_cache": true,
+    "*}.mypy_cache": true
   },
   "search.exclude": {
-    "**/node_modules": true,
-    "**/out": true,
-    "**/.next": true,
-    "**/__pycache__": true,
-    "**/.pytest_cache": true,
-    "**/.mypy_cache": true
+    "*}node_modules": true,
+    "*}out": true,
+    "*}.next": true,
+    "*}__pycache__": true,
+    "*}.pytest_cache": true,
+    "*}.mypy_cache": true
   },
   "python.linting.enabled": true,
   "python.linting.pylintEnabled": false,
@@ -2197,19 +2230,19 @@ This is a NextPy application with True JSX, Tailwind CSS, and comprehensive API 
 
 ## Project Structure
 ```
-├── pages/           # File-based routing
-│   ├── api/        # API routes
-│   └── *.py        # Page components
-├── components/      # Reusable components
-├── templates/       # HTML templates
-├── models/         # Database models
-├── utils/          # Utility functions
-├── hooks/          # Custom hooks
-├── middleware/     # Custom middleware
-├── tests/          # Test files
-├── public/         # Static assets
-├── styles/         # CSS files
-└── docs/           # Documentation
+|-- pages/           # File-based routing
+|   |-- api/        # API routes
+|   `-- *.py        # Page components
+|-- components/      # Reusable components
+|-- templates/       # HTML templates
+|-- models/         # Database models
+|-- utils/          # Utility functions
+|-- hooks/          # Custom hooks
+|-- middleware/     # Custom middleware
+|-- tests/          # Test files
+|-- public/         # Static assets
+|-- styles/         # CSS files
+`-- docs/           # Documentation
 ```
 
 ## Getting Started

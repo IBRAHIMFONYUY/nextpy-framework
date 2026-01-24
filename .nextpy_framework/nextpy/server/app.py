@@ -132,19 +132,26 @@ class NextPyApp:
         for route in self.router.get_all_routes():
             if route.is_api:
                 # API routes
+                def create_api_handler(route_obj):
+                    def api_handler(request):
+                        return self._handle_api_request(request, route_obj, {})
+                    return api_handler
+                
                 self.app.add_api_route(
                     route.path,
-                    lambda request, r=route: self._handle_api_request(request, r, {}),
+                    create_api_handler(route),
                     methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
                 )
             else:
                 # Page routes
-                async def page_handler(request):
-                    return await self._handle_request(request, route.path)
+                def create_page_handler(route_path):
+                    async def page_handler(request):
+                        return await self._handle_request(request, route_path)
+                    return page_handler
                 
                 self.app.add_route(
                     route.path,
-                    page_handler,
+                    create_page_handler(route.path),
                     methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
                 )
         
