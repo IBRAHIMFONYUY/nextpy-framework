@@ -84,6 +84,14 @@ class NextPyApp:
         self._setup_middleware()
         self._setup_static_files()
         self._setup_routes()
+        # optionally compile tailwind CSS after routes are registered
+        try:
+            self._ensure_tailwind_compiled()
+        except Exception as e:
+            if self.debug:
+                print(f"Tailwind check/build failed: {e}")
+        # optionally compile tailwind at startup if requested
+        self._ensure_tailwind_compiled()
         
     def _setup_middleware(self) -> None:
         """Configure middleware"""
@@ -367,6 +375,42 @@ class NextPyApp:
                 status_code=500,
             )
         
+    def _ensure_tailwind_compiled(self) -> None:
+        """Conditionally build Tailwind CSS if env var is set and file is outdated"""
+        if os.getenv("NEXTPY_AUTO_BUILD_TAILWIND", "false").lower() != "true":
+            return
+        tailwind_file = self.public_dir / "tailwind.css"
+        styles = Path("styles.css")
+        config = Path("tailwind.config.js")
+        needs_build = False
+        if not tailwind_file.exists():
+            needs_build = True
+        else:
+            try:
+                mtime = tailwind_file.stat().st_mtime
+                if styles.exists() and styles.stat().st_mtime > mtime:
+                    needs_build = True
+                if config.exists() and config.stat().st_mtime > mtime:
+                    needs_build = True
+            except Exception:
+                needs_build = True
+        if needs_build:
+            self._run_tailwind_build()
+
+    def _run_tailwind_build(self) -> None:
+        """Invoke npm to compile Tailwind CSS"""
+        import subprocess, shutil
+        npm = shutil.which("npm")
+        if not npm:
+            print("[NextPy] npm not available; cannot build Tailwind CSS")
+            return
+        print("[NextPy] running tailwind CSS build...")
+        try:
+            subprocess.run([npm, "ci"], check=False)
+            subprocess.run([npm, "run", "build:tailwind"], check=False)
+        except Exception as e:
+            print(f"[NextPy] tailwind build failed: {e}")
+
     def _get_template_name(self, route, module: Optional[Any] = None) -> str:
         """Get the template name for a route"""
         if module and hasattr(module, "get_template"):

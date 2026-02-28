@@ -72,6 +72,21 @@ Visit `http://localhost:8000` to see your app!
 
 ---
 
+## ⚠️ Important notes
+
+* The framework now adds a set of security headers by default (CSP, X-Frame-Options, etc.) for safer deployments.
+* You can request automatic Tailwind CSS compilation on startup by setting the
+  `NEXTPY_AUTO_BUILD_TAILWIND=true` environment variable. This requires `npm`
+  to be installed and will run `npm ci` followed by `npm run build:tailwind`.
+* SQLAlchemy imports have been updated to avoid 2.0 deprecation warnings.
+  If you see such warnings upgrade your dependencies or pin the versions as
+  needed.
+
+
+---
+
+---
+
 ## 📝 Component Styles
 
 NextPy supports **9 different component styles** - choose what works best for you!
@@ -195,7 +210,7 @@ from nextpy.true_jsx import JSXComponent
 class Card(JSXComponent):
     def render(self):
         return (
-            <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="p-6 bg-white rounded-lg shadow-lg">
                 {self.props.get("children", "")}
             </div>
         )
@@ -291,7 +306,7 @@ class Layout(JSXComponent):
         return (
             <div class="min-h-screen bg-gray-100">
                 <nav class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto px-4">
+                    <div class="px-4 mx-auto max-w-7xl">
                         <div class="flex justify-between h-16">
                             <div class="flex items-center">
                                 <h1 class="text-xl font-bold text-blue-600">NextPy</h1>
@@ -303,7 +318,7 @@ class Layout(JSXComponent):
                     </div>
                 </nav>
                 
-                <main class="max-w-7xl mx-auto py-6">
+                <main class="py-6 mx-auto max-w-7xl">
                     {self.props.get("children", "")}
                 </main>
             </div>
@@ -503,9 +518,9 @@ def Home(props=None):
     return (
         <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
             <div class="text-center text-white">
-                <h1 class="text-4xl font-bold mb-4">Hello NextPy!</h1>
-                <p class="text-xl mb-8">Build modern web apps with Python</p>
-                <button class="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                <h1 class="mb-4 text-4xl font-bold">Hello NextPy!</h1>
+                <p class="mb-8 text-xl">Build modern web apps with Python</p>
+                <button class="px-6 py-3 font-semibold text-blue-600 transition-colors bg-white rounded-lg hover:bg-gray-100">
                     Get Started
                 </button>
             </div>
@@ -853,8 +868,8 @@ def HomePage(props=None):
     return (
         <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
             <div class="text-center text-white">
-                <h1 class="text-4xl font-bold mb-4">Hello NextPy!</h1>
-                <button class="bg-white text-blue-600 px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors">
+                <h1 class="mb-4 text-4xl font-bold">Hello NextPy!</h1>
+                <button class="px-6 py-3 text-blue-600 transition-colors bg-white rounded-lg hover:bg-gray-100">
                     Get Started
                 </button>
             </div>

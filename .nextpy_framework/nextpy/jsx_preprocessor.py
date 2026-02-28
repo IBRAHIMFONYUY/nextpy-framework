@@ -74,9 +74,6 @@ class JSXPreprocessor:
     def preprocess_content(self, content: str, file_path: str = None) -> str:
         """Preprocess content containing JSX with enhanced error handling and plugin support"""
         try:
-            # Validate basic JSX structure
-            self._validate_jsx_structure(content, file_path)
-            
             # Apply plugins if available
             if PLUGINS_AVAILABLE and plugin_manager:
                 plugin_context = PluginContext(
@@ -258,6 +255,31 @@ class JSXPreprocessor:
             # Rewrap parser errors as JSXSyntaxError for consistency
             raise JSXSyntaxError(str(e), file_path=file_path)
     
+    def _check_balanced_tags(self, jsx_str: str, file_path: str = None):
+        """Ensure opening and closing tags are properly nested in a JSX block"""
+        stack = []
+        # simple regex to capture tags; self-closing tags end with '/>'
+        tag_pattern = re.compile(r'<(/?)([a-zA-Z][a-zA-Z0-9]*)[^>]*?(/?)>')
+        for match in tag_pattern.finditer(jsx_str):
+            closing = match.group(1) == '/'
+            tag = match.group(2)
+            self_close = match.group(3) == '/'
+            if closing:
+                if not stack or stack[-1] != tag:
+                    raise JSXSyntaxError(
+                        f"Malformed JSX: closing tag </{tag}> does not match open "+
+                        (f"<{stack[-1]}>" if stack else "(none)"),
+                        file_path=file_path
+                    )
+                stack.pop()
+            elif not self_close:
+                stack.append(tag)
+        if stack:
+            raise JSXSyntaxError(
+                f"Unclosed JSX tag(s): {','.join(stack)}",
+                file_path=file_path
+            )
+
     def _get_line_number(self, content: str, position: int) -> int:
         """Get line number for a given position in content"""
         lines_before = content[:position].count('\n')
