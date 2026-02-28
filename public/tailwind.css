@@ -3,6 +3,9 @@
 .pointer-events-none {
   pointer-events: none;
 }
+.collapse {
+  visibility: collapse;
+}
 .absolute {
   position: absolute;
 }
@@ -24,6 +27,9 @@
 .top-full {
   top: 100%;
 }
+.right-1\/2 {
+  right: calc(1/2 * 100%);
+}
 .right-full {
   right: 100%;
 }
@@ -35,6 +41,9 @@
 }
 .left-full {
   left: 100%;
+}
+.-z-10 {
+  z-index: calc(10 * -1);
 }
 .z-10 {
   z-index: 10;
@@ -93,6 +102,9 @@
 .table {
   display: table;
 }
+.aspect-square {
+  aspect-ratio: 1 / 1;
+}
 .h-auto {
   height: auto;
 }
@@ -132,11 +144,18 @@
 .flex-1 {
   flex: 1;
 }
+.flex-shrink-0 {
+  flex-shrink: 0;
+}
 .origin-left {
   transform-origin: 0;
 }
 .-translate-x-1\/2 {
   --tw-translate-x: calc(calc(1/2 * 100%) * -1);
+  translate: var(--tw-translate-x) var(--tw-translate-y);
+}
+.translate-x-1\/2 {
+  --tw-translate-x: calc(1/2 * 100%);
   translate: var(--tw-translate-x) var(--tw-translate-y);
 }
 .-translate-y-1\/2 {
@@ -330,6 +349,9 @@
 .opacity-0 {
   opacity: 0%;
 }
+.opacity-20 {
+  opacity: 20%;
+}
 .opacity-25 {
   opacity: 25%;
 }
@@ -391,6 +413,10 @@
   transition-property: transform, translate, scale, rotate;
   transition-timing-function: var(--tw-ease, ease);
   transition-duration: var(--tw-duration, 0s);
+}
+.duration-200 {
+  --tw-duration: 200ms;
+  transition-duration: 200ms;
 }
 .duration-300 {
   --tw-duration: 300ms;

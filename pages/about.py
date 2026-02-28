@@ -23,9 +23,7 @@ def About(props=None):
                 </ul>
             </div>
             <div class="mt-8 text-center">
-                <a href="/" class="text-blue-600 hover:text-blue-800 font-medium">
-                    ← Back to Home
-                </a>
+                <a href="/" class="text-blue-600 hover:text-blue-800 font-medium">← Back to Home</a>
             </div>
         </div>
     )
