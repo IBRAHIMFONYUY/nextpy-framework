@@ -9,6 +9,24 @@ nextpy.db
 out/
 public/tailwind.css # Ignore the compiled tailwind css as it's generated
 
+# Build / distribution
+dist/
+build/
+*.egg-info/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.so
+
+# pytest cache
+.pytest_cache/
+
+# Temporary files
+*.log
+*.tmp
+
+
 # Environment
 .env
 .venv/
