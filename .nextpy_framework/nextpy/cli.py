@@ -533,7 +533,7 @@ def version():
     click.echo(click.style("\n  📋 NextPy Framework Info", fg="cyan", bold=True))
     click.echo(click.style("  ===================\n", fg="cyan"))
     
-    click.echo(f"  🏷️  Version: 2.4.5")
+    click.echo(f"  🏷️  Version: 2.4.6 ")
     click.echo(f"  🐍 Python: {sys.version.split()[0]}")
     click.echo(f"  ⚡ Framework: NextPy")
     click.echo(f"  🎨 Architecture: True JSX")
@@ -885,7 +885,8 @@ def _create_project_structure(project_dir: Path):
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ title or "NextPy App" }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- reference compiled Tailwind CSS rather than CDN for better integration -->
+    <link href="/tailwind.css" rel="stylesheet">
 </head>
 <body>
     <div id="app">
@@ -901,13 +902,13 @@ def _create_project_structure(project_dir: Path):
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>404 - Page Not Found</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="/tailwind.css" rel="stylesheet">
 </head>
-<body class="min-h-screen bg-gray-100 flex items-center justify-center">
+<body class="flex items-center justify-center min-h-screen bg-gray-100">
     <div class="text-center">
-        <h1 class="text-6xl font-bold text-gray-900 mb-4">404</h1>
-        <p class="text-xl text-gray-600 mb-8">Page not found</p>
-        <a href="/" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        <h1 class="mb-4 text-6xl font-bold text-gray-900">404</h1>
+        <p class="mb-8 text-xl text-gray-600">Page not found</p>
+        <a href="/" class="px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700">
             Go Home
         </a>
     </div>
@@ -1010,9 +1011,7 @@ body {
       }
     },
   },
-  plugins: [
-    require('@tailwindcss/postcss'),
-  ],
+  plugins: [],
 };''')
     click.echo("  Created: tailwind.config.js")
     
@@ -1104,7 +1103,7 @@ def Home(props=None):
                     </div>
                 </div>
                 
-                                <div className="absolute inset-0 -z-10">
+                <div className="absolute inset-0 -z-10">
                     <div className="absolute top-0 transform -translate-x-1/2 left-1/2 blur-3xl opacity-20">
                         <div className="rounded-full aspect-square w-96 h-96 bg-gradient-to-r from-blue-400 to-purple-600"></div>
                     </div>

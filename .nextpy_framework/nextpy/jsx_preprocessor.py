@@ -247,54 +247,16 @@ class JSXPreprocessor:
                 file_path=file_path
             )
         
-        # Check for basic tag structure
-        if not re.match(r'^<[^>]+>$', jsx_content):
-            # More complex JSX, check for nested structure
-            stack = []
-            i = 0
-            while i < len(jsx_content):
-                if jsx_content[i] == '<':
-                    if i + 1 < len(jsx_content) and jsx_content[i + 1] == '/':
-                        # Closing tag
-                        if not stack:
-                            raise JSXSyntaxError(
-                                f"Unexpected closing tag",
-                                file_path=file_path
-                            )
-                        stack.pop()
-                        i += 1
-                    elif i + 1 < len(jsx_content) and jsx_content[i + 1] == '!':
-                        # Comment or DOCTYPE, skip to next '>'
-                        i = jsx_content.find('>', i)
-                        if i == -1:
-                            raise JSXSyntaxError(
-                                f"Unclosed comment/DOCTYPE",
-                                file_path=file_path
-                            )
-                    else:
-                        # Opening tag
-                        tag_end = jsx_content.find('>', i)
-                        if tag_end == -1:
-                            raise JSXSyntaxError(
-                                f"Unclosed opening tag",
-                                file_path=file_path
-                            )
-                        
-                        tag_content = jsx_content[i + 1:tag_end]
-                        if not tag_content.endswith('/'):
-                            # Not self-closing, add to stack
-                            tag_name = re.match(r'^\w+', tag_content)
-                            if tag_name:
-                                stack.append(tag_name.group(0))
-                    i = tag_end + 1
-                else:
-                    i += 1
-            
-            if stack:
-                raise JSXSyntaxError(
-                    f"Unclosed tag(s): {', '.join(stack)}",
-                    file_path=file_path
-                )
+        # Instead of doing adhoc tag matching we can leverage the
+        # shared parser; this will catch real syntax errors and avoid
+        # false positives. The parser returns either a JSXElement or a
+        # string, but will raise exceptions for malformed input.
+        try:
+            from .true_jsx import parser
+            parser.parse_jsx(jsx_content)
+        except Exception as e:
+            # Rewrap parser errors as JSXSyntaxError for consistency
+            raise JSXSyntaxError(str(e), file_path=file_path)
     
     def _get_line_number(self, content: str, position: int) -> int:
         """Get line number for a given position in content"""

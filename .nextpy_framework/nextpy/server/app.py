@@ -55,7 +55,14 @@ class NextPyApp:
             self.router = Router(str(self.pages_dir), str(self.templates_dir))
         else:
             self.router = ComponentRouter(str(self.pages_dir), str(self.templates_dir))
-        self.renderer = ComponentRenderer(
+        # keep separate renderers for templates (Jinja) and components
+        from ..core import Renderer
+        self.template_renderer = Renderer(
+            templates_dir=str(self.templates_dir),
+            pages_dir=str(self.pages_dir),
+            public_dir=str(self.public_dir),
+        )
+        self.component_renderer = ComponentRenderer(
             debug=debug
         )
         
@@ -111,12 +118,36 @@ class NextPyApp:
     def _setup_static_files(self) -> None:
         """Mount static file directories"""
         if self.public_dir.exists():
+            # Mount public directory under /static to avoid intercepting all
+            # requests. Mounting at "/" previously caused every request to be
+            # handled by StaticFiles first, which returned 404 for dynamic
+            # pages and API routes.  In a future release we might add a
+            # middleware that checks for a file in `public_dir` and serves it
+            # before falling back to the app, thus preserving Next.js semantics.
             self.app.mount(
                 "/static",
                 StaticFiles(directory=str(self.public_dir)),
-                name="static",
+                name="public",
             )
-            
+            # Ensure commonly referenced compiled Tailwind CSS paths are
+            # available. Templates may link to `/tailwind.css` or
+            # `/public/tailwind.css`; mounting under `/static` would
+            # expose the file at `/static/tailwind.css`. For compatibility
+            # add explicit routes that serve the compiled file if present.
+            try:
+                tailwind_file = self.public_dir / "tailwind.css"
+                if tailwind_file.exists():
+                    from starlette.responses import FileResponse
+
+                    def _tailwind(request, _path=str(tailwind_file)):
+                        return FileResponse(_path)
+
+                    # Register both commonly used locations
+                    self.app.add_route("/tailwind.css", _tailwind, methods=["GET"])
+                    self.app.add_route("/public/tailwind.css", _tailwind, methods=["GET"])
+            except Exception:
+                # Non-fatal: continue if registration fails
+                pass
         nextpy_static = self.out_dir / "_nextpy" / "static"
         if nextpy_static.exists():
             self.app.mount(
@@ -132,9 +163,11 @@ class NextPyApp:
         for route in self.router.get_all_routes():
             if route.is_api:
                 # API routes - FIXED: use default argument to capture route correctly
+                from fastapi import Request
                 def create_api_handler(route_obj):
-                    def api_handler(request, route=route_obj):
-                        return self._handle_api_request(request, route, {})
+                    async def api_handler(request: Request, route=route_obj):
+                        # delegate to async handler
+                        return await self._handle_api_request(request, route, {})
                     return api_handler
                 
                 self.app.add_api_route(
@@ -251,7 +284,7 @@ class NextPyApp:
                         
             template_name = self._get_template_name(route, module)
             
-            html = await self.renderer.render_async(
+            html = await self.template_renderer.render_async(
                 template_name,
                 context={
                     **props,
@@ -356,7 +389,7 @@ class NextPyApp:
     async def _render_404(self, request: Request) -> HTMLResponse:
         """Render the 404 page"""
         try:
-            html = await self.renderer.render_async(
+            html = await self.template_renderer.render_async(
                 "_404.html",
                 context={"request": request},
             )
@@ -410,7 +443,7 @@ class NextPyApp:
         }
         
         try:
-            html = await self.renderer.render_async(
+            html = await self.template_renderer.render_async(
                 "_jsx_error.html",
                 context={
                     "request": request,
@@ -432,7 +465,7 @@ class NextPyApp:
         }
         
         try:
-            html = await self.renderer.render_async(
+            html = await self.template_renderer.render_async(
                 "_import_error.html",
                 context={
                     "request": request,
@@ -454,7 +487,7 @@ class NextPyApp:
         }
         
         try:
-            html = await self.renderer.render_async(
+            html = await self.template_renderer.render_async(
                 "_value_error.html",
                 context={
                     "request": request,
@@ -476,7 +509,7 @@ class NextPyApp:
         }
         
         try:
-            html = await self.renderer.render_async(
+            html = await self.template_renderer.render_async(
                 "_attribute_error.html",
                 context={
                     "request": request,
@@ -498,7 +531,7 @@ class NextPyApp:
         }
         
         try:
-            html = await self.renderer.render_async(
+            html = await self.template_renderer.render_async(
                 "_file_error.html",
                 context={
                     "request": request,
@@ -520,7 +553,7 @@ class NextPyApp:
         }
         
         try:
-            html = await self.renderer.render_async(
+            html = await self.template_renderer.render_async(
                 "_network_error.html",
                 context={
                     "request": request,
@@ -546,7 +579,7 @@ class NextPyApp:
             error_details["traceback"] = traceback.format_exc()
         
         try:
-            html = await self.renderer.render_async(
+            html = await self.template_renderer.render_async(
                 "_error.html",
                 context={
                     "request": request,

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test routing issue with links"""
+"""Legacy routing test (moved to avoid pytest import collision)"""
 
 import sys
 import os
