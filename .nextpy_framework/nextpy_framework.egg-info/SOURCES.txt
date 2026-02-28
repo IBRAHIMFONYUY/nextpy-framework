@@ -72,4 +72,8 @@ pyproject.toml
 .nextpy_framework/nextpy_framework.egg-info/entry_points.txt
 .nextpy_framework/nextpy_framework.egg-info/requires.txt
 .nextpy_framework/nextpy_framework.egg-info/top_level.txt
+tests/test_jsx_edgecases.py
+tests/test_jsx_preprocessor.py
 tests/test_routing.py
+tests/test_server_features.py
+tests/test_tailwind_up_to_date.py

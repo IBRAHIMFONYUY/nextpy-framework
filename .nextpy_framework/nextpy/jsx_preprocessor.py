@@ -244,10 +244,11 @@ class JSXPreprocessor:
                 file_path=file_path
             )
         
-        # Instead of doing adhoc tag matching we can leverage the
-        # shared parser; this will catch real syntax errors and avoid
-        # false positives. The parser returns either a JSXElement or a
-        # string, but will raise exceptions for malformed input.
+        # First perform balanced-tag checks to catch unclosed/mismatched tags
+        self._check_balanced_tags(jsx_content, file_path=file_path)
+        self._validate_jsx_structure(jsx_content, file_path=file_path)
+
+        # Then delegate to the shared parser for deeper validation
         try:
             from .true_jsx import parser
             parser.parse_jsx(jsx_content)

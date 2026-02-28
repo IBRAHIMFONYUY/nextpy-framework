@@ -21,19 +21,43 @@ class JSXElement:
         """Convert to HTML string"""
         return self.to_html()
     
-    def to_html(self) -> str:
-        """Convert JSX element to HTML string"""
+    def to_html(self, context: Dict[str, Any] = None) -> str:
+        """Convert JSX element to HTML string.
+
+        Evaluates any {expressions} in text nodes and prop values using `context`.
+        """
         # Build props string
         props_str = ""
         if self.props:
             props_list = []
             for key, value in self.props.items():
+                # Map React-style `className` to HTML `class`
+                attr_name = 'class' if key == 'className' else key
+
+                # Boolean attribute
                 if isinstance(value, bool) and value:
-                    props_list.append(key)
+                    props_list.append(attr_name)
                 elif value is not None and value != "":
+                    # Skip event handlers
                     if key.startswith("on_") and callable(value):
                         continue
-                    props_list.append(f'{key}="{value}"')
+
+                    # If value looks like a stored expression token '{expr}', evaluate at render time
+                    if isinstance(value, str) and value.startswith('{') and value.endswith('}') and context is not None:
+                        inner = value[1:-1].strip()
+                        try:
+                            evaluated = str(eval(inner, {}, context))
+                        except Exception:
+                            evaluated = ''
+                        props_list.append(f'{attr_name}="{evaluated}"')
+                    # If string contains inline {expr} parts, evaluate those
+                    elif isinstance(value, str) and '{' in value and '}' in value and context is not None:
+                        from re import sub
+                        evaluated = _evaluate_expressions_in_string(value, context)
+                        props_list.append(f'{attr_name}="{evaluated}"')
+                    else:
+                        props_list.append(f'{attr_name}="{value}"')
+
             props_str = " " + " ".join(props_list) if props_list else ""
 
         # Build children string
@@ -42,9 +66,13 @@ class JSXElement:
             children_parts = []
             for child in self.children:
                 if isinstance(child, JSXElement):
-                    children_parts.append(child.to_html())
+                    children_parts.append(child.to_html(context))
                 else:
-                    children_parts.append(str(child))
+                    # Evaluate any {expressions} inside text nodes
+                    if isinstance(child, str) and '{' in child and '}' in child and context is not None:
+                        children_parts.append(_evaluate_expressions_in_string(child, context))
+                    else:
+                        children_parts.append(str(child))
             children_str = "".join(children_parts)
 
         # Handle self-closing tags
@@ -52,10 +80,10 @@ class JSXElement:
             'img', 'br', 'hr', 'input', 'meta', 'link', 'area', 'base', 'col',
             'embed', 'source', 'track', 'wbr', 'command', 'keygen', 'menuitem', 'param'
         }
-        
+
         if self.tag in self_closing_tags and not children_str:
             return f"<{self.tag}{props_str} />"
-        
+
         return f"<{self.tag}{props_str}>{children_str}</{self.tag}>"
 
 
@@ -79,11 +107,8 @@ class JSXParser:
             if groups[0] and groups[1]:  # {prop} syntax
                 prop_name = groups[0]
                 prop_value = groups[1].strip()
-                # Try to evaluate as Python expression
-                try:
-                    props[prop_name] = eval(prop_value)
-                except:
-                    props[prop_name] = prop_value
+                # Store as a raw expression token to be evaluated at render time
+                props[prop_name] = '{' + prop_value + '}'
             elif groups[2] and groups[3]:  # "prop" syntax
                 props[groups[2]] = groups[3]
             elif groups[4] and groups[5]:  # 'prop' syntax
@@ -180,11 +205,28 @@ def jsx(jsx_str: str) -> JSXElement:
     return parser.parse_jsx(jsx_str)
 
 
-def render_jsx(element) -> str:
-    """Render JSX element to HTML string"""
+def _evaluate_expressions_in_string(s: str, context: Dict[str, Any]) -> str:
+    """Find {expressions} in string `s` and evaluate them using `context`."""
+    def repl(match):
+        expr = match.group(1).strip()
+        try:
+            return str(eval(expr, {}, context or {}))
+        except Exception:
+            return ''
+
+    return re.sub(r'\{([^}]+)\}', repl, s)
+
+
+def render_jsx(element, context: Dict[str, Any] = None) -> str:
+    """Render JSX element to HTML string, evaluating {expressions} with `context`.
+
+    Usage: `render_jsx(element, context)`
+    """
     if isinstance(element, JSXElement):
-        return element.to_html()
+        return element.to_html(context)
     elif isinstance(element, str):
+        if context and '{' in element and '}' in element:
+            return _evaluate_expressions_in_string(element, context)
         return element
     else:
         return str(element)

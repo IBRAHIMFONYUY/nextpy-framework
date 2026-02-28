@@ -219,8 +219,8 @@ class ComponentRenderer:
                 # It's already a JSX element
                 rendered = component
             
-            # Convert to HTML
-            html = render_jsx(rendered)
+            # Convert to HTML, passing page props as context for {expressions}
+            html = render_jsx(rendered, page_props)
             
             # Inject debug icon in development mode
             if AUTO_DEBUG_AVAILABLE and should_show_debug():
@@ -249,6 +249,7 @@ class ComponentRenderer:
         title = props.get('title', 'NextPy App')
         description = props.get('description', 'NextPy Application')
         
+        # Include local Tailwind stylesheet by default for created apps
         return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -256,6 +257,7 @@ class ComponentRenderer:
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{title}</title>
     <meta name="description" content="{description}">
+    <link rel="stylesheet" href="/tailwind.css">
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }}
