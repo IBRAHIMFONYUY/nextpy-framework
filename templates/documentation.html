@@ -16,7 +16,10 @@
             <nav class="sticky top-20 space-y-8 text-sm">
                 <div>
                     <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <span class="text-lg">🚀</span> Getting Started
+                        <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Getting Started
                     </h3>
                     <ul class="space-y-3 text-gray-600">
                         <li><a href="#installation" class="hover:text-blue-600 hover:underline">Installation</a></li>
@@ -40,7 +43,10 @@
 
                 <div>
                     <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <span class="text-lg">🔧</span> Advanced
+                        <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                        </svg>
+                        Advanced
                     </h3>
                     <ul class="space-y-3 text-gray-600">
                         <li><a href="#database" class="hover:text-blue-600 hover:underline">Database Integration</a></li>
@@ -52,7 +58,10 @@
 
                 <div>
                     <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <span class="text-lg">📚</span> Resources
+                        <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        Resources
                     </h3>
                     <ul class="space-y-3 text-gray-600">
                         <li><a href="#deployment" class="hover:text-blue-600 hover:underline">Deployment</a></li>
@@ -62,7 +71,12 @@
                 </div>
 
                 <div class="bg-blue-50 rounded-lg p-4">
-                    <p class="text-sm text-gray-700"><strong>📖 Full Reference:</strong> <a href="/documentation" class="text-blue-600 hover:underline">See DOCUMENTATION.md</a></p>
+                    <p class="text-sm text-gray-700"><strong class="flex items-center gap-1">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        Full Reference:
+                    </strong> <a href="/documentation" class="text-blue-600 hover:underline">See DOCUMENTATION.md</a></p>
                 </div>
             </nav>
         </aside>
@@ -83,8 +97,11 @@
                     <code class="text-green-400">$ nextpy create my-awesome-app<br/>$ cd my-awesome-app<br/>$ nextpy dev</code>
                 </div>
 
-                <p class="text-gray-600 mt-6 p-4 bg-green-50 rounded-lg border-l-4 border-green-600">
-                    ✨ Your app is now running at <code class="bg-green-100 px-2 py-1 rounded">http://localhost:5000</code>
+                <p class="text-gray-600 mt-6 p-4 bg-green-50 rounded-lg border-l-4 border-green-600 flex items-start gap-2">
+                    <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <span>Your app is now running at <code class="bg-green-100 px-2 py-1 rounded">http://localhost:5000</code></span>
                 </p>
             </section>
 
@@ -216,8 +233,11 @@ async def get_server_side_props(context):
                     </table>
                 </div>
 
-                <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-600">
-                    <p class="text-sm text-gray-700"><strong>💡 Tip:</strong> Files starting with _ (underscore) are not routes - they're templates like _base.html</p>
+                <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-600 flex items-start gap-2">
+                    <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    <p class="text-sm text-gray-700"><strong>Tip:</strong> Files starting with _ (underscore) are not routes - they're templates like _base.html</p>
                 </div>
             </section>
 
@@ -474,7 +494,11 @@ SECRET_KEY=your-secret-key</code></pre>
                 <div class="grid md:grid-cols-2 gap-6">
                     <a href="/examples" class="group">
                         <div class="bg-white p-6 rounded-xl hover:shadow-lg transition">
-                            <div class="text-4xl mb-4">🎨</div>
+                            <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 text-white rounded-xl shadow-lg mb-4">
+                                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                </svg>
+                            </div>
                             <h3 class="font-bold text-gray-900">Components</h3>
                             <p class="text-sm text-gray-600">Explore 20+ pre-built UI components</p>
                         </div>
@@ -482,7 +506,11 @@ SECRET_KEY=your-secret-key</code></pre>
                     
                     <a href="/blog" class="group">
                         <div class="bg-white p-6 rounded-xl hover:shadow-lg transition">
-                            <div class="text-4xl mb-4">📚</div>
+                            <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl shadow-lg mb-4">
+                                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
+                            </div>
                             <h3 class="font-bold text-gray-900">Blog</h3>
                             <p class="text-sm text-gray-600">Tutorials and best practices</p>
                         </div>
