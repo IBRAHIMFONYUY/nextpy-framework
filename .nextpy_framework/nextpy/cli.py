@@ -1033,7 +1033,8 @@ body {
   "scripts": {
     "dev": "nextpy dev",
     "build": "nextpy build",
-    "start": "nextpy start"
+    "start": "nextpy start",
+    "build:tailwind": "npx tailwindcss -i ./styles.css -o ./public/tailwind.css --minify"
   },
   "keywords": ["python", "nextpy", "jsx", "tailwind"],
   "author": "",
@@ -2283,24 +2284,24 @@ import sys
 import subprocess
 from pathlib import Path
 
-# Compile Tailwind CSS using PostCSS
-try:
-    print("Compiling Tailwind CSS...")
-    # Use PostCSS with new Tailwind plugin
-    result = subprocess.run(
-        ["./node_modules/.bin/postcss", "styles.css", "-o", "public/tailwind.css"], 
-        capture_output=True, 
-        text=True,
-        check=True
-    )
-    print("Tailwind CSS compiled successfully.")
-except subprocess.CalledProcessError as e:
-    print(f"Error compiling Tailwind CSS: {e}")
-    if e.stderr:
-        print(f"CSS Error: {e.stderr}")
-except FileNotFoundError:
-    print("Error: PostCSS not found. Make sure Node.js and Tailwind CSS are installed.")
-    print("Install with: npm install postcss-cli tailwindcss autoprefixer")
+# Compile Tailwind CSS using the npm script we just added
+    try:
+        print("Compiling Tailwind CSS...")
+        styles_file = Path("styles.css")
+        if not styles_file.exists():
+            print("Warning: styles.css not found, creating a minimal file.")
+            styles_file.write_text("@tailwind base;\n@tailwind components;\n@tailwind utilities;\n")
+
+        subprocess.run(["npm", "run", "build:tailwind"], check=True)
+        print("Tailwind CSS compiled successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error compiling Tailwind CSS: {e}")
+        if e.stderr:
+            print(f"CSS Error: {e.stderr}")
+        print("You can also run `npm run build:tailwind` manually.")
+    except FileNotFoundError:
+        print("Error: npm not found. Make sure Node.js is installed and available on PATH.")
+        print("See https://nodejs.org/ for installation instructions.")
 
 # Import NextPy modules (works when installed via pip)
 from nextpy.server.app import create_app

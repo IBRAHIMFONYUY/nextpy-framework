@@ -1,0 +1,223 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="py-24 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div class="max-w-6xl px-4 mx-auto sm:px-6 lg:px-8">
+        <div class="text-center">
+            <div class="inline-block px-4 py-2 mb-6 text-sm font-semibold text-blue-700 bg-blue-100 rounded-full">
+                ✨ Python Web Framework Inspired by Next.js
+            </div>
+            
+            <h1 class="mb-6 text-6xl font-bold leading-tight text-gray-900 md:text-7xl">
+                Build Modern Web Apps <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">with Python</span>
+            </h1>
+            
+            <p class="max-w-3xl mx-auto mb-12 text-xl leading-relaxed text-gray-600">
+                {{ description }}
+            </p>
+            
+            <div class="flex flex-col justify-center gap-4 sm:flex-row">
+                <a href="/documentation" class="px-8 py-4 font-semibold text-white transition-all bg-blue-600 rounded-lg shadow-lg hover:bg-blue-700 hover:shadow-xl" hx-get="/documentation" hx-target="#main-content" hx-push-url="true">
+                    📚 Get Started
+                </a>
+                <a href="/features" class="px-8 py-4 font-semibold text-blue-600 transition-all border-2 border-blue-600 rounded-lg hover:bg-blue-50" hx-get="/features" hx-target="#main-content" hx-push-url="true">
+                    ✨ Explore Features
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Feature Highlight Grid -->
+<div class="py-20 bg-white">
+    <div class="max-w-6xl px-4 mx-auto sm:px-6 lg:px-8">
+        <h2 class="mb-16 text-4xl font-bold text-center text-gray-900">Built for Speed & Scalability</h2>
+        
+        <div class="grid gap-8 md:grid-cols-3">
+            <!-- File-Based Routing -->
+            <div class="relative p-8 overflow-hidden transition bg-white border border-gray-200 group rounded-xl hover:border-blue-400 hover:shadow-lg">
+                <div class="mb-4 text-5xl">📄</div>
+                <h3 class="mb-3 text-2xl font-bold text-gray-900">File-Based Routing</h3>
+                <p class="mb-4 text-gray-600">Add Python files to pages/ and they automatically become routes - just like Next.js!</p>
+                <div class="inline-block font-semibold text-blue-600 transition group-hover:translate-x-1">Learn more →</div>
+            </div>
+
+            <!-- SSR & SSG -->
+            <div class="relative p-8 overflow-hidden transition bg-white border border-gray-200 group rounded-xl hover:border-purple-400 hover:shadow-lg">
+                <div class="mb-4 text-5xl">🚀</div>
+                <h3 class="mb-3 text-2xl font-bold text-gray-900">SSR & SSG</h3>
+                <p class="mb-4 text-gray-600">Server-side rendering for dynamic content, static generation for speed. Choose what works.</p>
+                <div class="inline-block font-semibold text-purple-600 transition group-hover:translate-x-1">Learn more →</div>
+            </div>
+
+            <!-- Database Support -->
+            <div class="relative p-8 overflow-hidden transition bg-white border border-gray-200 group rounded-xl hover:border-indigo-400 hover:shadow-lg">
+                <div class="mb-4 text-5xl">🗄️</div>
+                <h3 class="mb-3 text-2xl font-bold text-gray-900">Database Support</h3>
+                <p class="mb-4 text-gray-600">SQLAlchemy ORM with SQLite, PostgreSQL, and MySQL. Built-in migrations included.</p>
+                <div class="inline-block font-semibold text-indigo-600 transition group-hover:translate-x-1">Learn more →</div>
+            </div>
+
+            <!-- 20+ Components -->
+            <div class="relative p-8 overflow-hidden transition bg-white border border-gray-200 group rounded-xl hover:border-green-400 hover:shadow-lg">
+                <div class="mb-4 text-5xl">🎨</div>
+                <h3 class="mb-3 text-2xl font-bold text-gray-900">20+ Components</h3>
+                <p class="mb-4 text-gray-600">Pre-built, production-ready UI components with Tailwind CSS. Responsive by default.</p>
+                <div class="inline-block font-semibold text-green-600 transition group-hover:translate-x-1">Learn more →</div>
+            </div>
+
+            <!-- Hot Reload -->
+            <div class="relative p-8 overflow-hidden transition bg-white border border-gray-200 group rounded-xl hover:border-yellow-400 hover:shadow-lg">
+                <div class="mb-4 text-5xl">⚡</div>
+                <h3 class="mb-3 text-2xl font-bold text-gray-900">Hot Reload</h3>
+                <p class="mb-4 text-gray-600">See changes instantly as you code. Perfect for rapid development and experimentation.</p>
+                <div class="inline-block font-semibold text-yellow-600 transition group-hover:translate-x-1">Learn more →</div>
+            </div>
+
+            <!-- Built-in Utils -->
+            <div class="relative p-8 overflow-hidden transition bg-white border border-gray-200 group rounded-xl hover:border-red-400 hover:shadow-lg">
+                <div class="mb-4 text-5xl">🔧</div>
+                <h3 class="mb-3 text-2xl font-bold text-gray-900">Complete Utilities</h3>
+                <p class="mb-4 text-gray-600">Email, caching, file uploads, search, logging, authentication - everything included.</p>
+                <div class="inline-block font-semibold text-red-600 transition group-hover:translate-x-1">Learn more →</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tech Stack Section -->
+<div class="py-20 bg-gradient-to-br from-gray-50 to-gray-100">
+    <div class="max-w-6xl px-4 mx-auto sm:px-6 lg:px-8">
+        <h2 class="mb-16 text-4xl font-bold text-center text-gray-900">Modern Tech Stack</h2>
+        
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div class="p-6 bg-white border-l-4 border-blue-600 rounded-lg shadow-sm">
+                <div class="mb-2 font-bold text-gray-900">FastAPI</div>
+                <p class="text-sm text-gray-600">Lightning-fast async web framework with auto-generated docs</p>
+            </div>
+            
+            <div class="p-6 bg-white border-l-4 border-purple-600 rounded-lg shadow-sm">
+                <div class="mb-2 font-bold text-gray-900">Jinja2</div>
+                <p class="text-sm text-gray-600">Powerful templating engine with inheritance and macros</p>
+            </div>
+            
+            <div class="p-6 bg-white border-l-4 border-indigo-600 rounded-lg shadow-sm">
+                <div class="mb-2 font-bold text-gray-900">SQLAlchemy</div>
+                <p class="text-sm text-gray-600">Powerful ORM supporting multiple databases</p>
+            </div>
+            
+            <div class="p-6 bg-white border-l-4 border-green-600 rounded-lg shadow-sm">
+                <div class="mb-2 font-bold text-gray-900">Pydantic</div>
+                <p class="text-sm text-gray-600">Type-safe data validation and serialization</p>
+            </div>
+            
+            <div class="p-6 bg-white border-l-4 border-yellow-600 rounded-lg shadow-sm">
+                <div class="mb-2 font-bold text-gray-900">HTMX</div>
+                <p class="text-sm text-gray-600">SPA-like features without heavy JavaScript</p>
+            </div>
+            
+            <div class="p-6 bg-white border-l-4 border-red-600 rounded-lg shadow-sm">
+                <div class="mb-2 font-bold text-gray-900">Tailwind CSS</div>
+                <p class="text-sm text-gray-600">Utility-first CSS framework for rapid UI development</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Section -->
+<div class="py-20 bg-white">
+    <div class="max-w-6xl px-4 mx-auto sm:px-6 lg:px-8">
+        <div class="grid gap-12 text-center md:grid-cols-4">
+            <div class="group">
+                <div class="mb-3 text-5xl font-bold text-transparent transition-transform bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text group-hover:scale-110">34+</div>
+                <p class="font-semibold text-gray-600">Python Modules</p>
+            </div>
+            
+            <div class="group">
+                <div class="mb-3 text-5xl font-bold text-transparent transition-transform bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text group-hover:scale-110">20+</div>
+                <p class="font-semibold text-gray-600">UI Components</p>
+            </div>
+            
+            <div class="group">
+                <div class="mb-3 text-5xl font-bold text-transparent transition-transform bg-gradient-to-r from-indigo-600 to-indigo-700 bg-clip-text group-hover:scale-110">3</div>
+                <p class="font-semibold text-gray-600">Database Options</p>
+            </div>
+            
+            <div class="group">
+                <div class="mb-3 text-5xl font-bold text-transparent transition-transform bg-gradient-to-r from-green-600 to-green-700 bg-clip-text group-hover:scale-110">100%</div>
+                <p class="font-semibold text-gray-600">Python-Based</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Navigation -->
+<div class="py-20 bg-gray-50">
+    <div class="max-w-6xl px-4 mx-auto sm:px-6 lg:px-8">
+        <h2 class="mb-16 text-4xl font-bold text-center text-gray-900">Explore Everything</h2>
+        
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <a href="/documentation" class="p-8 transition bg-white border-t-4 border-blue-600 rounded-lg shadow-sm group hover:shadow-lg" hx-get="/documentation" hx-target="#main-content" hx-push-url="true">
+                <div class="mb-4 text-4xl">📖</div>
+                <h3 class="mb-2 text-xl font-bold text-gray-900">Documentation</h3>
+                <p class="text-sm text-gray-600">Complete guides and API reference</p>
+            </a>
+            
+            <a href="/features" class="p-8 transition bg-white border-t-4 border-purple-600 rounded-lg shadow-sm group hover:shadow-lg" hx-get="/features" hx-target="#main-content" hx-push-url="true">
+                <div class="mb-4 text-4xl">✨</div>
+                <h3 class="mb-2 text-xl font-bold text-gray-900">Features</h3>
+                <p class="text-sm text-gray-600">All framework capabilities</p>
+            </a>
+            
+            <a href="/examples" class="p-8 transition bg-white border-t-4 border-indigo-600 rounded-lg shadow-sm group hover:shadow-lg" hx-get="/examples" hx-target="#main-content" hx-push-url="true">
+                <div class="mb-4 text-4xl">🎨</div>
+                <h3 class="mb-2 text-xl font-bold text-gray-900">Components</h3>
+                <p class="text-sm text-gray-600">UI components showcase</p>
+            </a>
+            
+            <a href="/blog" class="p-8 transition bg-white border-t-4 border-green-600 rounded-lg shadow-sm group hover:shadow-lg" hx-get="/blog" hx-target="#main-content" hx-push-url="true">
+                <div class="mb-4 text-4xl">📚</div>
+                <h3 class="mb-2 text-xl font-bold text-gray-900">Blog</h3>
+                <p class="text-sm text-gray-600">Tutorials and best practices</p>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- CTA Section -->
+<div class="py-24 text-white bg-gradient-to-r from-blue-600 to-purple-600">
+    <div class="max-w-4xl px-4 mx-auto text-center sm:px-6 lg:px-8">
+        <h2 class="mb-6 text-5xl font-bold">Ready to Build?</h2>
+        <p class="mb-12 text-xl text-blue-100">Start building scalable Python web apps in seconds</p>
+        
+        <div class="inline-block p-8 mb-12 bg-gray-900 border border-white bg-opacity-40 rounded-xl backdrop-blur-sm border-opacity-20">
+            <div class="space-y-3 font-mono text-left">
+                <p class="text-green-400">$ pip install nextpy-framework</p>
+                <p class="text-green-400">$ nextpy create my-awesome-app</p>
+                <p class="text-green-400">$ cd my-awesome-app && nextpy dev</p>
+            </div>
+        </div>
+        
+        <div class="flex flex-col justify-center gap-4 sm:flex-row">
+            <a href="/documentation" class="px-8 py-4 font-bold text-blue-600 transition bg-white rounded-lg hover:shadow-lg hover:scale-105" hx-get="/documentation" hx-target="#main-content" hx-push-url="true">
+                Start Learning →
+            </a>
+            <a href="/features" class="px-8 py-4 font-bold text-white transition border-2 border-white rounded-lg hover:bg-white hover:text-blue-600" hx-get="/features" hx-target="#main-content" hx-push-url="true">
+                View Features
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Footer CTA -->
+<div class="py-16 bg-white">
+    <div class="max-w-4xl px-4 mx-auto text-center sm:px-6 lg:px-8">
+        <h3 class="mb-4 text-2xl font-bold text-gray-900">Join the Community</h3>
+        <p class="mb-8 text-gray-600">Build amazing web apps with Python. Inspired by Next.js, powered by FastAPI.</p>
+        <a href="/documentation" class="inline-block px-6 py-3 font-semibold text-white transition bg-blue-600 rounded-lg hover:bg-blue-700" hx-get="/documentation" hx-target="#main-content" hx-push-url="true">
+            Get Started Now
+        </a>
+    </div>
+</div>
+{% endblock %}

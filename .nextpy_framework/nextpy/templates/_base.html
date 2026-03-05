@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}NextPy App{% endblock %}</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <!-- Use locally compiled Tailwind rather than CDN for consistency -->
-    <link href="/tailwind.css" rel="stylesheet">
+    <link href="../public/tailwind.css" rel="stylesheet">
+
+    
     <style>
         @keyframes slideIn {
             0% { transform: scaleX(0); }
@@ -50,25 +53,25 @@
     </style>
     {% block head %}{% endblock %}
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="min-h-screen bg-gray-50">
     <!-- NextPy Loading Bar -->
     <div class="nextpy-loading-bar" id="nextpy-loading"></div>
     
-    <nav class="bg-white shadow-sm border-b sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav class="sticky top-0 z-40 bg-white border-b shadow-sm">
+        <div class="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
                     <a href="/" class="flex items-center space-x-2 group" hx-get="/" hx-target="#main-content" hx-push-url="true">
-                        <span class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent group-hover:scale-105 transition-transform">NextPy</span>
+                        <span class="text-2xl font-bold text-transparent transition-transform bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text group-hover:scale-105">NextPy</span>
                     </a>
                 </div>
                 <div class="flex items-center space-x-8">
-                    <a href="/" class="text-gray-600 hover:text-blue-600 font-medium transition-colors" hx-get="/" hx-target="#main-content" hx-push-url="true">Home</a>
-                    <a href="/about" class="text-gray-600 hover:text-blue-600 font-medium transition-colors" hx-get="/about" hx-target="#main-content" hx-push-url="true">About</a>
-                    <a href="/blog" class="text-gray-600 hover:text-blue-600 font-medium transition-colors" hx-get="/blog" hx-target="#main-content" hx-push-url="true">Blog</a>
-                    <a href="/documentaion" class="text-gray-600 hover:text-blue-600 font-medium transition-colors" hx-get="/documentation" hx-target="#main-content" hx-push-url="true">Docs</a>
+                    <a href="/" class="font-medium text-gray-600 transition-colors hover:text-blue-600" hx-get="/" hx-target="#main-content" hx-push-url="true">Home</a>
+                    <a href="/about" class="font-medium text-gray-600 transition-colors hover:text-blue-600" hx-get="/about" hx-target="#main-content" hx-push-url="true">About</a>
+                    <a href="/blog" class="font-medium text-gray-600 transition-colors hover:text-blue-600" hx-get="/blog" hx-target="#main-content" hx-push-url="true">Blog</a>
+                    <a href="/documentaion" class="font-medium text-gray-600 transition-colors hover:text-blue-600" hx-get="/documentation" hx-target="#main-content" hx-push-url="true">Docs</a>
 
-                    <a href="/login" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium" hx-get="/login" hx-target="#main-content" hx-push-url="true">Login</a>
+                    <a href="/login" class="px-4 py-2 font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700" hx-get="/login" hx-target="#main-content" hx-push-url="true">Login</a>
                 </div>
             </div>
         </div>
@@ -78,40 +81,40 @@
         {% block content %}{{ content | safe }}{% endblock %}
     </div>
     
-    <footer class="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-16 mt-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid md:grid-cols-4 gap-8 mb-8">
+    <footer class="py-16 mt-20 text-white bg-gradient-to-r from-gray-900 to-gray-800">
+        <div class="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+            <div class="grid gap-8 mb-8 md:grid-cols-4">
                 <div>
-                    <h3 class="font-bold text-lg mb-4">NextPy</h3>
-                    <p class="text-gray-400 text-sm">The Python web framework inspired by Next.js</p>
+                    <h3 class="mb-4 text-lg font-bold">NextPy</h3>
+                    <p class="text-sm text-gray-400">The Python web framework inspired by Next.js</p>
                 </div>
                 <div>
-                    <h4 class="font-semibold mb-4">Documentation</h4>
-                    <ul class="space-y-2 text-gray-400 text-sm">
-                        <li><a href="/examples" class="hover:text-white transition">Examples</a></li>
+                    <h4 class="mb-4 font-semibold">Documentation</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="/examples" class="transition hover:text-white">Examples</a></li>
                     </ul>
                 </div>
                 <div>
-                    <h4 class="font-semibold mb-4">Community</h4>
-                    <ul class="space-y-2 text-gray-400 text-sm">
-                        <li><a href="#" class="hover:text-white transition">GitHub</a></li>
-                        <li><a href="#" class="hover:text-white transition">Discord</a></li>
-                        <li><a href="#" class="hover:text-white transition">Twitter</a></li>
+                    <h4 class="mb-4 font-semibold">Community</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#" class="transition hover:text-white">GitHub</a></li>
+                        <li><a href="#" class="transition hover:text-white">Discord</a></li>
+                        <li><a href="#" class="transition hover:text-white">Twitter</a></li>
                     </ul>
                 </div>
                 <div>
-                    <h4 class="font-semibold mb-4">Resources</h4>
-                    <ul class="space-y-2 text-gray-400 text-sm">
-                        <li><a href="/blog" class="hover:text-white transition">Blog</a></li>
-                        <li><a href="/about" class="hover:text-white transition">About</a></li>
-                        <li><a href="#" class="hover:text-white transition">License</a></li>
+                    <h4 class="mb-4 font-semibold">Resources</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="/blog" class="transition hover:text-white">Blog</a></li>
+                        <li><a href="/about" class="transition hover:text-white">About</a></li>
+                        <li><a href="#" class="transition hover:text-white">License</a></li>
                     </ul>
                 </div>
             </div>
-            <div class="border-t border-gray-700 pt-8">
-                <div class="flex flex-col md:flex-row justify-between items-center">
+            <div class="pt-8 border-t border-gray-700">
+                <div class="flex flex-col items-center justify-between md:flex-row">
                     <p class="text-gray-400">Built with NextPy - The Python Web Framework | Version 1.0.0</p>
-                    <p class="text-gray-500 text-sm mt-4 md:mt-0">© 2025 NextPy. All rights reserved.</p>
+                    <p class="mt-4 text-sm text-gray-500 md:mt-0">© 2025 NextPy. All rights reserved.</p>
                 </div>
             </div>
         </div>

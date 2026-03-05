@@ -15,17 +15,28 @@ sys.path.insert(0, str(Path(__file__).parent / ".nextpy_framework"))
 
 print(f"DEBUG: sys.path after modification: {sys.path}")
 
-# Compile Tailwind CSS using PostCSS
+# Compile Tailwind CSS using framework's npm script; this keeps paths consistent regardless
+# of where the user runs the server from.
+proj_root = Path.cwd()
+framework_dir = Path(__file__).parent
+
 try:
     print("Compiling Tailwind CSS...")
-    # Use PostCSS with the new Tailwind plugin
-    subprocess.run(["./node_modules/.bin/postcss", "styles.css", "-o", "public/tailwind.css"], check=True)
+    # If the project root doesn't have a styles.css yet, warn the user and create a minimal one.
+    styles_file = proj_root / "styles.css"
+    if not styles_file.exists():
+        print("Warning: styles.css not found in project root, creating a default file.")
+        styles_file.write_text("@tailwind base;\n@tailwind components;\n@tailwind utilities;\n")
+
+    # Run the build script defined in the vendored framework's package.json
+    subprocess.run(["npm", "run", "build:tailwind"], cwd=str(framework_dir), check=True)
     print("Tailwind CSS compiled successfully.")
 except subprocess.CalledProcessError as e:
     print(f"Error compiling Tailwind CSS: {e}")
+    print("You can try running `cd .nextpy_framework/nextpy && npm ci && npm run build:tailwind` manually.")
 except FileNotFoundError:
-    print("Error: PostCSS not found. Make sure Node.js and Tailwind CSS are installed.")
-    print("Install with: npm install postcss-cli @tailwindcss/postcss")
+    print("Error: npm not found. Make sure Node.js is installed and available on PATH.")
+    print("See https://nodejs.org/ for installation instructions.")
 
 
 from nextpy.server.app import create_app
@@ -43,5 +54,5 @@ app = create_app(
     templates_dir="templates",
     public_dir="public",
     out_dir="out",
-    debug=settings.debug,
+    
 )
