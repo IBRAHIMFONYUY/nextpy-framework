@@ -11,7 +11,7 @@ def About(props=None):
         <div class="max-w-4xl px-4 py-12 mx-auto">
             <h1 class="mb-6 text-4xl font-bold text-gray-900">{title}</h1>
             <p class="mb-4 text-lg text-gray-600">{description}</p>
-            <div class="bg-white p-6 rounded-lg shadow-lg">
+            <div class="p-6 bg-white rounded-lg shadow-lg">
                 <h2 class="mb-4 text-2xl font-semibold text-blue-600">Features</h2>
                 <ul class="space-y-2 text-gray-700">
                     <li class="flex items-center"><span class="mr-2">✅</span> True JSX in Python</li>
@@ -23,7 +23,7 @@ def About(props=None):
                 </ul>
             </div>
             <div class="mt-8 text-center">
-                <a href="/" class="text-blue-600 hover:text-blue-800 font-medium">← Back to Home</a>
+                <a href="/" class="font-medium text-blue-600 hover:text-blue-800">← Back to Home</a>
             </div>
         </div>
     )
