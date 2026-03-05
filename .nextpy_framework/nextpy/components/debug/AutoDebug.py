@@ -112,7 +112,7 @@ def inject_debug_icon(html_content: str, page_props: Dict[str, Any] = None) -> s
             {f'''<div class="nextpy-debug-section">
                 <h4>Page Props</h4>
                 <div class="nextpy-debug-props">
-                    <pre class="nextpy-debug-code">{__format_props(page_props) if page_props else '{}'}</pre>
+                    <pre class="nextpy-debug-code">{__format_props(page_props) if page_props else '{{}}'}</pre>
                 </div>
             </div>''' if page_props else ""}
             
