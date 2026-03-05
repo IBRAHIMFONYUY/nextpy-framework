@@ -68,11 +68,11 @@ def inject_debug_icon(html_content: str, page_props: Dict[str, Any] = None) -> s
             
             <!-- Current Route Info -->
             <div class="nextpy-debug-section">
-                <h4>📍 Current Route</h4>
+                <h4>Current Route</h4>
                 <div class="nextpy-debug-info">
                     <div class="nextpy-debug-row">
                         <span class="nextpy-debug-label">Path:</span>
-                        <span class="nextpy-debug-value" id="nextpy-current-route">{page_props.get("route", "/") if page_props else "/"}</span>
+                        <span class="nextpy-debug-value" id="nextpy-current-route">{{page_props.get("route", "/") if page_props else "/"}}</span>
                     </div>
                     <div class="nextpy-debug-row">
                         <span class="nextpy-debug-label">Render Time:</span>
@@ -87,7 +87,7 @@ def inject_debug_icon(html_content: str, page_props: Dict[str, Any] = None) -> s
             
             <!-- Performance Metrics -->
             <div class="nextpy-debug-section">
-                <h4>⚡ Performance</h4>
+                <h4>Performance</h4>
                 <div class="nextpy-debug-metrics">
                     <div class="nextpy-debug-row">
                         <span class="nextpy-debug-label">Components:</span>
@@ -109,12 +109,12 @@ def inject_debug_icon(html_content: str, page_props: Dict[str, Any] = None) -> s
             </div>
             
             <!-- Page Props -->
-            {f'''<div class="nextpy-debug-section">
+            ''' + (f'''<div class="nextpy-debug-section">
                 <h4>Page Props</h4>
                 <div class="nextpy-debug-props">
                     <pre class="nextpy-debug-code">{__format_props(page_props) if page_props else '{{}}'}</pre>
                 </div>
-            </div>''' if page_props else ""}
+            </div>''' if page_props else "") + '''
             
             <!-- Development Tools -->
             <div class="nextpy-debug-section">
