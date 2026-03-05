@@ -12,7 +12,7 @@ services:
       cd ../../
       # Install Python dependencies
       pip install -r requirements.txt
-    startCommand: uvicorn .nextpy_framework.nextpy.main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
