@@ -1,0 +1,101 @@
+{% extends "_base.html" %}
+
+{% from "components/card.html" import card %}
+{% from "components/button.html" import button %}
+{% from "components/alert.html" import alert %}
+{% from "components/form.html" import input, textarea, select %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto py-12 px-4">
+    <h1 class="text-4xl font-bold mb-2">{{ title }}</h1>
+    <p class="text-gray-600 mb-12">{{ description }}</p>
+
+    <section class="mb-16">
+        <h2 class="text-2xl font-bold mb-6 pb-2 border-b">Buttons</h2>
+        <div class="flex flex-wrap gap-4">
+            {{ button("Primary", "/", "primary") }}
+            {{ button("Secondary", "/", "secondary") }}
+            {{ button("Outline", "/", "outline") }}
+            {{ button("Ghost", "/", "ghost") }}
+            {{ button("Danger", "/", "danger") }}
+        </div>
+        <div class="flex flex-wrap gap-4 mt-4">
+            {{ button("Small", "/", "primary", "sm") }}
+            {{ button("Medium", "/", "primary", "md") }}
+            {{ button("Large", "/", "primary", "lg") }}
+        </div>
+    </section>
+
+    <section class="mb-16">
+        <h2 class="text-2xl font-bold mb-6 pb-2 border-b">Cards</h2>
+        <div class="grid md:grid-cols-3 gap-6">
+            {{ card(
+                title="Basic Card",
+                content="A simple card component with title and content."
+            ) }}
+            {{ card(
+                title="Card with Link",
+                content="This card includes a call-to-action link.",
+                link="/about"
+            ) }}
+            {{ card(
+                title="Featured Card",
+                content="A highlighted card with special styling.",
+                link="/contact",
+                variant="featured"
+            ) }}
+        </div>
+    </section>
+
+    <section class="mb-16">
+        <h2 class="text-2xl font-bold mb-6 pb-2 border-b">Alerts</h2>
+        <div class="space-y-4">
+            {{ alert("This is an informational message.", "info") }}
+            {{ alert("Operation completed successfully!", "success") }}
+            {{ alert("Please review before proceeding.", "warning") }}
+            {{ alert("An error occurred. Please try again.", "error", True) }}
+        </div>
+    </section>
+
+    <section class="mb-16">
+        <h2 class="text-2xl font-bold mb-6 pb-2 border-b">Form Components</h2>
+        <div class="max-w-md bg-white p-6 rounded-xl shadow-md">
+            <form>
+                {{ input("name", "Full Name", "text", "John Doe", True) }}
+                {{ input("email", "Email Address", "email", "john@example.com", True) }}
+                {{ select("topic", "Topic", [
+                    {"value": "", "label": "Select a topic..."},
+                    {"value": "general", "label": "General Inquiry"},
+                    {"value": "support", "label": "Technical Support"},
+                    {"value": "sales", "label": "Sales Question"}
+                ], True) }}
+                {{ textarea("message", "Message", "How can we help?", True) }}
+                <div class="mt-6">
+                    {{ button("Submit", "#", "primary", "md") }}
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section class="mb-16">
+        <h2 class="text-2xl font-bold mb-6 pb-2 border-b">Usage Example</h2>
+        <div class="bg-gray-900 text-gray-100 p-6 rounded-xl overflow-x-auto">
+            <pre><code>{% raw %}{# Import components at the top of your template #}
+{% from "components/button.html" import button %}
+{% from "components/card.html" import card %}
+{% from "components/alert.html" import alert %}
+
+{# Use them anywhere in your template #}
+{{ button("Click Me", "/action", "primary") }}
+
+{{ card(
+    title="My Card",
+    content="Card description here",
+    link="/details"
+) }}
+
+{{ alert("Success!", "success") }}{% endraw %}</code></pre>
+        </div>
+    </section>
+</div>
+{% endblock %}

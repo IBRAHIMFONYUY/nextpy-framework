@@ -1,0 +1,17 @@
+{% macro link(text, href="#", class="", external=False) %}
+<a
+    href="{{ href }}"
+    class="{{ class }}"
+    {% if not external %}
+    hx-get="{{ href }}"
+    hx-target="#main-content"
+    hx-push-url="true"
+    hx-trigger="click"
+    {% else %}
+    target="_blank"
+    rel="noopener noreferrer"
+    {% endif %}
+>
+    {{ text }}
+</a>
+{% endmacro %}

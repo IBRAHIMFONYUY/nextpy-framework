@@ -1,0 +1,18 @@
+{% macro breadcrumb(items, class="") %}
+<nav aria-label="Breadcrumb" class="flex {{ class }}">
+    <ol class="flex gap-2">
+        {% for item in items %}
+        <li class="flex items-center">
+            {% if not loop.last %}
+            <a href="{{ item.href }}" class="text-blue-600 hover:underline" hx-get="{{ item.href }}" hx-target="#main-content">
+                {{ item.label }}
+            </a>
+            <span class="mx-2 text-gray-500">/</span>
+            {% else %}
+            <span class="text-gray-700">{{ item.label }}</span>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ol>
+</nav>
+{% endmacro %}

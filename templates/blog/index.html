@@ -1,0 +1,30 @@
+{% extends "_base.html" %}
+
+{% block title %}Blog - NextPy{% endblock %}
+
+{% block content %}
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <h1 class="text-4xl font-bold text-gray-900 mb-4">{{ title }}</h1>
+    <p class="text-xl text-gray-600 mb-12">{{ description }}</p>
+    
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {% for post in posts %}
+        <article class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
+            <div class="h-48 bg-gradient-to-br from-blue-500 to-purple-600"></div>
+            <div class="p-6">
+                <div class="text-sm text-gray-500 mb-2">{{ post.date }}</div>
+                <h2 class="text-xl font-semibold text-gray-900 mb-2">
+                    <a href="/blog/{{ post.slug }}" class="hover:text-blue-600" hx-get="/blog/{{ post.slug }}" hx-target="#main-content" hx-push-url="true">
+                        {{ post.title }}
+                    </a>
+                </h2>
+                <p class="text-gray-600 mb-4">{{ post.excerpt }}</p>
+                <a href="/blog/{{ post.slug }}" class="text-blue-600 font-medium hover:text-blue-700" hx-get="/blog/{{ post.slug }}" hx-target="#main-content" hx-push-url="true">
+                    Read more &rarr;
+                </a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</main>
+{% endblock %}

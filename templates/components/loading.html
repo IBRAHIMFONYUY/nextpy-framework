@@ -1,0 +1,27 @@
+{% macro loading_indicator() %}
+<div id="nextpy-loading" class="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-500 to-indigo-600 h-1 origin-left" style="animation: loading 0.4s ease-in-out;">
+    <style>
+        @keyframes loading {
+            0% { transform: scaleX(0); }
+            50% { transform: scaleX(1); }
+            100% { transform: scaleX(0); }
+        }
+    </style>
+</div>
+
+<script>
+document.addEventListener('htmx:sendXHR', () => {
+    const loader = document.getElementById('nextpy-loading');
+    if (loader) loader.style.display = 'block';
+});
+
+document.addEventListener('htmx:responseEnd', () => {
+    const loader = document.getElementById('nextpy-loading');
+    if (loader) {
+        setTimeout(() => {
+            loader.style.display = 'none';
+        }, 300);
+    }
+});
+</script>
+{% endmacro %}

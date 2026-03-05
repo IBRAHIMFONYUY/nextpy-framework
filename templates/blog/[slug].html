@@ -1,0 +1,40 @@
+{% extends "_base.html" %}
+
+{% block title %}{{ post.title }} - NextPy Blog{% endblock %}
+
+{% block content %}
+<main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <article>
+        <header class="mb-8">
+            <a href="/blog" class="text-blue-600 hover:text-blue-700 mb-4 inline-block" hx-get="/blog" hx-target="#main-content" hx-push-url="true">
+                &larr; Back to Blog
+            </a>
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">{{ post.title }}</h1>
+            <div class="flex items-center space-x-4 text-gray-500">
+                <span>{{ post.date }}</span>
+                <span>&bull;</span>
+                <span>{{ post.read_time }} min read</span>
+                <span>&bull;</span>
+                <span>By {{ post.author }}</span>
+            </div>
+        </header>
+        
+        <div class="prose prose-lg max-w-none">
+            {{ post.content | safe }}
+        </div>
+        
+        <footer class="mt-12 pt-8 border-t">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-semibold text-gray-900">Share this article</h3>
+                    <div class="flex space-x-4 mt-2">
+                        <a href="#" class="text-gray-400 hover:text-blue-500">Twitter</a>
+                        <a href="#" class="text-gray-400 hover:text-blue-700">LinkedIn</a>
+                        <a href="#" class="text-gray-400 hover:text-gray-900">Copy Link</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </article>
+</main>
+{% endblock %}

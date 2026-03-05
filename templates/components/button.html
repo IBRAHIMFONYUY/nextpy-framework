@@ -1,0 +1,19 @@
+{% macro button(text, href="#", variant="primary", size="md", icon=None) %}
+{% set base_classes = "inline-flex items-center justify-center font-semibold rounded-lg transition-all" %}
+{% set size_classes = {
+  "sm": "px-3 py-1.5 text-sm",
+  "md": "px-5 py-2.5 text-base",
+  "lg": "px-8 py-4 text-lg"
+} %}
+{% set variant_classes = {
+  "primary": "bg-blue-600 text-white hover:bg-blue-700",
+  "secondary": "bg-gray-200 text-gray-800 hover:bg-gray-300",
+  "outline": "border-2 border-blue-600 text-blue-600 hover:bg-blue-50",
+  "ghost": "text-blue-600 hover:bg-blue-50",
+  "danger": "bg-red-600 text-white hover:bg-red-700"
+} %}
+<a href="{{ href }}" class="{{ base_classes }} {{ size_classes[size] }} {{ variant_classes[variant] }}">
+  {% if icon %}<span class="mr-2">{{ icon }}</span>{% endif %}
+  {{ text }}
+</a>
+{% endmacro %}
