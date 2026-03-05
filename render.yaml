@@ -20,7 +20,7 @@ services:
       - key: PORT
         value: 10000
       - key: SECRET_KEY
-        value: LpYUwa5fqXxVk8286LBPnq9rtfyriGt4RjfU7PO8jgk
+        generateValue: true
       - key: DEBUG
         value: False
     autoDeploy: true
