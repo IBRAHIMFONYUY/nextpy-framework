@@ -110,7 +110,7 @@ def inject_debug_icon(html_content: str, page_props: Dict[str, Any] = None) -> s
             
             <!-- Page Props -->
             {f'''<div class="nextpy-debug-section">
-                <h4>📄 Page Props</h4>
+                <h4>Page Props</h4>
                 <div class="nextpy-debug-props">
                     <pre class="nextpy-debug-code">{__format_props(page_props) if page_props else '{}'}</pre>
                 </div>
@@ -118,56 +118,56 @@ def inject_debug_icon(html_content: str, page_props: Dict[str, Any] = None) -> s
             
             <!-- Development Tools -->
             <div class="nextpy-debug-section">
-                <h4>🛠️  Tools</h4>
+                <h4>Tools</h4>
                 <div class="nextpy-debug-tools">
                     <button 
                         class="nextpy-debug-tool-btn"
                         onclick="toggleComponentBoundaries()"
                         title="Toggle component boundaries"
                     >
-                        📦 Boundaries
+                        Boundaries
                     </button>
                     <button 
                         class="nextpy-debug-tool-btn"
                         onclick="toggleRerenderHighlight()"
                         title="Highlight re-renders"
                     >
-                        🔄 Re-renders
+                        Re-renders
                     </button>
                     <button 
                         class="nextpy-debug-tool-btn"
                         onclick="toggleVerboseLogging()"
                         title="Enable verbose logging"
                     >
-                        📝 Verbose
+                        Verbose
                     </button>
                     <button 
                         class="nextpy-debug-tool-btn"
                         onclick="togglePerformanceMode()"
                         title="Performance monitoring"
                     >
-                        ⚡ Performance
+                        Performance
                     </button>
                     <button 
                         class="nextpy-debug-tool-btn"
                         onclick="clearDebugLogs()"
                         title="Clear debug logs"
                     >
-                        🧹 Clear
+                        Clear
                     </button>
                     <button 
                         class="nextpy-debug-tool-btn"
                         onclick="exportDebugData()"
                         title="Export debug data"
                     >
-                        📤 Export
+                        Export
                     </button>
                 </div>
             </div>
             
             <!-- Console Logs -->
             <div class="nextpy-debug-section">
-                <h4>📋 Console Logs</h4>
+                <h4>Console Logs</h4>
                 <div class="nextpy-debug-logs" id="nextpy-debug-logs">
                     <div class="nextpy-debug-log-item nextpy-debug-log-info">
                         <span class="nextpy-debug-log-time">12:34:56</span>
