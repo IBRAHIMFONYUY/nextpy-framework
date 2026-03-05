@@ -15,32 +15,32 @@ async def get_server_side_props(context):
     """
     features = [
         {
-            "icon": "📁",
+            "icon": "folder",
             "title": "File-based Routing",
             "description": "Automatic routing based on your pages directory structure. Just like Next.js."
         },
         {
-            "icon": "⚡",
+            "icon": "lightning",
             "title": "Server-Side Rendering",
             "description": "Fast initial page loads with SSR. Data fetching happens on the server."
         },
         {
-            "icon": "🏗️",
+            "icon": "building",
             "title": "Static Site Generation",
             "description": "Pre-render pages at build time for blazing fast performance."
         },
         {
-            "icon": "🔌",
+            "icon": "plug",
             "title": "API Routes",
             "description": "Build your API with FastAPI in the pages/api directory."
         },
         {
-            "icon": "🎯",
+            "icon": "target",
             "title": "Type Safety",
             "description": "Full Pydantic integration for validated, type-safe data handling."
         },
         {
-            "icon": "🔄",
+            "icon": "refresh",
             "title": "HTMX Integration",
             "description": "SPA-like experience with minimal JavaScript using HTMX."
         },
