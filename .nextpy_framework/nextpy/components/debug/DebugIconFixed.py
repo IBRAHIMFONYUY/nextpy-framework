@@ -60,7 +60,7 @@ def DebugIcon(props = None):
                     
                     <!-- Performance Metrics -->
                     <div class="nextpy-debug-section">
-                        <h4>⚡ Performance</h4>
+                        <h4>Performance</h4>
                         <div class="nextpy-debug-metrics">
                             <div class="nextpy-debug-row">
                                 <span class="nextpy-debug-label">Components:</span>
@@ -79,35 +79,35 @@ def DebugIcon(props = None):
                     
                     <!-- Development Tools -->
                     <div class="nextpy-debug-section">
-                        <h4>🛠️  Tools</h4>
+                        <h4>Tools</h4>
                         <div class="nextpy-debug-tools">
                             <button 
                                 class="nextpy-debug-tool-btn"
                                 onclick="toggleComponentBoundaries()"
                                 title="Toggle component boundaries"
                             >
-                                📦 Boundaries
+                                Boundaries
                             </button>
                             <button 
                                 class="nextpy-debug-tool-btn"
                                 onclick="toggleRerenderHighlight()"
                                 title="Highlight re-renders"
                             >
-                                🔄 Re-renders
+                                Re-renders
                             </button>
                             <button 
                                 class="nextpy-debug-tool-btn"
                                 onclick="toggleVerboseLogging()"
                                 title="Enable verbose logging"
                             >
-                                📝 Verbose
+                                Verbose
                             </button>
                             <button 
                                 class="nextpy-debug-tool-btn"
                                 onclick="clearDebugLogs()"
                                 title="Clear debug logs"
                             >
-                                🧹 Clear
+                                Clear
                             </button>
                         </div>
                     </div>
