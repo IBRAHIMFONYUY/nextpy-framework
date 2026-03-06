@@ -3,7 +3,7 @@ Sitemap page for SEO - generates XML sitemap for Google
 """
 
 def get_template():
-    return "sitemap.xml"
+    return "sitemap_xml.xml"
 
 
 async def get_server_side_props(context):
