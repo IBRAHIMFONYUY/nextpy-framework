@@ -5,6 +5,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google-site-verification" content="oXBMOyST6fwllC2aDmcGSr_S-QirT_2BouKOGFkq2tA" />
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="{% block description %}NextPy - The Python web framework inspired by Next.js. Build modern web applications with file-based routing, SSR, SSG, and more.{% endblock %}">
+    <meta name="keywords" content="Python web framework, Next.js alternative, SSR, SSG, file-based routing, FastAPI, web development">
+    <meta name="author" content="NextPy Framework">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="{% block og_title %}NextPy - The Python Framework{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}The Python web framework inspired by Next.js. Build modern web applications with file-based routing, SSR, SSG, and more.{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://nextpy-framework.onrender.com{% block og_url %}{% endblock %}">
+    <meta property="og:image" content="https://nextpy-framework.onrender.com/static/images/og-image.png">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}NextPy - The Python Framework{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}The Python web framework inspired by Next.js. Build modern web applications with file-based routing, SSR, SSG, and more.{% endblock %}">
+    <meta name="twitter:image" content="https://nextpy-framework.onrender.com/static/images/og-image.png">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://nextpy-framework.onrender.com{% block canonical %}{% endblock %}">
+    
     <title>{% block title %}NextPy - The Python Framework{% endblock %}</title>
     <link rel="shortcut icon" href="/static/images/icon.png" type="image/x-icon">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>

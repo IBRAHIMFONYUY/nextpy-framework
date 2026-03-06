@@ -216,7 +216,7 @@ class Router:
             demo_page = demo_router.get_demo_page(url_path)
             if demo_page:
                 # Create a demo route
-                from .demo_pages import HomePage  # Import here to avoid circular import
+                  # Import here to avoid circular import
                 demo_route = Route(
                     path=url_path,
                     file_path=Path("demo"),
