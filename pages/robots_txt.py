@@ -3,7 +3,7 @@ Robots.txt page for SEO - generates raw robots.txt for search engines
 """
 
 def get_template():
-    return None  # No template - we return raw text
+    return "robots.txt"
 
 
 async def get_server_side_props(context):
