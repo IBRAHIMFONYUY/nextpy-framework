@@ -165,8 +165,92 @@ class NextPyApp:
             )
             
             
+    def _add_seo_routes(self) -> None:
+        """Add special SEO routes for sitemap.xml and robots.txt"""
+        from fastapi import Request
+        from fastapi.responses import Response
+        
+        # Sitemap.xml route
+        async def sitemap_handler(request: Request):
+            try:
+                # Try to load the sitemap module
+                sitemap_module = self._load_module_from_file(Path("pages/sitemap.xml.py"))
+                if sitemap_module and hasattr(sitemap_module, 'get_server_side_props'):
+                    context = PageContext(
+                        params={},
+                        query=dict(request.query_params),
+                        req=request,
+                    )
+                    result = await sitemap_module.get_server_side_props(context)
+                    
+                    # Return the Response directly
+                    return result
+                else:
+                    # Fallback sitemap
+                    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+                    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+                    xml += '  <url>\n'
+                    xml += f'    <loc>https://nextpy-framework.onrender.com/</loc>\n'
+                    xml += f'    <lastmod>2026-03-06</lastmod>\n'
+                    xml += '    <changefreq>daily</changefreq>\n'
+                    xml += '    <priority>1.0</priority>\n'
+                    xml += '  </url>\n'
+                    xml += '</urlset>'
+                    return Response(content=xml, media_type="application/xml")
+            except Exception as e:
+                if self.debug:
+                    print(f"Error generating sitemap: {e}")
+                # Return minimal sitemap on error
+                xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+                xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+                xml += '  <url>\n'
+                xml += f'    <loc>https://nextpy-framework.onrender.com/</loc>\n'
+                xml += '  </url>\n'
+                xml += '</urlset>'
+                return Response(content=xml, media_type="application/xml")
+        
+        # Robots.txt route
+        async def robots_handler(request: Request):
+            try:
+                # Try to load the robots module
+                robots_module = self._load_module_from_file(Path("pages/robots.txt.py"))
+                if robots_module and hasattr(robots_module, 'get_server_side_props'):
+                    context = PageContext(
+                        params={},
+                        query=dict(request.query_params),
+                        req=request,
+                    )
+                    result = await robots_module.get_server_side_props(context)
+                    
+                    # Return the Response directly
+                    return result
+                else:
+                    # Fallback robots.txt
+                    robots_content = """User-agent: *
+Allow: /
+
+Sitemap: https://nextpy-framework.onrender.com/sitemap.xml
+"""
+                    return Response(content=robots_content, media_type="text/plain")
+            except Exception as e:
+                if self.debug:
+                    print(f"Error generating robots.txt: {e}")
+                # Return minimal robots.txt on error
+                robots_content = """User-agent: *
+Allow: /
+"""
+                return Response(content=robots_content, media_type="text/plain")
+        
+        # Register the SEO routes
+        self.app.add_route("/sitemap.xml", sitemap_handler, methods=["GET"])
+        self.app.add_route("/robots.txt", robots_handler, methods=["GET"])
+            
     def _setup_routes(self) -> None:
         """Setup page routes using the router"""
+        
+        # Add special SEO routes
+        self._add_seo_routes()
+        
         # Add all routes from the router
         for route in self.router.get_all_routes():
             if route.is_api:
