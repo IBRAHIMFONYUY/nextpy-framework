@@ -1,6 +1,6 @@
 """
-NextPy Server Application - FastAPI-based server
-Handles routing, SSR, API routes, and static file serving
+NextPy Server Application - FastAPI-based server with complete PSX integration
+Handles routing, SSR, API routes, and static file serving using PSX for everything
 """
 
 import os
@@ -14,6 +14,14 @@ from fastapi import FastAPI, Request, Response, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
+
+# Import PSX for complete integration
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from nextpy.psx import (
+    compile_psx, render_psx, psx, PSXElement, component,
+    useState, useEffect, process_python_logic,
+    VNode, create_element, vdom_render, vdom_update, get_vdom_metrics
+)
 
 from nextpy.core.router import Router
 from nextpy.core.component_router import ComponentRouter, ComponentRoute
@@ -32,8 +40,8 @@ from nextpy.jsx_preprocessor import JSXSyntaxError
 
 class NextPyApp:
     """
-    Main NextPy application class
-    Wraps FastAPI and provides Next.js-like functionality
+    Enhanced NextPy application class with complete PSX integration
+    Wraps FastAPI and provides Next.js-like functionality using PSX for all rendering
     """
     
     def __init__(
@@ -280,37 +288,90 @@ Allow: /
                     methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
                 )
         
-    def _load_module_from_file(self, file_path: Path) -> Optional[Any]:
-        """Load a Python module from a file path with caching"""
+        if route.is_api:
+            self.app.add_api_route(
+                route.path,
+                create_api_handler(route),
+                methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+            )
+        
+    def _load_module_from_file(self, file_path: Path, module_name: Optional[str] = None) -> Any:
+        """Enhanced module loader with complete PSX support"""
+        if not file_path.exists():
+            return None
+            
+        module_name = module_name or file_path.stem
+        cache_key = str(file_path)
+        
+        # Check cache first (unless in debug mode)
+        if not self.debug and cache_key in self._modules_cache:
+            return self._modules_cache[cache_key]
+        
         try:
-            # Convert relative path to absolute path
-            if not file_path.is_absolute():
-                file_path = Path.cwd() / file_path
+            # Try PSX loader first (preferred method)
+            if file_path.suffix in ['.py', '.psx']:
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    
+                    # Compile PSX content
+                    compiled = compile_psx(content)
+                    
+                    # Create a module-like object
+                    class PSXModule:
+                        def __init__(self, compiled_func):
+                            self.compiled = compiled_func
+                            self.__name__ = module_name
+                            self.__file__ = str(file_path)
+                        
+                        def __call__(self, **kwargs):
+                            return self.compiled(**kwargs)
+                    
+                    module = PSXModule(compiled)
+                    
+                    # Cache the module (unless in debug mode)
+                    if not self.debug:
+                        self._modules_cache[cache_key] = module
+                    
+                    return module
+                    
+                except ImportError:
+                    pass  # PSX not available, fall back to other methods
+                except Exception:
+                    pass  # PSX compilation failed, fall back to other methods
             
-            # Create cache key
-            cache_key = str(file_path.resolve())
+            # Try JSX transformer for backward compatibility
+            try:
+                from nextpy.jsx_transformer import JSXTransformer
+                transformer = JSXTransformer()
+                module = transformer.load_jsx_module(file_path, module_name)
+                
+                if module:
+                    # Cache the module (unless in debug mode)
+                    if module and not self.debug:
+                        self._modules_cache[cache_key] = module
+                    
+                    return module
+                    
+            except Exception:
+                pass
             
-            # Check cache first (unless in debug mode)
-            if not self.debug and cache_key in self._modules_cache:
-                return self._modules_cache[cache_key]
-            
-            module_name = f"nextpy_page_{file_path.stem}_{hash(str(file_path))}"
-            
-            # Use JSX transformer for JSX files
-            from nextpy.jsx_transformer import JSXTransformer
-            transformer = JSXTransformer()
-            module = transformer.load_jsx_module(file_path, module_name)
-            
-            # Cache the module (unless in debug mode)
-            if module and not self.debug:
-                self._modules_cache[cache_key] = module
-            
-            return module
+            # Fallback to regular Python import
+            spec = importlib.util.spec_from_file_location(module_name, file_path)
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                
+                # Cache the module (unless in debug mode)
+                if not self.debug:
+                    self._modules_cache[cache_key] = module
+                
+                return module
             
         except Exception as e:
             if self.debug:
                 print(f"Error loading module from {file_path}: {e}")
-        return None
+            return None
         
     async def _handle_request(self, request: Request, path: str) -> Response:
         """Handle a page request"""

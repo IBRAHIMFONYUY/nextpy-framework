@@ -41,29 +41,19 @@ class ComponentRouter:
         if not self.pages_dir.exists():
             return
             
-        # Scan for both .py and .py.jsx files
-        for file_path in self.pages_dir.rglob("*.py"):
-            if file_path.name.startswith("_"):
-                continue
-                
-            route = self._create_route_from_file(file_path)
-            if route:
-                if route.is_api:
-                    self.api_routes.append(route)
-                else:
-                    self.routes.append(route)
+        # Scan for .py, .py.jsx and .psx files
+        extensions = ["*.py", "*.py.jsx", "*.psx"]
+        for ext in extensions:
+            for file_path in self.pages_dir.rglob(ext):
+                if file_path.name.startswith("_"):
+                    continue
                     
-        # Also scan for .py.jsx files
-        for file_path in self.pages_dir.rglob("*.py.jsx"):
-            if file_path.name.startswith("_"):
-                continue
-                
-            route = self._create_route_from_file(file_path)
-            if route:
-                if route.is_api:
-                    self.api_routes.append(route)
-                else:
-                    self.routes.append(route)
+                route = self._create_route_from_file(file_path)
+                if route:
+                    if route.is_api:
+                        self.api_routes.append(route)
+                    else:
+                        self.routes.append(route)
                     
         self._sort_routes()
         
@@ -82,6 +72,8 @@ class ComponentRouter:
         for part in parts:
             if part.endswith(".py.jsx"):
                 part = part[:-7]
+            elif part.endswith(".psx"):
+                part = part[:-4]
             elif part.endswith(".py"):
                 part = part[:-3]
 

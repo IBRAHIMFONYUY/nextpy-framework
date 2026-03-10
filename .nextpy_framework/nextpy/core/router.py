@@ -164,33 +164,59 @@ class Router:
         )
         
     def _load_handler(self, file_path: Path) -> Optional[Callable]:
-        """Dynamically load the handler function from a page file using JSX transformer"""
+        """Enhanced handler loader with full PSX support"""
         try:
-            # Use JSX transformer for consistent loading
-            from ..jsx_transformer import JSXTransformer
-            transformer = JSXTransformer()
-            module = transformer.load_jsx_module(file_path, file_path.stem)
-            
-            if module:
-                for func_name in ["handler", "page", "get", "post", "default"]:
-                    if hasattr(module, func_name):
-                        return getattr(module, func_name)
-        except Exception as e:
-            # Fallback to regular import if JSX transformer fails
-            try:
-                spec = importlib.util.spec_from_file_location(
-                    file_path.stem, 
-                    file_path
-                )
-                if spec and spec.loader:
-                    module = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(module)
+            # Try PSX loader first (preferred method)
+            if file_path.suffix in ['.py', '.psx']:
+                try:
+                    from ..psx import compile_psx, render_psx
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
                     
-                    for func_name in ["handler", "page", "get", "post", "default"]:
+                    # Compile PSX content
+                    compiled = compile_psx(content)
+                    
+                    # Create a wrapper handler
+                    def psx_handler(**kwargs):
+                        return compiled(**kwargs)
+                    
+                    return psx_handler
+                    
+                except ImportError:
+                    pass  # PSX not available, fall back to other methods
+                except Exception:
+                    pass  # PSX compilation failed, fall back to other methods
+            
+            # Try JSX transformer for backward compatibility
+            try:
+                from ..jsx_transformer import JSXTransformer
+                transformer = JSXTransformer()
+                module = transformer.load_jsx_module(file_path, file_path.stem)
+                
+                if module:
+                    for func_name in ["handler", "page", "get", "post", "default", "template", "Page"]:
                         if hasattr(module, func_name):
                             return getattr(module, func_name)
             except Exception:
-                pass  # Silently fail if both methods fail
+                pass
+            
+            # Fallback to regular Python import
+            spec = importlib.util.spec_from_file_location(
+                file_path.stem, 
+                file_path
+            )
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                
+                # Look for PSX components first
+                for func_name in ["Page", "template", "handler", "page", "get", "post", "default"]:
+                    if hasattr(module, func_name):
+                        return getattr(module, func_name)
+                        
+        except Exception as e:
+            # Log error but don't crash
+            print(f"Warning: Failed to load handler from {file_path}: {e}")
                 
         return None
         
