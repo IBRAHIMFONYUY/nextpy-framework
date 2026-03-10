@@ -433,8 +433,10 @@ def create(name: str, psx: bool, template: str):
         click.echo(f"\n  🎯 Next steps:")
         click.echo(f"    1️⃣  cd {name}")
         click.echo(f"    2️⃣  npm install  # Install Tailwind CSS dependencies")
-        click.echo(f"    3️⃣  nextpy dev  # Start development server")
-        click.echo(f"    4️⃣  Open http://localhost:5000 in your browser")
+        click.echo(f"    3️⃣  pip install -r requirements.txt  # Install Python dependencies")
+        click.echo(f"    4️⃣  npm run css:build  # Build Tailwind CSS")
+        click.echo(f"    5️⃣  python3 main.py  # Start development server")
+        click.echo(f"    6️⃣  Open http://localhost:5000 in your browser")
         
         if psx:
             click.echo(f"\n  🎨 PSX Development:")
@@ -869,16 +871,20 @@ def _create_project_structure(project_dir: Path, psx: bool = True, template: str
     """Create a complete NextPy project structure with PSX support"""
     dirs = [
         "pages",
+        "pages/blog",
         "pages/api",
+        "pages/api/users",
         "components",
         "components/ui",
         "components/layout",
-        "templates",
+        "styles",
         "public",
         "public/images",
-        "public/css",
-        "public/js",
-        ".nextpy"
+        "public/fonts",
+        "templates",
+        ".nextpy",
+        ".nextpy/plugins",
+        ".vscode"
     ]
     
     for dir_path in dirs:
@@ -892,7 +898,7 @@ def _create_project_structure(project_dir: Path, psx: bool = True, template: str
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title | "NextPy App"}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/tailwind.css">
     {% block head %}{% endblock %}
 </head>
 <body class="bg-gray-50">
@@ -902,8 +908,29 @@ def _create_project_structure(project_dir: Path, psx: bool = True, template: str
 </html>''')
     click.echo("  Created: templates/_page.html")
     
+    # Create 404 template
+    (project_dir / "templates" / "_404.html").write_text('''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Page Not Found | NextPy App</title>
+    <link rel="stylesheet" href="/tailwind.css">
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+    <div class="text-center">
+        <h1 class="text-6xl font-bold text-gray-900 mb-4">404</h1>
+        <p class="text-xl text-gray-600 mb-8">Page not found</p>
+        <a href="/" class="inline-block px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+            Go Home
+        </a>
+    </div>
+</body>
+</html>''')
+    click.echo("  Created: templates/_404.html")
+    
     # Create styles.css with Tailwind directives
-    (project_dir / "styles.css").write_text('''/* NextPy Styles */
+    (project_dir / "styles" / "global.css").write_text('''/* NextPy Global Styles */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -927,23 +954,96 @@ def _create_project_structure(project_dir: Path, psx: bool = True, template: str
     transform: scale(1.05);
 }
 ''')
-    click.echo("  Created: styles.css")
+    click.echo("  Created: styles/global.css")
     
     # Create tailwind.config.js with PSX support
-    (project_dir / "tailwind.config.js").write_text('''module.exports = {
+    (project_dir / "tailwind.config.js").write_text('''/** @type {import('tailwindcss').Config} */
+module.exports = {
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx,py,psx}',
     './components/**/*.{js,ts,jsx,tsx,mdx,py,psx}',
     './templates/**/*.html',
+  ],
+  // Force include common Tailwind classes for dynamic content
+  safelist: [
+    // Background colors
+    'bg-blue-50', 'bg-blue-100', 'bg-blue-200', 'bg-blue-300', 'bg-blue-400', 'bg-blue-500', 'bg-blue-600', 'bg-blue-700',
+    'bg-red-50', 'bg-red-100', 'bg-red-200', 'bg-red-300', 'bg-red-400', 'bg-red-500', 'bg-red-600', 'bg-red-700',
+    'bg-green-50', 'bg-green-100', 'bg-green-200', 'bg-green-300', 'bg-green-400', 'bg-green-500', 'bg-green-600', 'bg-green-700',
+    'bg-purple-50', 'bg-purple-100', 'bg-purple-200', 'bg-purple-300', 'bg-purple-400', 'bg-purple-500', 'bg-purple-600', 'bg-purple-700',
+    'bg-gray-50', 'bg-gray-100', 'bg-gray-200', 'bg-gray-300', 'bg-gray-400', 'bg-gray-500', 'bg-gray-600', 'bg-gray-700', 'bg-gray-800', 'bg-gray-900',
+    'bg-white', 'bg-black',
+
+    // Text colors
+    'text-blue-50', 'text-blue-100', 'text-blue-200', 'text-blue-300', 'text-blue-400', 'text-blue-500', 'text-blue-600', 'text-blue-700',
+    'text-red-50', 'text-red-100', 'text-red-200', 'text-red-300', 'text-red-400', 'text-red-500', 'text-red-600', 'text-red-700',
+    'text-green-50', 'text-green-100', 'text-green-200', 'text-green-300', 'text-green-400', 'text-green-500', 'text-green-600', 'text-green-700',
+    'text-purple-50', 'text-purple-100', 'text-purple-200', 'text-purple-300', 'text-purple-400', 'text-purple-500', 'text-purple-600', 'text-purple-700',
+    'text-gray-50', 'text-gray-100', 'text-gray-200', 'text-gray-300', 'text-gray-400', 'text-gray-500', 'text-gray-600', 'text-gray-700', 'text-gray-800', 'text-gray-900',
+    'text-white', 'text-black',
+
+    // Shadows
+    'shadow-sm', 'shadow', 'shadow-md', 'shadow-lg', 'shadow-xl', 'shadow-2xl',
+
+    // Gradients
+    'bg-gradient-to-r', 'bg-gradient-to-br', 'bg-gradient-to-b', 'bg-gradient-to-bl', 'bg-gradient-to-l', 'bg-gradient-to-tl', 'bg-gradient-to-t', 'bg-gradient-to-tr',
+    'from-blue-50', 'from-blue-100', 'from-blue-200', 'from-blue-300', 'from-blue-400', 'from-blue-500', 'from-blue-600', 'from-blue-700',
+    'via-indigo-50', 'via-indigo-100', 'via-indigo-200', 'via-indigo-300', 'via-indigo-400', 'via-indigo-500', 'via-indigo-600', 'via-indigo-700',
+    'to-purple-50', 'to-purple-100', 'to-purple-200', 'to-purple-300', 'to-purple-400', 'to-purple-500', 'to-purple-600', 'to-purple-700',
+
+    // Spacing and layout
+    'p-4', 'p-6', 'p-8', 'px-4', 'px-6', 'px-8', 'py-2', 'py-4', 'py-6', 'py-8', 'py-12', 'py-16', 'py-20', 'py-24',
+    'm-4', 'm-6', 'm-8', 'mx-4', 'mx-6', 'mx-8', 'my-2', 'my-4', 'my-6', 'my-8', 'my-12', 'my-16', 'my-20', 'my-24',
+    'mb-2', 'mb-4', 'mb-6', 'mb-8', 'mb-12', 'mb-16', 'mb-20', 'mb-24',
+    'mt-2', 'mt-4', 'mt-6', 'mt-8', 'mt-12', 'mt-16', 'mt-20', 'mt-24',
+
+    // Borders and rounded
+    'border', 'border-2', 'border-l-4', 'border-t-4', 'rounded', 'rounded-lg', 'rounded-xl', 'rounded-full',
+
+    // Flexbox and grid
+    'flex', 'flex-col', 'flex-row', 'items-center', 'justify-center', 'justify-between', 'grid', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4', 'gap-4', 'gap-6', 'gap-8',
+
+    // Width and height
+    'w-full', 'w-1/2', 'w-1/3', 'w-1/4', 'h-full', 'h-screen', 'max-w-md', 'max-w-lg', 'max-w-xl', 'max-w-4xl', 'max-w-6xl', 'max-w-7xl',
+
+    // Typography
+    'text-xs', 'text-sm', 'text-base', 'text-lg', 'text-xl', 'text-2xl', 'text-3xl', 'text-4xl', 'text-5xl', 'text-6xl', 'text-7xl',
+    'font-light', 'font-normal', 'font-medium', 'font-semibold', 'font-bold',
+    'leading-tight', 'leading-relaxed', 'leading-loose',
+    'text-center', 'text-left', 'text-right',
+
+    // Hover states
+    'hover:bg-blue-600', 'hover:bg-blue-700', 'hover:bg-purple-600', 'hover:bg-purple-700', 'hover:bg-green-600', 'hover:bg-green-700',
+    'hover:text-white', 'hover:text-blue-600', 'hover:text-purple-600', 'hover:text-green-600',
+    'hover:shadow-lg', 'hover:shadow-xl', 'hover:scale-105', 'hover:translate-x-1',
+
+    // Transitions
+    'transition', 'transition-all', 'transition-colors', 'transition-transform',
+
+    // Opacity and visibility
+    'opacity-0', 'opacity-50', 'opacity-100', 'invisible', 'visible',
+
+    // Z-index
+    'z-10', 'z-20', 'z-30', 'z-40', 'z-50',
+
+    // Positioning
+    'relative', 'absolute', 'fixed', 'sticky', 'top-0', 'bottom-0', 'left-0', 'right-0'
   ],
   theme: {
     extend: {
       colors: {
         primary: {
           50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
           500: '#3b82f6',
           600: '#2563eb',
           700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+          950: '#172554',
         },
       },
       animation: {
@@ -952,7 +1052,7 @@ def _create_project_structure(project_dir: Path, psx: bool = True, template: str
     },
   },
   plugins: [],
-};''')
+}''')
     click.echo("  Created: tailwind.config.js")
     
     # Create package.json with dependencies
@@ -964,15 +1064,25 @@ def _create_project_structure(project_dir: Path, psx: bool = True, template: str
     "dev": "nextpy dev",
     "build": "nextpy build",
     "start": "nextpy start",
-    "css:build": "tailwindcss -i styles.css -o public/css/styles.css --watch"
+    "css:build": "tailwindcss -i styles/global.css -o public/tailwind.css --watch",
+    "css:prod": "tailwindcss -i styles/global.css -o public/tailwind.css --minify"
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.1",
+    "tailwindcss": "^4.2.1",
     "autoprefixer": "^10.4.14",
     "postcss": "^8.4.24"
   }
 }''')
     click.echo("  Created: package.json")
+    
+    # Create PostCSS configuration
+    (project_dir / "postcss.config.js").write_text('''module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}''')
+    click.echo("  Created: postcss.config.js")
     
     # Create PSX homepage if enabled
     if psx:
@@ -992,6 +1102,67 @@ watchdog>=2.3.0
 click>=8.1.0
 ''')
     click.echo("  Created: requirements.txt")
+    
+    # Create README.md
+    (project_dir / "README.md").write_text('''# NextPy App
+
+A modern Python web framework with True JSX support.
+
+## Getting Started
+
+1. Install dependencies:
+   ```bash
+   npm install
+   pip install -r requirements.txt
+   ```
+
+2. Build Tailwind CSS:
+   ```bash
+   npm run css:build
+   ```
+
+3. Start development server:
+   ```bash
+   python3 main.py
+   ```
+
+4. Open http://localhost:5000
+
+## Project Structure
+
+- `pages/` - Route pages (file-based routing)
+- `components/` - Reusable PSX components
+- `styles/` - CSS files and Tailwind configuration
+- `public/` - Static assets
+- `templates/` - HTML templates (optional)
+- `.nextpy/` - NextPy configuration
+
+## PSX Features
+
+Write React-like components in Python:
+
+```python
+from nextpy.psx import component
+
+@component
+def Button(props=None):
+    return (
+        <button class="px-4 py-2 bg-blue-500 text-white rounded">
+            {props.get("children", "Click me")}
+        </button>
+    )
+```
+
+## Learn More
+
+- [NextPy Documentation](https://nextpy-framework.com)
+- [PSX Guide](https://nextpy-framework.com/psx)
+''')
+    click.echo("  Created: README.md")
+    
+    # Create favicon
+    (project_dir / "public" / "favicon.ico").write_bytes(b'\x00\x00\x01\x00\x01\x00\x10\x10\x00\x00\x01\x00\x08\x00h\x00\x00\x00\x16\x00\x00\x00')
+    click.echo("  Created: public/favicon.ico")
     
     # Create main.py
     (project_dir / "main.py").write_text('''"""NextPy Application Entry Point"""
@@ -1137,6 +1308,71 @@ def getServerSideProps(context):
 default = Home
 ''')
     click.echo("  Created: pages/index.py (PSX homepage)")
+    
+    # Create sample components
+    (project_dir / "components" / "Button.py").write_text('''"""
+Button Component - Reusable PSX button component
+"""
+
+from nextpy.psx import component
+
+@component
+def Button(props=None):
+    """Reusable button component with variants"""
+    props = props or {}
+    variant = props.get("variant", "primary")
+    size = props.get("size", "md")
+    children = props.get("children", "Button")
+    
+    # Base classes
+    base_classes = "font-semibold rounded-lg transition-colors"
+    
+    # Size classes
+    size_classes = {
+        "sm": "px-3 py-1.5 text-sm",
+        "md": "px-4 py-2 text-base",
+        "lg": "px-6 py-3 text-lg"
+    }.get(size, "px-4 py-2 text-base")
+    
+    # Variant classes
+    variant_classes = {
+        "primary": "bg-blue-500 hover:bg-blue-600 text-white",
+        "secondary": "bg-gray-200 hover:bg-gray-300 text-gray-800",
+        "success": "bg-green-500 hover:bg-green-600 text-white",
+        "danger": "bg-red-500 hover:bg-red-600 text-white"
+    }.get(variant, "bg-blue-500 hover:bg-blue-600 text-white")
+    
+    return (
+        <button class={f"{base_classes} {size_classes} {variant_classes}"}>
+            {children}
+        </button>
+    )
+''')
+    click.echo("  Created: components/Button.py")
+    
+    (project_dir / "components" / "Card.py").write_text('''"""
+Card Component - Reusable PSX card component
+"""
+
+from nextpy.psx import component
+
+@component
+def Card(props=None):
+    """Reusable card component"""
+    props = props or {}
+    title = props.get("title", "Card Title")
+    description = props.get("description", "Card description")
+    children = props.get("children", None)
+    
+    return (
+        <div class="bg-white rounded-lg shadow-lg p-6 max-w-md">
+            <h3 class="text-xl font-semibold mb-2">{title}</h3>
+            <p class="text-gray-600 mb-4">{description}</p>
+            {children if children else ""}
+        </div>
+    )
+''')
+    click.echo("  Created: components/Card.py")
 
 
 def _create_psx_about_page(project_dir: Path):
@@ -1330,6 +1566,38 @@ def _create_vscode_settings(project_dir: Path):
   ]
 }''')
     click.echo("  Created: .vscode/extensions.json")
+    
+    # Create NextPy configuration
+    (project_dir / ".nextpy" / "config.js").write_text('''/** NextPy Configuration */
+module.exports = {
+  // App configuration
+  app: {
+    name: "NextPy App",
+    description: "A modern Python web framework with True JSX",
+    version: "1.0.0"
+  },
+  
+  // Build configuration
+  build: {
+    outputDir: ".nextpy/build",
+    staticDir: "public"
+  },
+  
+  // Development configuration
+  dev: {
+    port: 5000,
+    host: "0.0.0.0",
+    autoReload: true
+  },
+  
+  // PSX configuration
+  psx: {
+    enabled: true,
+    strictMode: true,
+    experimentalFeatures: false
+  }
+}''')
+    click.echo("  Created: .nextpy/config.js")
 
 
 def _create_traditional_homepage(project_dir: Path):
@@ -1617,7 +1885,7 @@ def post(request):
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ title or "NextPy App" }}</title>
     <!-- reference compiled Tailwind CSS rather than CDN for better integration -->
-    <link href="/tailwind.css" rel="stylesheet">
+    <link href="/public/tailwind.css" rel="stylesheet">
 </head>
 <body>
     <div id="app">
@@ -1633,7 +1901,7 @@ def post(request):
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>404 - Page Not Found</title>
-    <link href="/tailwind.css" rel="stylesheet">
+    <link href="/public/tailwind.css" rel="stylesheet">
 </head>
 <body class="flex items-center justify-center min-h-screen bg-gray-100">
     <div class="text-center">
@@ -1778,31 +2046,46 @@ body {
   }
 }''')
     click.echo("  Created: package.json")
-        
-    # Create interactive homepage with advanced features
+    
+    # NOTE: The interactive homepage and enhanced about page functions below contain React syntax
+    # and should be replaced with proper PSX syntax. The correct PSX functions are already
+    # defined above in _create_psx_homepage() and _create_psx_about_page()
+    
+    # For now, we'll use the correct PSX versions instead of these problematic ones
+    _create_psx_homepage(project_dir)
+    _create_psx_about_page(project_dir)
+    _create_psx_examples(project_dir)
+    _create_vscode_settings(project_dir)
+    
+    # Skip the problematic React-syntax functions
+    # TODO: Fix or remove the interactive homepage function below
     (project_dir / "pages" / "index.py").write_text('''"""Interactive Homepage with True JSX"""
 
+from nextpy.psx import component
+
+
+@component
 def Home(props=None):
     props = props or {}
     title = props.get("title", "Welcome to NextPy!")
     message = props.get("message", "Build amazing web apps with Python and True JSX")
     
     return (
-        <div className={clsx('min-h-screen', 'bg-gradient-to-br', 'from-blue-600', 'via-purple-600', 'to-pink-600')}>
-            <nav className={clsx('bg-white', 'border-b', 'border-white', 'bg-opacity-10', 'backdrop-blur-md', 'border-opacity-20')}>
-                <div className={clsx('px-4', 'mx-auto', 'max-w-7xl', 'sm:px-6', 'lg:px-8')}>
-                    <div className={clsx('flex', 'items-center', 'justify-between', 'h-16')}>
-                        <div className={clsx('flex', 'items-center')}>
-                            <h1 className={clsx('text-xl', 'font-bold', 'text-white')}>NextPy</h1>
+        <div class="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600">
+            <nav class="bg-white border-b border-white bg-opacity-10 backdrop-blur-md border-opacity-20">
+                <div class="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+                    <div class="flex items-center justify-between h-16">
+                        <div class="flex items-center">
+                            <h1 class="text-xl font-bold text-white">NextPy</h1>
                         </div>
-                        <div className={clsx('flex', 'space-x-4')}>
-                            <a href="/about" className={clsx('px-3', 'py-2', 'text-sm', 'font-medium', 'text-white', 'transition-colors', 'rounded-md', 'hover:text-blue-200')}>
+                        <div class="flex space-x-4">
+                            <a href="/about" class="px-3 py-2 text-sm font-medium text-white transition-colors rounded-md hover:text-blue-200">
                                 About
                             </a>
-                            <a href="/features" className={clsx('px-3', 'py-2', 'text-sm', 'font-medium', 'text-white', 'transition-colors', 'rounded-md', 'hover:text-blue-200')}>
+                            <a href="/features" class="px-3 py-2 text-sm font-medium text-white transition-colors rounded-md hover:text-blue-200">
                                 Features
                             </a>
-                            <a href="/docs" className={clsx('px-3', 'py-2', 'text-sm', 'font-medium', 'text-white', 'transition-colors', 'rounded-md', 'hover:text-blue-200')}>
+                            <a href="/docs" class="px-3 py-2 text-sm font-medium text-white transition-colors rounded-md hover:text-blue-200">
                                 Docs
                             </a>
                         </div>
@@ -1810,23 +2093,23 @@ def Home(props=None):
                 </div>
             </nav>
             
-            <div className={clsx('relative', 'overflow-hidden')}>
-                <div className={clsx('mx-auto', 'max-w-7xl')}>
-                    <div className={clsx('relative', 'z-10', 'pb-8', 'bg-transparent', 'sm:pb-16', 'md:pb-20', 'lg:pb-28', 'xl:pb-32')}>
-                        <main className={clsx('mx-auto', 'mt-10', 'max-w-7xl', 'sm:mt-12', 'sm:px-6', 'lg:mt-16', 'lg:px-8', 'xl:mt-20')}>
-                            <div className="text-center">
-                                <h1 className={clsx('text-4xl', 'font-extrabold', 'tracking-tight', 'text-white', 'sm:text-5xl', 'md:text-6xl')}>
-                                    <span className={clsx('block', 'xl:inline')}>Build amazing web apps with</span>
-                                    <span className={clsx('block', 'text-blue-200', 'xl:inline')}>Python and True JSX</span>
+            <div class="relative overflow-hidden">
+                <div class="mx-auto max-w-7xl">
+                    <div class="relative z-10 pb-8 bg-transparent sm:pb-16 md:pb-20 lg:pb-28 xl:pb-32">
+                        <main class="mx-auto mt-10 max-w-7xl sm:mt-12 sm:px-6 lg:mt-16 lg:px-8 xl:mt-20">
+                            <div class="text-center">
+                                <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl">
+                                    <span class="block xl:inline">Build amazing web apps with</span>
+                                    <span class="block text-blue-200 xl:inline">Python and True JSX</span>
                                 </h1>
-                                <p className={clsx('max-w-lg', 'mx-auto', 'mt-6', 'text-xl', 'text-blue-100', 'sm:text-2xl')}>
+                                <p class="max-w-lg mx-auto mt-6 text-xl text-blue-100 sm:text-2xl">
                                     {message}
                                 </p>
-                                <div className={clsx('flex', 'justify-center', 'mt-10')}>
-                                    <a href="/getting-started" className={clsx('inline-flex', 'items-center', 'justify-center', 'px-8', 'py-3', 'text-base', 'font-medium', 'text-blue-600', 'transition-all', 'duration-300', 'transform', 'bg-white', 'border', 'border-transparent', 'rounded-md', 'hover:bg-blue-50', 'md:py-4', 'md:text-lg', 'md:px-10', 'hover:scale-105')}>
+                                <div class="flex justify-center mt-10">
+                                    <a href="/getting-started" class="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-blue-600 transition-all duration-300 transform bg-white border border-transparent rounded-md hover:bg-blue-50 md:py-4 md:text-lg md:px-10 hover:scale-105">
                                         Get Started
                                     </a>
-                                    <a href="https://github.com/nextpy/nextpy" className={clsx('inline-flex', 'items-center', 'justify-center', 'px-8', 'py-3', 'ml-4', 'text-base', 'font-medium', 'text-white', 'transition-all', 'duration-300', 'transform', 'bg-blue-500', 'border', 'border-transparent', 'rounded-md', 'hover:bg-blue-600', 'md:py-4', 'md:text-lg', 'md:px-10', 'hover:scale-105')}>
+                                    <a href="https://github.com/IBRAHIMFONYUY/nextpy" class="inline-flex items-center justify-center px-8 py-3 ml-4 text-base font-medium text-white transition-all duration-300 transform bg-blue-500 border border-transparent rounded-md hover:bg-blue-600 md:py-4 md:text-lg md:px-10 hover:scale-105">
                                         GitHub
                                     </a>
                                 </div>
@@ -1835,155 +2118,10 @@ def Home(props=None):
                     </div>
                 </div>
                 
-                <div className={clsx('absolute', 'inset-0', '-z-10')}>
-                    <div className={clsx('absolute', 'top-0', 'transform', '-translate-x-1/2', 'left-1/2', 'blur-3xl', 'opacity-20')}>
-                        <div className={clsx('rounded-full', 'aspect-square', 'w-96', 'h-96', 'bg-gradient-to-r', 'from-blue-400', 'to-purple-600')}></div>
-                    </div>
-                    <div className={clsx('absolute', 'top-0', 'transform', 'translate-x-1/2', 'right-1/2', 'blur-3xl', 'opacity-20')}>
-                        <div className={clsx('rounded-full', 'aspect-square', 'w-96', 'h-96', 'bg-gradient-to-r', 'from-purple-400', 'to-pink-600')}></div>
-                    </div>
-                </div>
             </div>
             
             
-            <div className={clsx('py-12', 'bg-white')}>
-                <div className={clsx('px-4', 'mx-auto', 'max-w-7xl', 'sm:px-6', 'lg:px-8')}>
-                    <div className="lg:text-center">
-                        <h2 className={clsx('text-base', 'font-semibold', 'tracking-wide', 'text-blue-600', 'uppercase')}>
-                            Features
-                        </h2>
-                        <p className={clsx('mt-2', 'text-3xl', 'font-extrabold', 'tracking-tight', 'text-gray-900', 'sm:text-4xl')}>
-                            Everything you need to build amazing apps
-                        </p>
-                    </div>
-                    
-                    <div className="mt-10">
-                        <div className={clsx('space-y-10', 'md:space-y-0', 'md:grid', 'md:grid-cols-2', 'md:gap-x-8', 'md:gap-y-10', 'lg:grid-cols-3')}>
-                            
-                            <div className="relative">
-                                <div className={clsx('absolute', 'flex', 'items-center', 'justify-center', 'w-12', 'h-12', 'text-white', 'bg-blue-500', 'rounded-md')}>
-                                    <svg className={clsx('w-6', 'h-6')} fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7m0 0v7l9-11h-7z" />
-                                    </svg>
-                                </div>
-                                <p className={clsx('ml-16', 'text-lg', 'font-medium', 'leading-6', 'text-gray-900')}>
-                                    True JSX Components
-                                </p>
-                                <p className={clsx('mt-2', 'ml-16', 'text-base', 'text-gray-500')}>
-                                    Write React-like components directly in Python with full JSX support.
-                                </p>
-                                <a href="/jsx-demo" className={clsx('mt-4', 'ml-16', 'text-base', 'font-medium', 'text-blue-600', 'hover:text-blue-500')}>
-                                    Learn more &rarr;
-                                </a>
-                            </div>
-                            
-                            
-                            <div className="relative">
-                                <div className={clsx('absolute', 'flex', 'items-center', 'justify-center', 'w-12', 'h-12', 'text-white', 'bg-purple-500', 'rounded-md')}>
-                                    <svg className={clsx('w-6', 'h-6')} fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
-                                    </svg>
-                                </div>
-                                <p className={clsx('ml-16', 'text-lg', 'font-medium', 'leading-6', 'text-gray-900')}>
-                                    Tailwind CSS Integration
-                                </p>
-                                <p className={clsx('mt-2', 'ml-16', 'text-base', 'text-gray-500')}>
-                                    Built-in Tailwind CSS v4 with PostCSS compilation and utility classes.
-                                </p>
-                                <a href="/tailwind-demo" className={clsx('mt-4', 'ml-16', 'text-base', 'font-medium', 'text-blue-600', 'hover:text-blue-500')}>
-                                    Learn more &rarr;
-                                </a>
-                            </div>
-                            
-                            
-                            <div className="relative">
-                                <div className={clsx('absolute', 'flex', 'items-center', 'justify-center', 'w-12', 'h-12', 'text-white', 'bg-green-500', 'rounded-md')}>
-                                    <svg className={clsx('w-6', 'h-6')} fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 2 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <p className={clsx('ml-16', 'text-lg', 'font-medium', 'leading-6', 'text-gray-900')}>
-                                    File-based Routing
-                                </p>
-                                <p className={clsx('mt-2', 'ml-16', 'text-base', 'text-gray-500')}>
-                                    Automatic route discovery with support for dynamic routes and API endpoints.
-                                </p>
-                                <a href="/routing-demo" className={clsx('mt-4', 'ml-16', 'text-base', 'font-medium', 'text-blue-600', 'hover:text-blue-500')}>
-                                    Learn more &rarr;
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
             
-            
-            <div className={clsx('py-12', 'bg-gray-50')}>
-                <div className={clsx('px-4', 'mx-auto', 'max-w-7xl', 'sm:px-6', 'lg:px-8')}>
-                    <div className="text-center">
-                        <h2 className={clsx('text-3xl', 'font-extrabold', 'text-gray-900')}>
-                            Try It Yourself
-                        </h2>
-                        <p className={clsx('max-w-2xl', 'mt-4', 'text-xl', 'text-gray-500')}>
-                            Interactive demos showing NextPy capabilities
-                        </p>
-                    </div>
-                    
-                    <div className={clsx('grid', 'grid-cols-1', 'gap-8', 'mt-12', 'sm:grid-cols-2', 'lg:grid-cols-3')}>
-                        
-                        <div className={clsx('p-6', 'bg-white', 'rounded-lg', 'shadow-lg')}>
-                            <h3 className={clsx('text-lg', 'font-medium', 'text-gray-900')}>Live Counter</h3>
-                            <p className={clsx('mt-2', 'text-sm', 'text-gray-500')}>Interactive state management demo</p>
-                            <div className="mt-4">
-                                <button className={clsx('px-4', 'py-2', 'text-white', 'transition-colors', 'bg-blue-500', 'rounded', 'hover:bg-blue-600')}>
-                                    Click me!
-                                </button>
-                                <span className={clsx('ml-4', 'text-lg', 'font-semibold')}>Count: 0</span>
-                            </div>
-                        </div>
-                        
-                        
-                        <div className={clsx('p-6', 'bg-white', 'rounded-lg', 'shadow-lg')}>
-                            <h3 className={clsx('text-lg', 'font-medium', 'text-gray-900')}>Form Handling</h3>
-                            <p className={clsx('mt-2', 'text-sm', 'text-gray-500')}>Server-side form processing</p>
-                            <div className="mt-4">
-                                <input type="text" placeholder="Type something..." className={clsx('w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'rounded-md')} />
-                                <button className={clsx('w-full', 'px-4', 'py-2', 'mt-2', 'text-white', 'transition-colors', 'bg-green-500', 'rounded', 'hover:bg-green-600')}>
-                                    Submit
-                                </button>
-                            </div>
-                        </div>
-                        
-                        
-                        <div className={clsx('p-6', 'bg-white', 'rounded-lg', 'shadow-lg')}>
-                            <h3 className={clsx('text-lg', 'font-medium', 'text-gray-900')}>API Integration</h3>
-                            <p className={clsx('mt-2', 'text-sm', 'text-gray-500')}>RESTful API endpoints</p>
-                            <div className="mt-4">
-                                <button className={clsx('w-full', 'px-4', 'py-2', 'text-white', 'transition-colors', 'bg-purple-500', 'rounded', 'hover:bg-purple-600')}>
-                                    Call API
-                                </button>
-                                <div className={clsx('mt-2', 'text-xs', 'text-gray-600')}>Response will appear here</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            
-            <footer className="bg-gray-900">
-                <div className={clsx('px-4', 'py-12', 'mx-auto', 'max-w-7xl', 'sm:px-6', 'lg:px-8')}>
-                    <div className={clsx('flex', 'flex-col', 'items-center', 'space-y-4')}>
-                        <p className={clsx('text-base', 'text-center', 'text-gray-400')}>
-                            Built with &hearts; using NextPy Framework
-                        </p>
-                        <div className={clsx('flex', 'space-x-6')}>
-                            <a href="/about" className={clsx('text-gray-400', 'hover:text-gray-300')}>About</a>
-                            <a href="/docs" className={clsx('text-gray-400', 'hover:text-gray-300')}>Documentation</a>
-                            <a href="https://github.com/nextpy/nextpy" className={clsx('text-gray-400', 'hover:text-gray-300')}>GitHub</a>
-                        </div>
-                    </div>
-                </div>
-            </footer>
         </div>
     )
 
@@ -2002,6 +2140,10 @@ default = Home
     # Create enhanced about page with interactive features
     (project_dir / "pages" / "about.py").write_text('''"""Enhanced About page with True JSX"""
 
+from nextpy.psx import component
+
+
+@component
 def About(props=None):
     """About page component with interactive features"""
     props = props or {}
@@ -2010,21 +2152,21 @@ def About(props=None):
     description = props.get("description", "The Python web framework that brings React-like development to Python")
     
     return (
-        <div className={clsx('min-h-screen', 'bg-gray-50')}>
-                        <div className={clsx('text-white', 'bg-gradient-to-r', 'from-blue-600', 'to-purple-600')}>
-                <div className={clsx('px-4', 'py-16', 'mx-auto', 'max-w-7xl', 'sm:py-24', 'sm:px-6', 'lg:px-8')}>
-                    <div className="text-center">
-                        <h1 className={clsx('text-4xl', 'font-extrabold', 'tracking-tight', 'sm:text-5xl', 'lg:text-6xl')}>
+        <div class="min-h-screen bg-gray-50">
+                        <div class="text-white bg-gradient-to-r from-blue-600 to-purple-600">
+                <div class="px-4 py-16 mx-auto max-w-7xl sm:py-24 sm:px-6 lg:px-8">
+                    <div class="text-center">
+                        <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
                             {title}
                         </h1>
-                        <p className={clsx('max-w-2xl', 'mx-auto', 'mt-6', 'text-xl', 'text-blue-100')}>
+                        <p class="max-w-2xl mx-auto mt-6 text-xl text-blue-100">
                             {description}
                         </p>
-                        <div className={clsx('flex', 'justify-center', 'mt-10', 'space-x-4')}>
-                            <a href="/features" className={clsx('inline-flex', 'items-center', 'justify-center', 'px-8', 'py-3', 'text-base', 'font-medium', 'text-blue-600', 'bg-white', 'border', 'border-transparent', 'rounded-md', 'hover:bg-blue-50', 'md:py-4', 'md:text-lg', 'md:px-10')}>
+                        <div class="flex justify-center mt-10 space-x-4">
+                            <a href="/features" class="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-blue-600 bg-white border border-transparent rounded-md hover:bg-blue-50 md:py-4 md:text-lg md:px-10">
                                 Explore Features
                             </a>
-                            <a href="/getting-started" className={clsx('inline-flex', 'items-center', 'justify-center', 'px-8', 'py-3', 'text-base', 'font-medium', 'text-white', 'bg-blue-500', 'border', 'border-transparent', 'rounded-md', 'hover:bg-blue-600', 'md:py-4', 'md:text-lg', 'md:px-10')}>
+                            <a href="/getting-started" class="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-blue-500 border border-transparent rounded-md hover:bg-blue-600 md:py-4 md:text-lg md:px-10">
                                 Get Started
                             </a>
                         </div>
@@ -2033,203 +2175,6 @@ def About(props=None):
             </div>
             
             
-            <div className={clsx('py-12', 'bg-white')}>
-                <div className={clsx('px-4', 'mx-auto', 'max-w-7xl', 'sm:px-6', 'lg:px-8')}>
-                    <div className="lg:text-center">
-                        <h2 className={clsx('text-base', 'font-semibold', 'tracking-wide', 'text-blue-600', 'uppercase')}>
-                            Why Choose NextPy?
-                        </h2>
-                        <p className={clsx('mt-2', 'text-3xl', 'font-extrabold', 'tracking-tight', 'text-gray-900', 'sm:text-4xl')}>
-                            Everything you need to build modern web applications
-                        </p>
-                    </div>
-                    
-                    <div className="mt-10">
-                        <div className={clsx('gap-8', 'space-y-10', 'md:space-y-0', 'md:grid', 'md:grid-cols-2', 'lg:grid-cols-3')}>
-                            
-                            <div className="relative">
-                                <div className={clsx('absolute', 'flex', 'items-center', 'justify-center', 'w-12', 'h-12', 'text-white', 'bg-blue-500', 'rounded-md')}>
-                                    <svg className={clsx('w-6', 'h-6')} fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7m0 0v7l9-11h-7z" />
-                                    </svg>
-                                </div>
-                                <h3 className={clsx('ml-16', 'text-lg', 'font-medium', 'leading-6', 'text-gray-900')}>True JSX Support</h3>
-                                <p className={clsx('mt-2', 'ml-16', 'text-base', 'text-gray-500')}>
-                                    Write React-like components with JSX syntax directly in Python. No transpilation needed.
-                                </p>
-                            </div>
-                            
-                            
-                            <div className="relative">
-                                <div className={clsx('absolute', 'flex', 'items-center', 'justify-center', 'w-12', 'h-12', 'text-white', 'bg-purple-500', 'rounded-md')}>
-                                    <svg className={clsx('w-6', 'h-6')} fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
-                                    </svg>
-                                </div>
-                                <h3 className={clsx('ml-16', 'text-lg', 'font-medium', 'leading-6', 'text-gray-900')}>File-based Routing</h3>
-                                <p className={clsx('mt-2', 'ml-16', 'text-base', 'text-gray-500')}>
-                                    Automatic route discovery with support for dynamic routes and API endpoints.
-                                </p>
-                            </div>
-                            
-                            
-                            <div className="relative">
-                                <div className={clsx('absolute', 'flex', 'items-center', 'justify-center', 'w-12', 'h-12', 'text-white', 'bg-green-500', 'rounded-md')}>
-                                    <svg className={clsx('w-6', 'h-6')} fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 2 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <h3 className={clsx('ml-16', 'text-lg', 'font-medium', 'leading-6', 'text-gray-900')}>Tailwind CSS Integration</h3>
-                                <p className={clsx('mt-2', 'ml-16', 'text-base', 'text-gray-500')}>
-                                    Built-in Tailwind CSS v4 with PostCSS compilation and utility classes.
-                                </p>
-                            </div>
-                            
-                            
-                            <div className="relative">
-                                <div className={clsx('absolute', 'flex', 'items-center', 'justify-center', 'w-12', 'h-12', 'text-white', 'bg-red-500', 'rounded-md')}>
-                                    <svg className={clsx('w-6', 'h-6')} fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7m0 0v7l9-11h-7z" />
-                                    </svg>
-                                </div>
-                                <h3 className={clsx('ml-16', 'text-lg', 'font-medium', 'leading-6', 'text-gray-900')}>Server-side Rendering</h3>
-                                <p className={clsx('mt-2', 'ml-16', 'text-base', 'text-gray-500')}>
-                                    Fast initial page loads with server-side rendering and data fetching.
-                                </p>
-                            </div>
-                            
-                            
-                            <div className="relative">
-                                <div className={clsx('absolute', 'flex', 'items-center', 'justify-center', 'w-12', 'h-12', 'text-white', 'bg-yellow-500', 'rounded-md')}>
-                                    <svg className={clsx('w-6', 'h-6')} fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 00-1.065 2.572c1.756.426 1.756 2.924 0 3.35-1.756a1.724 1.724 0 00-1.066-2.573c1.756-.426 1.756-2.924 0-3.35 1.756a1.724 1.724 0 00-2.573-1.066c-1.756.426-1.756-2.924 0-3.35 1.756A1.724 1.724 0 006.573 2.572C3.31 7.76 1.574 8.686 4.317 8.686a1.724 1.724 0 00-1.066-2.572c1.756-.426 1.756-2.924 0-3.35 1.756a1.724 1.724 0 00-2.573-1.066c-1.756.426-1.756-2.924 0-3.35 1.756A1.724 1.724 0 001.066 2.572c1.756.426 1.756 2.924 0 3.35-1.756a1.724 1.724 0 002.573 1.066z" />
-                                    </svg>
-                                </div>
-                                <h3 className={clsx('ml-16', 'text-lg', 'font-medium', 'leading-6', 'text-gray-900')}>Hot Reload Development</h3>
-                                <p className={clsx('mt-2', 'ml-16', 'text-base', 'text-gray-500')}>
-                                    Instant hot reload when saving files with Watchdog integration.
-                                </p>
-                            </div>
-                            
-                            
-                            <div className="relative">
-                                <div className={clsx('absolute', 'flex', 'items-center', 'justify-center', 'w-12', 'h-12', 'text-white', 'bg-indigo-500', 'rounded-md')}>
-                                    <svg className={clsx('w-6', 'h-6')} fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                </div>
-                                <h3 className={clsx('ml-16', 'text-lg', 'font-medium', 'leading-6', 'text-gray-900')}>API Routes</h3>
-                                <p className={clsx('mt-2', 'ml-16', 'text-base', 'text-gray-500')}>
-                                    Built-in FastAPI support for creating RESTful API endpoints.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            
-            <div className={clsx('py-12', 'bg-gray-50')}>
-                <div className={clsx('px-4', 'mx-auto', 'max-w-7xl', 'sm:px-6', 'lg:px-8')}>
-                    <div className="text-center">
-                        <h2 className={clsx('text-3xl', 'font-extrabold', 'text-gray-900')}>
-                            See It In Action
-                        </h2>
-                        <p className={clsx('max-w-2xl', 'mt-4', 'text-xl', 'text-gray-500')}>
-                            Try these interactive demos to experience NextPy capabilities
-                        </p>
-                    </div>
-                    
-                    <div className={clsx('grid', 'grid-cols-1', 'gap-8', 'mt-12', 'sm:grid-cols-2', 'lg:grid-cols-3')}>
-                        
-                        <div className={clsx('p-6', 'transition-shadow', 'bg-white', 'rounded-lg', 'shadow-lg', 'hover:shadow-xl')}>
-                            <div className="text-center">
-                                <div className={clsx('flex', 'items-center', 'justify-center', 'w-12', 'h-12', 'mx-auto', 'mb-4', 'text-white', 'bg-blue-500', 'rounded-md')}>
-                                    <svg className={clsx('w-6', 'h-6')} fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7m0 0v7l9-11h-7z" />
-                                    </svg>
-                                </div>
-                                <h3 className={clsx('mb-2', 'text-lg', 'font-medium', 'text-gray-900')}>JSX Components</h3>
-                                <p className={clsx('mb-4', 'text-sm', 'text-gray-500')}>Interactive component demo</p>
-                                <button onclick="alert('Hello from JSX!')" className={clsx('w-full', 'px-4', 'py-2', 'text-white', 'transition-colors', 'bg-blue-500', 'rounded', 'hover:bg-blue-600')}>
-                                    Try JSX Demo
-                                </button>
-                            </div>
-                            
-                        
-                        <div className={clsx('p-6', 'transition-shadow', 'bg-white', 'rounded-lg', 'shadow-lg', 'hover:shadow-xl')}>
-                            <div className="text-center">
-                                <div className={clsx('flex', 'items-center', 'justify-center', 'w-12', 'h-12', 'mx-auto', 'mb-4', 'text-white', 'bg-purple-500', 'rounded-md')}>
-                                    <svg className={clsx('w-6', 'h-6')} fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
-                                    </svg>
-                                </div>
-                                <h3 className={clsx('mb-2', 'text-lg', 'font-medium', 'text-gray-900')}>Tailwind CSS</h3>
-                                <p className={clsx('mb-4', 'text-sm', 'text-gray-500')}>Beautiful styling with utility classes</p>
-                                <button className={clsx('w-full', 'px-4', 'py-2', 'text-white', 'transition-colors', 'bg-purple-500', 'rounded', 'hover:bg-purple-600')}>
-                                    Try Tailwind Demo
-                                </button>
-                            </div>
-                            
-                        
-                        <div className={clsx('p-6', 'transition-shadow', 'bg-white', 'rounded-lg', 'shadow-lg', 'hover:shadow-xl')}>
-                            <div className="text-center">
-                                <div className={clsx('flex', 'items-center', 'justify-center', 'w-12', 'h-12', 'mx-auto', 'mb-4', 'text-white', 'bg-green-500', 'rounded-md')}>
-                                    <svg className={clsx('w-6', 'h-6')} fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 2 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <h3 className={clsx('mb-2', 'text-lg', 'font-medium', 'text-gray-900')}>API Integration</h3>
-                                <p className={clsx('mb-4', 'text-sm', 'text-gray-500')}>RESTful API endpoints</p>
-                                <button className={clsx('w-full', 'px-4', 'py-2', 'text-white', 'transition-colors', 'bg-green-500', 'rounded', 'hover:bg-green-600')}>
-                                    Try API Demo
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            
-            <div className="bg-blue-600">
-                <div className={clsx('px-4', 'py-12', 'mx-auto', 'max-w-7xl', 'sm:px-6', 'lg:px-8')}>
-                    <div className={clsx('grid', 'grid-cols-2', 'gap-8', 'lg:grid-cols-4')}>
-                        <div className="text-center">
-                            <div className={clsx('text-3xl', 'font-extrabold', 'text-white')}>10x</div>
-                            <div className={clsx('mt-2', 'text-lg', 'text-blue-200')}>Faster Development</div>
-                        </div>
-                        <div className="text-center">
-                            <div className={clsx('text-3xl', 'font-extrabold', 'text-white')}>100%</div>
-                            <div className={clsx('mt-2', 'text-lg', 'text-blue-200')}>Python Compatible</div>
-                        </div>
-                        <div className="text-center">
-                            <div className={clsx('text-3xl', 'font-extrabold', 'text-white')}>JSX</div>
-                            <div className={clsx('mt-2', 'text-lg', 'text-blue-200')}>Modern Syntax</div>
-                        </div>
-                        <div className="text-center">
-                            <div className={clsx('text-3xl', 'font-extrabold', 'text-white')}>∞</div>
-                            <div className={clsx('mt-2', 'text-lg', 'text-blue-200')}>Infinite Possibilities</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            
-            <footer className="bg-gray-900">
-                <div className={clsx('px-4', 'py-8', 'mx-auto', 'max-w-7xl', 'sm:px-6', 'lg:px-8')}>
-                    <div className={clsx('flex', 'flex-col', 'items-center', 'space-y-4')}>
-                        <p className={clsx('text-base', 'text-center', 'text-gray-400')}>
-                            Built with &hearts; using NextPy Framework
-                        </p>
-                        <div className={clsx('flex', 'space-x-6')}>
-                            <a href="/" className={clsx('text-gray-400', 'hover:text-gray-300')}>Home</a>
-                            <a href="/features" className={clsx('text-gray-400', 'hover:text-gray-300')}>Features</a>
-                            <a href="/docs" className={clsx('text-gray-400', 'hover:text-gray-300')}>Documentation</a>
-                            <a href="https://github.com/nextpy/nextpy" className={clsx('text-gray-400', 'hover:text-gray-300')}>GitHub</a>
-                        </div>
-                    </div>
-                </div>
-            </footer>
         </div>
     )
 
@@ -2248,29 +2193,33 @@ default = About
     # Create interactive demo pages
     (project_dir / "pages" / "interactive.py").write_text('''"""Interactive Demo Page"""
 
+from nextpy.psx import component
+
+
+@component
 def InteractiveDemo(props=None):
     """Interactive demo showcasing NextPy capabilities"""
     return (
-        <div className={clsx('min-h-screen', 'py-12', 'bg-gradient-to-br', 'from-indigo-50', 'to-purple-100')}>
-            <div className={clsx('px-4', 'mx-auto', 'max-w-7xl', 'sm:px-6', 'lg:px-8')}>
-                <h1 className={clsx('mb-12', 'text-4xl', 'font-extrabold', 'text-center', 'text-gray-900')}>
+        <div class="min-h-screen py-12 bg-gradient-to-br from-indigo-50 to-purple-100">
+            <div class="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+                <h1 class="mb-12 text-4xl font-extrabold text-center text-gray-900">
                     Interactive NextPy Demos
                 </h1>
                 
-                <div className={clsx('grid', 'grid-cols-1', 'gap-8', 'md:grid-cols-2', 'lg:grid-cols-3')}>
+                <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
                     
-                    <div className={clsx('p-6', 'bg-white', 'shadow-lg', 'rounded-xl')}>
-                        <h2 className={clsx('mb-4', 'text-2xl', 'font-bold', 'text-gray-900')}>Live Counter</h2>
-                        <div className="text-center">
-                            <div className={clsx('mb-4', 'text-6xl', 'font-bold', 'text-blue-600')} id="counter">0</div>
-                            <div className="space-x-4">
-                                <button onclick="updateCounter(-1)" className={clsx('px-6', 'py-3', 'text-white', 'transition-colors', 'bg-red-500', 'rounded-lg', 'hover:bg-red-600')}>
+                    <div class="p-6 bg-white shadow-lg rounded-xl">
+                        <h2 class="mb-4 text-2xl font-bold text-gray-900">Live Counter</h2>
+                        <div class="text-center">
+                            <div class="mb-4 text-6xl font-bold text-blue-600" id="counter">0</div>
+                            <div class="space-x-4">
+                                <button onclick="updateCounter(-1)" class="px-6 py-3 text-white transition-colors bg-red-500 rounded-lg hover:bg-red-600">
                                     -
                                 </button>
-                                <button onclick="updateCounter(1)" className={clsx('px-6', 'py-3', 'text-white', 'transition-colors', 'bg-green-500', 'rounded-lg', 'hover:bg-green-600')}>
+                                <button onclick="updateCounter(1)" class="px-6 py-3 text-white transition-colors bg-green-500 rounded-lg hover:bg-green-600">
                                     +
                                 </button>
-                                <button onclick="resetCounter()" className={clsx('px-6', 'py-3', 'text-white', 'transition-colors', 'bg-gray-500', 'rounded-lg', 'hover:bg-gray-600')}>
+                                <button onclick="resetCounter()" class="px-6 py-3 text-white transition-colors bg-gray-500 rounded-lg hover:bg-gray-600">
                                     Reset
                                 </button>
                             </div>
@@ -2278,49 +2227,49 @@ def InteractiveDemo(props=None):
                     </div>
                     
                     
-                    <div className={clsx('p-6', 'bg-white', 'shadow-lg', 'rounded-xl')}>
-                        <h2 className={clsx('mb-4', 'text-2xl', 'font-bold', 'text-gray-900')}>Todo List</h2>
-                        <div className="space-y-4">
-                            <div className={clsx('flex', 'space-x-2')}>
-                                <input type="text" id="todoInput" placeholder="Add a new todo..." className={clsx('flex-1', 'px-4', 'py-2', 'border', 'border-gray-300', 'rounded-lg')} />
-                                <button onclick="addTodo()" className={clsx('px-6', 'py-2', 'text-white', 'transition-colors', 'bg-blue-500', 'rounded-lg', 'hover:bg-blue-600')}>
+                    <div class="p-6 bg-white shadow-lg rounded-xl">
+                        <h2 class="mb-4 text-2xl font-bold text-gray-900">Todo List</h2>
+                        <div class="space-y-4">
+                            <div class="flex space-x-2">
+                                <input type="text" id="todoInput" placeholder="Add a new todo..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
+                                <button onclick="addTodo()" class="px-6 py-2 text-white transition-colors bg-blue-500 rounded-lg hover:bg-blue-600">
                                     Add
                                 </button>
                             </div>
-                            <ul id="todoList" className="space-y-2">
+                            <ul id="todoList" class="space-y-2">
                                 
                             </ul>
                         </div>
                     </div>
                     
                     
-                    <div className={clsx('p-6', 'bg-white', 'shadow-lg', 'rounded-xl')}>
-                        <h2 className={clsx('mb-4', 'text-2xl', 'font-bold', 'text-gray-900')}>Color Picker</h2>
-                        <div className="space-y-4">
-                            <input type="color" id="colorPicker" className={clsx('w-full', 'h-20', 'rounded-lg', 'cursor-pointer')} />
-                            <div id="colorDisplay" className={clsx('p-4', 'font-mono', 'text-lg', 'text-center', 'bg-gray-100', 'rounded-lg')}>
+                    <div class="p-6 bg-white shadow-lg rounded-xl">
+                        <h2 class="mb-4 text-2xl font-bold text-gray-900">Color Picker</h2>
+                        <div class="space-y-4">
+                            <input type="color" id="colorPicker" class="w-full h-20 rounded-lg cursor-pointer" />
+                            <div id="colorDisplay" class="p-4 font-mono text-lg text-center bg-gray-100 rounded-lg">
                                 Selected: #3B82F6
                             </div>
                         </div>
                     </div>
                     
                     
-                    <div className={clsx('p-6', 'bg-white', 'shadow-lg', 'rounded-xl')}>
-                        <h2 className={clsx('mb-4', 'text-2xl', 'font-bold', 'text-gray-900')}>Form Validation</h2>
-                        <form onsubmit="validateForm(event)" className="space-y-4">
+                    <div class="p-6 bg-white shadow-lg rounded-xl">
+                        <h2 class="mb-4 text-2xl font-bold text-gray-900">Form Validation</h2>
+                        <form onsubmit="validateForm(event)" class="space-y-4">
                             <div>
-                                <label className={clsx('block', 'mb-2', 'text-sm', 'font-medium', 'text-gray-700')}>Email</label>
-                                <input type="email" id="email" required className={clsx('w-full', 'px-4', 'py-2', 'border', 'border-gray-300', 'rounded-lg')} placeholder="you@example.com" />
+                                <label class="block mb-2 text-sm font-medium text-gray-700">Email</label>
+                                <input type="email" id="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="you@example.com" />
                             </div>
                             <div>
-                                <label className={clsx('block', 'mb-2', 'text-sm', 'font-medium', 'text-gray-700')}>Password</label>
-                                <input type="password" id="password" required minlength="6" className={clsx('w-full', 'px-4', 'py-2', 'border', 'border-gray-300', 'rounded-lg')} placeholder="•••••••••" />
+                                <label class="block mb-2 text-sm font-medium text-gray-700">Password</label>
+                                <input type="password" id="password" required minlength="6" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="•••••••••" />
                             </div>
-                            <button type="submit" className={clsx('w-full', 'px-6', 'py-3', 'text-white', 'transition-colors', 'bg-blue-500', 'rounded-lg', 'hover:bg-blue-600')}>
+                            <button type="submit" class="w-full px-6 py-3 text-white transition-colors bg-blue-500 rounded-lg hover:bg-blue-600">
                                 Validate & Submit
                             </button>
                         </form>
-                        <div id="validationResult" className={clsx('hidden', 'p-4', 'mt-4', 'rounded-lg')}>
+                        <div id="validationResult" class="hidden p-4 mt-4 rounded-lg">
                             
                         </div>
                     </div>
@@ -2335,245 +2284,12 @@ def getServerSideProps(context):
 default = InteractiveDemo
 ''')
     click.echo("  Created: pages/interactive.py (interactive demos)")
-    
-    # Create features page
-    (project_dir / "pages" / "features.py").write_text('''"""Features Page"""
 
-def Features(props=None):
-    """Comprehensive features showcase"""
-    return (
-        <div className={clsx('min-h-screen', 'bg-gray-50')}>
-            <div className={clsx('px-4', 'py-16', 'mx-auto', 'max-w-7xl', 'sm:px-6', 'lg:px-8')}>
-                <div className={clsx('mb-16', 'text-center')}>
-                    <h1 className={clsx('text-4xl', 'font-extrabold', 'text-gray-900')}>
-                        NextPy Features
-                    </h1>
-                    <p className={clsx('mt-4', 'text-xl', 'text-gray-600')}>
-                        Everything you need to build modern web applications
-                    </p>
-                </div>
-                
-                <div className={clsx('grid', 'grid-cols-1', 'gap-12', 'md:grid-cols-2')}>
-                    <div className="space-y-12">
-                        
-                        <div>
-                            <h2 className={clsx('mb-6', 'text-2xl', 'font-bold', 'text-gray-900')}>Core Features</h2>
-                            <div className="space-y-6">
-                                <div className={clsx('flex', 'items-start', 'space-x-4')}>
-                                    <div className={clsx('flex-shrink-0', 'w-6', 'h-6', 'text-green-500')}>
-                                        <svg fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 className={clsx('text-lg', 'font-medium', 'text-gray-900')}>True JSX Components</h3>
-                                        <p className={clsx('mt-2', 'text-gray-600')}>Write React-like components with JSX syntax directly in Python</p>
-                                    </div>
-                                </div>
-                                
-                                <div className={clsx('flex', 'items-start', 'space-x-4')}>
-                                    <div className={clsx('flex-shrink-0', 'w-6', 'h-6', 'text-blue-500')}>
-                                        <svg fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 className={clsx('text-lg', 'font-medium', 'text-gray-900')}>File-based Routing</h3>
-                                        <p className={clsx('mt-2', 'text-gray-600')}>Automatic route discovery with dynamic routes support</p>
-                                    </div>
-                                </div>
-                                
-                                <div className={clsx('flex', 'items-start', 'space-x-4')}>
-                                    <div className={clsx('flex-shrink-0', 'w-6', 'h-6', 'text-purple-500')}>
-                                        <svg fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 2 9 9 0 0118 0z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 className={clsx('text-lg', 'font-medium', 'text-gray-900')}>Tailwind CSS Integration</h3>
-                                        <p className={clsx('mt-2', 'text-gray-600')}>Built-in Tailwind CSS v4 with PostCSS compilation</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        
-                        <div>
-                            <h2 className={clsx('mb-6', 'text-2xl', 'font-bold', 'text-gray-900')}>Development Experience</h2>
-                            <div className="space-y-6">
-                                <div className={clsx('flex', 'items-start', 'space-x-4')}>
-                                    <div className={clsx('flex-shrink-0', 'w-6', 'h-6', 'text-red-500')}>
-                                        <svg fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v16h16V4H4z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 className={clsx('text-lg', 'font-medium', 'text-gray-900')}>Hot Reload</h3>
-                                        <p className={clsx('mt-2', 'text-gray-600')}>Instant hot reload when saving files with Watchdog</p>
-                                    </div>
-                                </div>
-                                
-                                <div className={clsx('flex', 'items-start', 'space-x-4')}>
-                                    <div className={clsx('flex-shrink-0', 'w-6', 'h-6', 'text-yellow-500')}>
-                                        <svg fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.75 5H6.25v13l4.5 4.5z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 className={clsx('text-lg', 'font-medium', 'text-gray-900')}>Debug Mode</h3>
-                                        <p className={clsx('mt-2', 'text-gray-600')}>Comprehensive debugging with detailed error pages</p>
-                                    </div>
-                                </div>
-                                
-                                <div className={clsx('flex', 'items-start', 'space-x-4')}>
-                                    <div className={clsx('flex-shrink-0', 'w-6', 'h-6', 'text-indigo-500')}>
-                                        <svg fill="none" viewBox={'0 0 24 24'} stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 className={clsx('text-lg', 'font-medium', 'text-gray-900')}>VS Code Integration</h3>
-                                        <p className={clsx('mt-2', 'text-gray-600')}>Full VS Code support with extensions and IntelliSense</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-    )
-
-def getServerSideProps(context):
-    return {"props": {}}
-
-default = Features
-''')
-    click.echo("  Created: pages/features.py (features showcase)")
-    
-    # Create getting started guide
-    (project_dir / "pages" / "getting-started.py").write_text('''"""Getting Started Guide"""
-
-def GettingStarted(props=None):
-    """Comprehensive getting started guide"""
-    return (
-        <div className={clsx('min-h-screen', 'bg-white')}>
-            <div className={clsx('max-w-4xl', 'px-4', 'py-16', 'mx-auto', 'sm:px-6', 'lg:px-8')}>
-                <div className={clsx('mb-16', 'text-center')}>
-                    <h1 className={clsx('text-4xl', 'font-extrabold', 'text-gray-900')}>
-                        Getting Started with NextPy
-                    </h1>
-                    <p className={clsx('mt-4', 'text-xl', 'text-gray-600')}>
-                        Your journey to building amazing web apps starts here
-                    </p>
-                </div>
-                
-                <div className="space-y-16">
-                    
-                    <div className={clsx('p-8', 'rounded-lg', 'bg-blue-50')}>
-                        <div className={clsx('flex', 'items-center', 'mb-4')}>
-                            <div className={clsx('flex', 'items-center', 'justify-center', 'flex-shrink-0', 'w-8', 'h-8', 'font-bold', 'text-white', 'bg-blue-500', 'rounded-full')}>
-                                1
-                            </div>
-                            <h2 className={clsx('ml-4', 'text-2xl', 'font-bold', 'text-gray-900')}>Installation</h2>
-                        </div>
-                        <div className={clsx('ml-12', 'space-y-4')}>
-                            <div className={clsx('p-4', 'bg-white', 'border-l-4', 'border-blue-500', 'rounded')}>
-                                <h3 className={clsx('mb-2', 'font-semibold', 'text-gray-900')}>Install NextPy</h3>
-                                <code className={clsx('block', 'p-2', 'text-sm', 'bg-gray-100', 'rounded')}>pip install nextpy-framework</code>
-                            </div>
-                            <div className={clsx('p-4', 'bg-white', 'border-l-4', 'border-blue-500', 'rounded')}>
-                                <h3 className={clsx('mb-2', 'font-semibold', 'text-gray-900')}>Create New Project</h3>
-                                <code className={clsx('block', 'p-2', 'text-sm', 'bg-gray-100', 'rounded')}>nextpy create my-app</code>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    
-                    <div className={clsx('p-8', 'rounded-lg', 'bg-green-50')}>
-                        <div className={clsx('flex', 'items-center', 'mb-4')}>
-                            <div className={clsx('flex', 'items-center', 'justify-center', 'flex-shrink-0', 'w-8', 'h-8', 'font-bold', 'text-white', 'bg-green-500', 'rounded-full')}>
-                                2
-                            </div>
-                            <h2 className={clsx('ml-4', 'text-2xl', 'font-bold', 'text-gray-900')}>Project Structure</h2>
-                        </div>
-                        <div className="ml-12">
-                            <div className={clsx('p-4', 'bg-white', 'border-l-4', 'border-green-500', 'rounded')}>
-                                <h3 className={clsx('mb-2', 'font-semibold', 'text-gray-900')}>Navigate to Your Project</h3>
-                                <code className={clsx('block', 'p-2', 'text-sm', 'bg-gray-100', 'rounded')}>cd my-app</code>
-                            </div>
-                            <div className={clsx('p-4', 'mt-4', 'bg-white', 'border-l-4', 'border-green-500', 'rounded')}>
-                                <h3 className={clsx('mb-2', 'font-semibold', 'text-gray-900')}>Project Structure</h3>
-                                <pre className={clsx('p-4', 'overflow-x-auto', 'text-sm', 'bg-gray-100', 'rounded')}>
-{`my-app/
-|-- pages/           # Your pages and API routes
-|-- components/      # Reusable components  
-|-- templates/       # HTML templates
-|-- public/          # Static assets
-|-- styles.css        # Tailwind CSS
-|-- main.py          # Application entry point
-`-- requirements.txt  # Python dependencies`}</pre>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    
-                    <div className={clsx('p-8', 'rounded-lg', 'bg-purple-50')}>
-                        <div className={clsx('flex', 'items-center', 'mb-4')}>
-                            <div className={clsx('flex', 'items-center', 'justify-center', 'flex-shrink-0', 'w-8', 'h-8', 'font-bold', 'text-white', 'bg-purple-500', 'rounded-full')}>
-                                3
-                            </div>
-                            <h2 className={clsx('ml-4', 'text-2xl', 'font-bold', 'text-gray-900')}>Development</h2>
-                        </div>
-                        <div className={clsx('ml-12', 'space-y-4')}>
-                            <div className={clsx('p-4', 'bg-white', 'border-l-4', 'border-purple-500', 'rounded')}>
-                                <h3 className={clsx('mb-2', 'font-semibold', 'text-gray-900')}>Start Development Server</h3>
-                                <code className={clsx('block', 'p-2', 'text-sm', 'bg-gray-100', 'rounded')}>nextpy dev</code>
-                            </div>
-                            <div className={clsx('p-4', 'bg-white', 'border-l-4', 'border-purple-500', 'rounded')}>
-                                <h3 className={clsx('mb-2', 'font-semibold', 'text-gray-900')}>Open Your Browser</h3>
-                                <code className={clsx('block', 'p-2', 'text-sm', 'bg-gray-100', 'rounded')}>http://localhost:8000</code>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    
-                    <div className={clsx('p-8', 'rounded-lg', 'bg-yellow-50')}>
-                        <div className={clsx('flex', 'items-center', 'mb-4')}>
-                            <div className={clsx('flex', 'items-center', 'justify-center', 'flex-shrink-0', 'w-8', 'h-8', 'font-bold', 'text-white', 'bg-yellow-500', 'rounded-full')}>
-                                4
-                            </div>
-                            <h2 className={clsx('ml-4', 'text-2xl', 'font-bold', 'text-gray-900')}>Build Your First Component</h2>
-                        </div>
-                        <div className="ml-12">
-                            <div className={clsx('p-4', 'bg-white', 'border-l-4', 'border-yellow-500', 'rounded')}>
-                                <h3 className={clsx('mb-2', 'font-semibold', 'text-gray-900')}>Create a Component</h3>
-                                <p className={clsx('mb-2', 'text-gray-600')}>Edit pages/index.py to create your first JSX component:</p>
-                                <pre className={clsx('p-4', 'overflow-x-auto', 'text-sm', 'text-green-400', 'bg-gray-900', 'rounded')}>
-{`def Home(props=None):
-    return (
-        <div className={clsx('flex', 'items-center', 'justify-center', 'min-h-screen', 'bg-blue-500')}>
-            <h1 className={clsx('text-3xl', 'font-bold', 'text-white')}>
-                Hello, NextPy!
-            </h1>
-        </div>
-    )
-
-default = Home`}</pre>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-    )
-
-def getServerSideProps(context):
-    return {"props": {}}
-
-default = GettingStarted
-''')
-    click.echo("  Created: pages/getting-started.py (comprehensive guide)")
     (project_dir / "components" / "ui" / "Button.py").write_text('''"""Button component"""
+from nextpy.psx import component
 
+
+@component
 def Button(props = None):
     """Reusable Button component"""
     props = props or {}
@@ -2596,7 +2312,7 @@ def Button(props = None):
     class_attr = f"px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 {variant_class} {className}"
     
     return (
-        <button className={class_attr} 
+        <button class={class_attr} 
                 id={props.get("id")}
                 disabled={props.get("disabled", False)}
                 onclick={props.get("onClick", "")}>
@@ -2612,6 +2328,9 @@ default = Button
     # Create a Layout component
     (project_dir / "components" / "layout" / "Layout.py").write_text('''"""Layout component"""
 
+from nextpy.psx import component
+
+@component
 def Layout(props = None):
     """Layout component wrapper"""
     props = props or {}
@@ -2620,23 +2339,23 @@ def Layout(props = None):
     children = props.get("children", "")
     
     return (
-        <div className={clsx('flex', 'flex-col', 'min-h-screen')}>
-            <header className={clsx('bg-white', 'shadow-sm')}>
-                <div className={clsx('px-4', 'py-4', 'mx-auto', 'max-w-7xl')}>
-                    <div className={clsx('flex', 'items-center', 'justify-between')}>
-                        <h1 className={clsx('text-2xl', 'font-bold', 'text-gray-900')}>{title}</h1>
-                        <nav className={clsx('flex', 'space-x-4')}>
-                            <a href="/" className={clsx('text-gray-600', 'hover:text-gray-900')}>Home</a>
-                            <a href="/about" className={clsx('text-gray-600', 'hover:text-gray-900')}>About</a>
+        <div class="flex flex-col min-h-screen">
+            <header class="bg-white shadow-sm">
+                <div class="px-4 py-4 mx-auto max-w-7xl">
+                    <div class="flex items-center justify-between">
+                        <h1 class="text-2xl font-bold text-gray-900">{title}</h1>
+                        <nav class="flex space-x-4">
+                            <a href="/" class="text-gray-600 hover:text-gray-900">Home</a>
+                            <a href="/about" class="text-gray-600 hover:text-gray-900">About</a>
                         </nav>
                     </div>
                 </div>
             </header>
-            <main className="flex-1">
+            <main class="flex-1">
                 {children}
             </main>
-            <footer className={clsx('mt-auto', 'bg-gray-100')}>
-                <div className={clsx('px-4', 'py-6', 'mx-auto', 'text-center', 'text-gray-600', 'max-w-7xl')}>
+            <footer class="mt-auto bg-gray-100">
+                <div class="px-4 py-6 mx-auto text-center text-gray-600 max-w-7xl">
                     <p>&copy; 2025 NextPy Framework. All rights reserved.</p>
                 </div>
             </footer>
@@ -2647,7 +2366,7 @@ default = Layout
 ''')
     click.echo("  Created: components/layout/Layout.py")
     
-    # Create VS Code configuration for JSX support
+    # Create VS Code configuration for PSX support
     (project_dir / ".vscode").mkdir(exist_ok=True)
     (project_dir / ".vscode" / "settings.json").write_text('''{
   "files.associations": {
@@ -2944,10 +2663,10 @@ def test_users_api():
     (project_dir / "docs" / "README.md").write_text('''# Project Documentation
 
 ## Overview
-This is a NextPy application with True JSX, Tailwind CSS, and comprehensive API support.
+This is a NextPy application with True PSX, Tailwind CSS, and comprehensive API support.
 
 ## Features
-- ✅ True JSX components in Python
+- ✅ True PSX components
 - ✅ Tailwind CSS integration
 - ✅ File-based routing
 - ✅ API routes with FastAPI
@@ -2978,6 +2697,14 @@ This is a NextPy application with True JSX, Tailwind CSS, and comprehensive API 
 2. Install Node.js deps: `npm install`
 3. Run development server: `nextpy dev`
 4. Open http://localhost:8000
+
+The framework now adds a set of security headers by default (CSP, X-Frame-Options, etc.) for safer deployments.
+* You can request automatic Tailwind CSS compilation on startup by setting the
+  `NEXTPY_AUTO_BUILD_TAILWIND=true` environment variable. This requires `npm`
+  to be installed and will run `npm ci` followed by `npm run build:tailwind`.
+* SQLAlchemy imports have been updated to avoid 2.0 deprecation warnings.
+  If you see such warnings upgrade your dependencies or pin the versions as
+  needed.
 
 ## API Endpoints
 - `GET /api/hello` - Hello message
