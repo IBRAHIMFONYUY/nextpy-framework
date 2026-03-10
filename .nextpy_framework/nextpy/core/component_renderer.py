@@ -220,7 +220,12 @@ class ComponentRenderer:
                 rendered = component
             
             # Convert to HTML, passing page props as context for {expressions}
-            html = render_jsx(rendered, page_props)
+            # Check if this is a PSX component
+            if hasattr(component, '_is_psx_component') or 'psx' in str(type(rendered)):
+                from ..psx.parser import render_psx
+                html = render_psx(rendered, page_props)
+            else:
+                html = render_jsx(rendered, page_props)
             
             # Inject debug icon in development mode
             if AUTO_DEBUG_AVAILABLE and should_show_debug():

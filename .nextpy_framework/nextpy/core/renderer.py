@@ -256,8 +256,15 @@ class Renderer:
                 # Plain HTML string
                 return result
             elif isinstance(result, PSXElement):
-                # PSX Element - render with PSX renderer
-                return render_psx(result)
+                # PSX Element - render with PSX renderer using component state context
+                from .psx.components import get_current_component
+                try:
+                    component_state = get_current_component()
+                    context = {**props, **component_state.state}
+                    return render_psx(result, context)
+                except:
+                    # Fallback to props if component state not available
+                    return render_psx(result)
             elif isinstance(result, VNode):
                 # Virtual DOM node - render with VDOM renderer
                 return vdom_render(result)
@@ -265,8 +272,15 @@ class Renderer:
                 # Object with __html__ method
                 return result.__html__()
             elif hasattr(result, 'to_html'):
-                # PSX Element with to_html method
-                return result.to_html(props)
+                # PSX Element with to_html method - use component state as context
+                from .psx.components import get_current_component
+                try:
+                    component_state = get_current_component()
+                    context = {**props, **component_state.state}
+                    return result.to_html(context)
+                except:
+                    # Fallback to props if component state not available
+                    return result.to_html(props)
             elif callable(result):
                 # Function component - call it
                 return self.render_component(result, props)

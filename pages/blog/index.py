@@ -1,13 +1,13 @@
 """
 Blog Index Page - NextPy Demo
-Demonstrates SSG with getStaticProps
+Demonstrates SSR with getServerSideProps
 """
 
 def get_template():
     return "blog/index.html"
 
 
-async def get_static_props(context):
+def getServerSideProps(context):
     """
     Fetch blog posts at build time (SSG)
     Can also be used with SSR by renaming to get_server_side_props

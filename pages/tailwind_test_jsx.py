@@ -2,7 +2,7 @@
 Tailwind Test with True JSX
 Tests Tailwind CSS classes in JSX components
 """
-
+@component
 def TailwindTest(props=None):
     """Tailwind CSS test component with JSX"""
     props = props or {}

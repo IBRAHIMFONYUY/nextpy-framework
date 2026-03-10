@@ -308,8 +308,11 @@ Allow: /
             return self._modules_cache[cache_key]
         
         try:
-            # Try PSX loader first (preferred method)
-            if file_path.suffix in ['.py', '.psx']:
+            # Check if this is a PSX/JSX file before trying PSX loader
+            is_psx_file = file_path.suffix in ['.psx'] or file_path.name.endswith('.jsx')
+            
+            # Try PSX loader only for PSX files (preferred method)
+            if is_psx_file:
                 try:
                     with open(file_path, 'r', encoding='utf-8') as f:
                         content = f.read()

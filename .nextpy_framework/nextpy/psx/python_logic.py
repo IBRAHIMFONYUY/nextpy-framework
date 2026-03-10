@@ -214,7 +214,7 @@ class PSXPythonLogicEngine:
         
         # Process Python expressions
         result = self.python_expr_pattern.sub(
-            lambda m: str(eval(m.group(1), {}, context)),
+            lambda m: str(eval(m.group(1), {"__builtins__": {}}, context)),
             result
         )
         

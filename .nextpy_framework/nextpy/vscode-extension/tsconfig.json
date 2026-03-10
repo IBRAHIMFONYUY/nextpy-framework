@@ -8,7 +8,12 @@
     ],
     "sourceMap": true,
     "rootDir": "src",
-    "strict": true
+    "strict": true,
+    "moduleResolution": "node",
+    "types": ["node"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
   "exclude": [
     "node_modules",

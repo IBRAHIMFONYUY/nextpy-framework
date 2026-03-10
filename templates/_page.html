@@ -1,14 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ title or "NextPy App" }}</title>
-    <link href="../public/tailwind.css" rel="stylesheet">
-</head>
-<body>
-    <div id="app">
-        {{ content }}
+{% extends "_base.html" %}
+
+{% block title %}{{ title or "NextPy App" }}{% endblock %}
+
+{% block content %}
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="text-center">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">{{ title or "Welcome to NextPy" }}</h1>
+        <div class="bg-white rounded-lg shadow-md p-8 max-w-2xl mx-auto">
+            {{ content or "<p class='text-gray-600'>This is a default page template. Content will appear here.</p>" | safe }}
+        </div>
     </div>
-</body>
-</html>
+</main>
+{% endblock %}

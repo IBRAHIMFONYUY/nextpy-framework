@@ -74,7 +74,7 @@ class PSXComponent:
 def component(func):
     """
     Decorator to create a PSX component from a function
-    Supports all the component styles you showed
+    Captures local variables for expression evaluation
     """
     def wrapper(*args, **kwargs):
         # Set up component state
@@ -89,22 +89,53 @@ def component(func):
         
         component_state.props = props
         
-        # Execute the component function
+        # Execute the component function and capture local variables
+        import inspect
+        
+        # Create a locals dictionary that will be populated by the function
+        component_locals = {}
+        
+        # Create a modified function that captures its locals
+        def execute_with_locals():
+            # Create a new frame for the component function
+            frame = inspect.currentframe()
+            if frame:
+                # Get the locals dict from the component function's frame
+                locals_dict = frame.f_back.f_locals
+                component_locals.update(locals_dict)
+        
+        # Execute the component function directly and capture locals
         result = func(props)
+        
+        # Try to get locals from the call stack
+        frame = inspect.currentframe()
+        if frame and frame.f_back and frame.f_back.f_back:
+            # This should be the component function's frame
+            component_frame = frame.f_back.f_back
+            component_locals.update(component_frame.f_locals)
+        
+        
+        # Create context with props and local variables (excluding internal ones)
+        context = props.copy()
+        for key, value in component_locals.items():
+            if not key.startswith('_') and key not in ['func', 'props', 'result', 'execution_result', 'execute_component', 'wrapper', 'execute_with_locals', 'component_locals', 'component_frame', 'frame']:
+                context[key] = value
+        
+        
+        # Store context in component state for expression evaluation
+        component_state.state.update(context)
         
         # Handle different return types
         if isinstance(result, PSXElement):
             return result
         elif hasattr(result, 'to_html'):
             return result
-        elif isinstance(result, str) and result.strip().startswith('<'):
-            return psx(result)
+        elif isinstance(result, str):
+            # Parse as PSX with the captured context
+            return psx(result, context)
         else:
-            return result
-    
-    # Add component metadata
-    wrapper._is_psx_component = True
-    wrapper._component_func = func
+            # Convert to PSX element
+            return psx(str(result), context)
     
     return wrapper
 

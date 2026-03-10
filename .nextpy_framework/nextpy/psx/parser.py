@@ -173,30 +173,37 @@ class PSXParser:
         
         return props
     
-    def parse_psx(self, psx_str: str, context: Dict[str, Any] = None) -> PSXElement:
+    def parse_psx(self, psx_str: str, context: Dict[str, Any] = None) -> Union[PSXElement, str]:
         """Parse PSX string to PSXElement with full capability"""
-        psx_str = psx_str.strip()
+        print(f"DEBUG: PSXParser.parse_psx called with: {psx_str[:50]}...")
         context = context or {}
         
-        # Process revolutionary Python logic first
+        # First process Python logic in the entire string
         psx_str = process_python_logic(psx_str, context)
         
-        # Try self-closing tag first
+        # Check for self-closing tags first
         self_closing_match = self.self_closing_pattern.match(psx_str)
         if self_closing_match:
             tag = self_closing_match.group(1)
-            props_str = self_closing_match.group(2)
+            props_str = self_closing_match.group(2).strip()
             props = self.parse_props(props_str, context)
-            return PSXElement(tag, props, [])
-        
-        # Try regular tag
-        match = self.psx_pattern.match(psx_str)
-        if match:
-            tag = match.group(1)
-            props_str = match.group(2)
-            children_str = match.group(3)
             
+            # Extract key from props
+            key = props.pop('key', None)
+            
+            return PSXElement(tag, props, [], key)
+        
+        # Check for regular tags
+        tag_match = self.psx_pattern.match(psx_str)
+        if tag_match:
+            tag = tag_match.group(1)
+            props_str = tag_match.group(2).strip()
+            children_str = tag_match.group(3)
+            
+            # Parse props
             props = self.parse_props(props_str, context)
+            
+            # Parse children
             children = self.parse_children(children_str, context)
             
             # Extract key from props
@@ -208,56 +215,38 @@ class PSXParser:
         return psx_str
     
     def parse_children(self, children_str: str, context: Dict[str, Any] = None) -> List[Union[str, PSXElement]]:
-        """Parse children string with full PSX capability"""
+        """Parse children string with full PSX capability - Clean and simple"""
         children = []
         context = context or {}
         
-        # Process Python logic in children first
-        children_str = process_python_logic(children_str, context)
-        
-        # Split by PSX tags and text
+        # Split by PSX tags and text - simple approach
         parts = re.split(r'(<[^>]+>)', children_str)
         
-        i = 0
-        while i < len(parts):
-            part = parts[i].strip()
-            
+        for part in parts:
+            part = part.strip()
             if not part:
-                i += 1
                 continue
             
             # Check if it's an opening tag
             if part.startswith('<') and not part.startswith('</'):
-                # Find the matching closing tag
-                tag_match = re.match(r'<([a-zA-Z][a-zA-Z0-9]*)', part)
-                if tag_match:
-                    tag = tag_match.group(1)
-                    # Find the complete PSX element
-                    psx_content = part
-                    depth = 1
-                    j = i + 1
-                    
-                    while j < len(parts) and depth > 0:
-                        if parts[j].startswith(f'</{tag}>'):
-                            depth -= 1
-                        elif parts[j].startswith(f'<{tag}') and not parts[j].startswith('</'):
-                            depth += 1
-                        psx_content += parts[j]
-                        j += 1
-                    
-                    children.append(self.parse_psx(psx_content, context))
-                    i = j - 1
-                else:
+                # Try to parse as PSX element
+                try:
+                    element = self.parse_psx(part, context)
+                    children.append(element)
+                except:
+                    # If parsing fails, treat as text
                     children.append(part)
             elif part.startswith('</'):
                 # Closing tag - skip
-                pass
+                continue
             else:
-                # Text content
-                if part:
+                # Text content - check for expressions
+                if '{' in part and '}' in part:
+                    # Process expressions in text
+                    processed_part = self._evaluate_expressions_in_string(part, context)
+                    children.append(processed_part)
+                else:
                     children.append(part)
-            
-            i += 1
         
         return children
 
@@ -267,24 +256,18 @@ _parser = PSXParser()
 
 
 def psx(psx_str: str, context: Dict[str, Any] = None) -> PSXElement:
-    """Parse PSX string to PSXElement with full capability"""
-    return _parser.parse_psx(psx_str, context)
-
-
-def _evaluate_expressions_in_string(s: str, context: Dict[str, Any]) -> str:
-    """Find {expressions} in string and evaluate them using context"""
-    def repl(match):
-        expr = match.group(1).strip()
-        try:
-            # Check for Python logic
-            if expr.startswith('python:') or expr.startswith('py:') or expr.startswith('for ') or expr.startswith('if '):
-                return process_python_logic(f'{{{expr}}}', context)
-            else:
-                return str(eval(expr, {}, context))
-        except Exception:
-            return f'{{expr error: {expr}}}'
-
-    return re.sub(r'\{([^}]+)\}', repl, s)
+    """Parse PSX string to PSXElement with full capability - Using clean parser"""
+    try:
+        # Try the clean tokenizer + stack parser first
+        from .clean_parser import parse_psx_clean
+        result = parse_psx_clean(psx_str, context)
+        print(f"DEBUG: Clean parser succeeded")
+        return result
+    except Exception as e:
+        print(f"DEBUG: Clean parser failed: {e}")
+        print(f"DEBUG: Falling back to old parser")
+        # Fallback to the old parser if clean parser fails
+        return _parser.parse_psx(psx_str, context)
 
 
 def render_psx(element, context: Dict[str, Any] = None) -> str:
@@ -295,9 +278,11 @@ def render_psx(element, context: Dict[str, Any] = None) -> str:
         if context:
             # Process Python logic in string
             processed = process_python_logic(element, context)
-            # Then evaluate expressions
+            # Then evaluate expressions using the element's method
             if '{' in processed and '}' in processed:
-                return _evaluate_expressions_in_string(processed, context)
+                # Create a temporary element to access its method
+                temp_element = PSXElement("div", {}, [])
+                return temp_element._evaluate_expressions_in_string(processed, context)
             return processed
         return element
     else:

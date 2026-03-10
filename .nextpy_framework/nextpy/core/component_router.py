@@ -235,6 +235,8 @@ class ComponentRouter:
             # Check for template indicators (to differentiate from JSX)
             template_indicators = [
                 'def get_template(',
+                'getServerSideProps',
+                'getStaticProps',
                 'return "',
                 'templates/',
                 '.html',
