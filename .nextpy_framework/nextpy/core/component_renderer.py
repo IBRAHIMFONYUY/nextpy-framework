@@ -220,10 +220,44 @@ class ComponentRenderer:
                 rendered = component
             
             # Convert to HTML, passing page props as context for {expressions}
-            # Check if this is a PSX component
+            # Check if this is a PSX component and handle Server/Client components
             if hasattr(component, '_is_psx_component') or 'psx' in str(type(rendered)):
-                from ..psx.parser import render_psx
-                html = render_psx(rendered, page_props)
+                # Import server/client component system
+                try:
+                    from ..psx.server_client_components import render_component
+                    result = render_component(component, page_props)
+                    
+                    # Handle client component return format
+                    if isinstance(result, dict) and result.get('is_client'):
+                        # Client component - extract HTML and prepare for hydration
+                        html = result['html']
+                        
+                        # Add client component hydration script
+                        hydration_script = f"""
+                        <script>
+                        window.__NEXTPY_CLIENT_COMPONENTS__ = window.__NEXTPY_CLIENT_COMPONENTS__ || [];
+                        window.__NEXTPY_CLIENT_COMPONENTS__.push({{
+                            id: '{result['component_id']}',
+                            props: {repr(result['props'])},
+                            hasInteractivity: {result['has_interactivity']}
+                        }});
+                        </script>
+                        """
+                        
+                        # Append hydration script to HTML
+                        if '</body>' in html:
+                            html = html.replace('</body>', f'{hydration_script}</body>')
+                        else:
+                            html += hydration_script
+                            
+                    else:
+                        # Server component - just use the HTML
+                        html = result
+                        
+                except ImportError:
+                    # Fallback to regular PSX rendering
+                    from ..psx.parser import render_psx
+                    html = render_psx(rendered, page_props)
             else:
                 html = render_jsx(rendered, page_props)
             
