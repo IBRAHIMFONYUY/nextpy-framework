@@ -256,18 +256,82 @@ _parser = PSXParser()
 
 
 def psx(psx_str: str, context: Dict[str, Any] = None) -> PSXElement:
-    """Parse PSX string to PSXElement with full capability - Using clean parser"""
+    """
+    Parse PSX string to PSXElement with full capability.
+    Automatically captures local variables from the caller's frame.
+    Optimized to only capture variables when braces are found.
+    """
+    import inspect
+    
+    # Only capture variables if PSX contains expressions (optimization)
+    if '{' not in psx_str:
+        # No expressions, skip variable capture for performance
+        merged_context = context or {}
+        print("DEBUG: No expressions found, skipping variable capture")
+    else:
+        # Enhanced variable capture - walk up the execution stack
+        captured_locals = {}
+    try:
+            # Walk up the stack to find component function frames
+            frame = inspect.currentframe().f_back
+            stack_depth = 0
+            max_depth = 10  # Prevent infinite loops
+            
+            while frame and stack_depth < max_depth:
+                filename = frame.f_code.co_filename
+                function_name = frame.f_code.co_name
+                
+                # Capture from user files (not in nextpy framework core, or in pages/components)
+                is_user_file = (
+                    'nextpy' not in filename or 
+                    'pages' in filename or 
+                    'components' in filename
+                )
+                
+                # Skip internal frames but capture from component functions
+                if is_user_file and function_name != '<module>':
+                    # Filter out internal variables
+                    frame_locals = frame.f_locals
+                    filtered_locals = {
+                        k: v for k, v in frame_locals.items()
+                        if not k.startswith('_') and 
+                           k not in ['frame', 'stack_depth', 'max_depth', 'captured_locals', 
+                                        'psx_str', 'context', 'inspect'] and
+                           not callable(v) and
+                           not hasattr(v, '__call__')  # Skip functions/callables
+                    }
+                    captured_locals.update(filtered_locals)
+                    
+                    # Debug output for variable capture
+                    print(f"DEBUG: Captured {len(filtered_locals)} variables from {function_name} in {filename}")
+                    for key, value in list(filtered_locals.items())[:5]:  # Show first 5
+                        print(f"  - {key}: {type(value).__name__}")
+                    if len(filtered_locals) > 5:
+                        print(f"  ... and {len(filtered_locals) - 5} more")
+                
+                frame = frame.f_back
+                stack_depth += 1
+                
+    except Exception as e:
+        print(f"DEBUG: Variable capture failed: {e}")
+    
+    # Merge provided context with captured locals (context takes precedence)
+    merged_context = captured_locals.copy()
+    if context:
+        merged_context.update(context)
+    
+    print(f"DEBUG: Final merged context has {len(merged_context)} variables")
+        
     try:
         # Try the clean tokenizer + stack parser first
         from .clean_parser import parse_psx_clean
-        result = parse_psx_clean(psx_str, context)
-        print(f"DEBUG: Clean parser succeeded")
+        result = parse_psx_clean(psx_str, merged_context)
+        print("DEBUG: Clean parser succeeded")
         return result
     except Exception as e:
         print(f"DEBUG: Clean parser failed: {e}")
-        print(f"DEBUG: Falling back to old parser")
         # Fallback to the old parser if clean parser fails
-        return _parser.parse_psx(psx_str, context)
+        return _parser.parse_psx(psx_str, merged_context)
 
 
 def render_psx(element, context: Dict[str, Any] = None) -> str:

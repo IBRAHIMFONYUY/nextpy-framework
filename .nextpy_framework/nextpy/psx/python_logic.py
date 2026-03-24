@@ -19,72 +19,230 @@ class PSXPythonLogicEngine:
         self.python_logic_pattern = re.compile(r'\{python:(.*?)\}', re.DOTALL)
         # Pattern for Python expressions
         self.python_expr_pattern = re.compile(r'\{py:(.*?)\}', re.DOTALL)
-        # Pattern for Python loops
-        self.python_loop_pattern = re.compile(r'\{for\s+(\w+)\s+in\s+(\w+):(.*?)\}', re.DOTALL)
-        # Pattern for Python conditionals
-        self.python_cond_pattern = re.compile(r'\{if\s+(.*?):\s*\}(.*?)\{endif\}', re.DOTALL)
-        # Pattern for Python try-catch
-        self.python_try_pattern = re.compile(r'\{try:(.*?)\}\{except:(.*?)\}(.*?)\{endtry\}', re.DOTALL)
+        
+        # Enhanced patterns to handle nested braces (multiple levels of nesting)
+        # Uses recursive pattern matching for better nested brace handling
+        self.python_loop_pattern = re.compile(
+            r'\{for\s+([^:]+?)\s+in\s+([^:]+?):\s*((?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*)\}', 
+            re.DOTALL
+        )
+        # Pattern for if without endif (simpler syntax) - handle both single and multi-line
+        self.python_cond_simple_pattern = re.compile(
+            r'\{if\s+([^:]+?):\s*\}((?:[^{}]|(?:(?!\{else:\}).)*?)*)\{else:\s*\}((?:[^{}]|(?:(?!\{endif\}).)*?)*)\{endif\}', 
+            re.DOTALL
+        )
+        # Pattern for if-else without endif (single line) - NEW
+        self.python_cond_else_single_pattern = re.compile(
+            r'\{if\s+([^:]+?):\s*([^{}]+?)\s*\}\{else:\s*([^{}]+?)\}', 
+            re.DOTALL
+        )
+        # Pattern for if-else without endif (multi-line)
+        self.python_cond_else_pattern = re.compile(
+            r'\{if\s+([^:]+?):\s*\}((?:[^{}]|(?:(?!\{else:\}).)*?)*)\{else:\s*\}((?:[^{}]|(?:(?!\{endif\}).)*?)*)\{endif\}', 
+            re.DOTALL
+        )
+        # Pattern for if with endif (traditional syntax)
+        self.python_cond_pattern = re.compile(
+            r'\{if\s+([^:]+?):\s*\}((?:[^{}]|(?:(?!\{endif\}).)*?)*)\{endif\}', 
+            re.DOTALL
+        )
+        # NEW: Pattern for simple if without endif (actual format used in test)
+        self.python_cond_simple_no_endif = re.compile(
+            r'\{if\s+([^:]+?):\s*\}((?:[^{}]|(?:(?!\}).)*?)*)\}', 
+            re.DOTALL
+        )
+        # Pattern for Python try-catch with nested support
+        self.python_try_pattern = re.compile(
+            r'\{try:(.*?)\}\{except\s*([^:]*?):\s*\}((?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*)\{endtry\}', 
+            re.DOTALL
+        )
+        
+    def safe_eval(self, expr: str, context: Dict[str, Any]) -> Any:
+        """
+        Safely evaluate expressions with dangerous attribute blocking
+        """
+        # Prevent access to dangerous private attributes and methods
+        dangerous_patterns = [
+            '__', 'eval', 'exec', 'compile', 'open', 'file', 'input', 
+            'globals', 'locals', 'vars', 'dir', 'getattr', 'setattr', 'delattr',
+            'hasattr', 'isinstance', 'issubclass', 'callable', '__import__',
+            '__subclasses__', '__bases__', '__mro__', '__class__', '__dict__'
+        ]
+        
+        for pattern in dangerous_patterns:
+            if pattern in expr:
+                raise ValueError(f"Dangerous attribute access blocked: {pattern}")
+        
+        
+        
+        # Enhanced safe environment with more Python functions
+        self.safe_globals = {
+            '__builtins__': {
+                # Built-in types and functions
+                'len': len, 'str': str, 'int': int, 'float': float, 'bool': bool,
+                'list': list, 'dict': dict, 'tuple': tuple, 'set': set,
+                'range': range, 'enumerate': enumerate, 'zip': zip,
+                'map': map, 'filter': filter, 'sum': sum, 'max': max, 'min': min,
+                'abs': abs, 'round': round, 'sorted': sorted, 'reversed': reversed,
+                'any': any, 'all': all,
+                # String and object methods
+                'getattr': getattr, 'hasattr': hasattr, 'setattr': setattr,
+                'delattr': delattr, 'isinstance': isinstance, 'type': type,
+                # Math functions
+                'pow': pow, 'divmod': divmod,
+            }
+        }
+
+        return eval(expr, self.safe_globals, context)
     
     def execute_python_logic(self, logic_code: str, context: Dict[str, Any]) -> str:
         """
-        Execute real Python code and return the HTML result
-        This is the revolutionary part!
+        Execute real Python code and return the result
+        If the code defines a 'result' variable, that's returned.
+        Otherwise, if it's a single expression, its value is returned.
         """
         try:
-            # Create a safe execution environment
-            safe_globals = {
-                '__builtins__': {
-                    'len': len, 'str': str, 'int': int, 'float': float, 'bool': bool,
-                    'list': list, 'dict': dict, 'tuple': tuple, 'set': set,
-                    'range': range, 'enumerate': enumerate, 'zip': zip,
-                    'map': map, 'filter': filter, 'sum': sum, 'max': max, 'min': min,
-                    'abs': abs, 'round': round, 'sorted': sorted, 'reversed': reversed,
-                    'any': any, 'all': all,
-                }
-            }
-            
             # Add context variables
             safe_locals = context.copy()
             
-            # Execute the Python code
-            exec(logic_code, safe_globals, safe_locals)
+            # If it's a single line and looks like an expression, try eval first
+            if '\n' not in logic_code.strip() and '=' not in logic_code:
+                try:
+                    return str(eval(logic_code, self.safe_globals, safe_locals))
+                except:
+                    pass  # Fall back to exec
             
-            # Capture the result (should be HTML string)
+            # Execute the code
+            exec(logic_code, self.safe_globals, safe_locals)
+            
+            # Return the result if defined
             if 'result' in safe_locals:
                 return str(safe_locals['result'])
-            else:
-                # If no explicit result, try to return the last expression
-                return str(logic_code)
-                
+            
+            # If it's an assignment, return the assigned value
+            if '=' in logic_code:
+                var_name = logic_code.split('=')[0].strip()
+                if var_name in safe_locals:
+                    return str(safe_locals[var_name])
+            
+            return ''
         except Exception as e:
-            return f"<!-- Python Logic Error: {str(e)} -->"
+            return f'{{python error: {str(e)[:100]}}}'
+    
+    def process_for_loop(self, loop_expr: str, context: Dict[str, Any]) -> str:
+        """
+        Enhanced for loop processing with support for multiple assignment variables
+        Examples:
+        - {for item in items: ...}
+        - {for i, item in enumerate(items): ...}
+        - {for key, value in dict.items(): ...}
+        """
+        try:
+            match = self.python_loop_pattern.match(loop_expr)
+            if not match:
+                return loop_expr
+            
+            vars_part, iterable_part, template_part = match.groups()
+            
+            # Parse variables (support multiple assignment)
+            vars_list = [v.strip() for v in vars_part.split(',')]
+            
+            # Evaluate the iterable
+            safe_locals = context.copy()
+            iterable = self.safe_eval(iterable_part, safe_locals)
+            
+            # Generate output for each item
+            result_parts = []
+            for item in iterable:
+                # Handle multiple assignment
+                if len(vars_list) == 1:
+                    # Single variable assignment
+                    safe_locals[vars_list[0]] = item
+                else:
+                    # Multiple variable assignment (e.g., enumerate, dict.items())
+                    if hasattr(item, '__iter__') and not isinstance(item, str):
+                        item_parts = list(item)
+                        if len(item_parts) == len(vars_list):
+                            for i, var_name in enumerate(vars_list):
+                                safe_locals[var_name] = item_parts[i]
+                        else:
+                            # Fallback: assign the whole item to the first variable
+                            safe_locals[vars_list[0]] = item
+                    else:
+                        # Fallback: assign the whole item to the first variable
+                        safe_locals[vars_list[0]] = item
+                
+                # Process the template part with the new context
+                processed_template = self._process_template(template_part, safe_locals)
+                result_parts.append(processed_template)
+            
+            return ''.join(result_parts)
+        except Exception as e:
+            return f'{{for loop error: {str(e)[:100]}}}'
+    
+    def _process_template(self, template: str, context: Dict[str, Any]) -> str:
+        """Process template string with nested expressions"""
+        # Process nested expressions recursively
+        import re
+        
+        # Find all expressions in the template
+        expr_pattern = re.compile(r'\{([^{}]+)\}')
+        
+        def replace_expr(match):
+            expr = match.group(1).strip()
+            if expr.startswith('for ') or expr.startswith('if ') or expr.startswith('python:'):
+                # Handle nested logic blocks
+                return self.process_python_logic(f'{{{expr}}}', context)
+            else:
+                # Handle simple expressions
+                try:
+                    return str(self.safe_eval(expr, context))
+                except:
+                    return match.group(0)
+        
+        return expr_pattern.sub(replace_expr, template)
     
     def process_python_loops(self, loop_code: str, context: Dict[str, Any]) -> str:
         """
         Process Python for loops inside PSX
-        Example: {for user in users:<UserCard name={user.name} />}
+        Example: {for i, user in enumerate(users):<UserCard name={user.name} index={i} />}
         """
         try:
             match = self.python_loop_pattern.search(loop_code)
             if not match:
                 return loop_code
             
-            var_name = match.group(1)
-            iterable_name = match.group(2)
+            loop_vars = match.group(1).strip()
+            iterable_expr = match.group(2).strip()
             template_code = match.group(3).strip()
             
-            # Get the iterable from context
-            if iterable_name not in context:
-                return f"<!-- Loop Error: {iterable_name} not found -->"
+            # Evaluate the iterable expression
+            safe_globals = {
+                '__builtins__': {
+                    'enumerate': enumerate, 'zip': zip, 'range': range, 'len': len,
+                    'list': list, 'dict': dict, 'tuple': tuple, 'set': set,
+                    'map': map, 'filter': filter, 'sum': sum, 'max': max, 'min': min,
+                }
+            }
+            safe_locals = context.copy()
             
-            iterable = context[iterable_name]
+            iterable = self.safe_eval(iterable_expr, safe_locals)
             result_parts = []
             
-            # Execute the loop
+            # We need to execute the loop dynamically to handle any number of loop variables
+            # We'll use a small exec block to do the heavy lifting
             for item in iterable:
                 loop_context = context.copy()
-                loop_context[var_name] = item
+                
+                # Assign loop variables
+                if "," in loop_vars:
+                    # Multi-variable assignment: for i, x in ...
+                    vars_list = [v.strip() for v in loop_vars.split(",")]
+                    for i, v in enumerate(vars_list):
+                        loop_context[v] = item[i]
+                else:
+                    # Single variable assignment: for x in ...
+                    loop_context[loop_vars] = item
                 
                 # Process the template with current item
                 processed = self._process_template(template_code, loop_context)
@@ -98,27 +256,69 @@ class PSXPythonLogicEngine:
     def process_python_conditionals(self, cond_code: str, context: Dict[str, Any]) -> str:
         """
         Process Python if statements inside PSX
-        Example: {if user.is_admin:<AdminPanel />}
+        Supports both {if condition: content} and {if condition: content}{else: content} syntax
+        Handles both single-line and multi-line formats
         """
         try:
+            # Handle if-else single line pattern first (most specific)
+            match = self.python_cond_else_single_pattern.search(cond_code)
+            
+            if match:
+                condition = match.group(1).strip()
+                true_content = match.group(2).strip()
+                false_content = match.group(3).strip()
+                
+                # Evaluate condition using enhanced safe environment
+                condition_result = self.safe_eval(condition, context)
+                
+                if condition_result:
+                    return self._process_template(true_content, context)
+                else:
+                    return self._process_template(false_content, context)
+            
+            # Handle if-else multi-line pattern
+            match = self.python_cond_else_pattern.search(cond_code)
+            
+            if match:
+                condition = match.group(1).strip()
+                true_content = match.group(2).strip()
+                false_content = match.group(3).strip()
+                
+                # Evaluate condition using enhanced safe environment
+                condition_result = self.safe_eval(condition, context)
+                
+                if condition_result:
+                    return self._process_template(true_content, context)
+                else:
+                    return self._process_template(false_content, context)
+            
+            # Handle simple if pattern (without endif) - both single and multi-line
+            match = self.python_cond_simple_pattern.search(cond_code)
+            if match:
+                condition = match.group(1).strip()
+                content = match.group(2).strip()
+                
+                # Evaluate condition using enhanced safe environment
+                condition_result = self.safe_eval(condition, context)
+                
+                if condition_result:
+                    return self._process_template(content, context)
+                else:
+                    return ''
+            
+            # Handle traditional if pattern (with endif)
             match = self.python_cond_pattern.search(cond_code)
-            if not match:
-                return cond_code
-            
-            condition = match.group(1).strip()
-            content = match.group(2).strip()
-            
-            # Evaluate the condition
-            safe_globals = {'__builtins__': {}}
-            safe_locals = context.copy()
-            
-            # Evaluate condition
-            condition_result = eval(condition, safe_globals, safe_locals)
-            
-            if condition_result:
-                return self._process_template(content, context)
-            else:
-                return ''
+            if match:
+                condition = match.group(1).strip()
+                content = match.group(2).strip()
+                
+                # Evaluate condition using enhanced safe environment
+                condition_result = self.safe_eval(condition, context)
+                
+                if condition_result:
+                    return self._process_template(content, context)
+                else:
+                    return ''
                 
         except Exception as e:
             return f"<!-- Conditional Error: {str(e)} -->"
@@ -137,12 +337,9 @@ class PSXPythonLogicEngine:
             except_var = match.group(2).strip()
             except_content = match.group(3).strip()
             
-            # Try to execute the try block
+            # Try to execute the try block using enhanced safe environment
             try:
-                safe_globals = {'__builtins__': {}}
-                safe_locals = context.copy()
-                
-                result = eval(try_block, safe_globals, safe_locals)
+                result = self.safe_eval(try_block, context)
                 return str(result) if result else ''
                 
             except Exception as e:
@@ -156,28 +353,28 @@ class PSXPythonLogicEngine:
     
     def _process_template(self, template: str, context: Dict[str, Any]) -> str:
         """
-        Process a template string with context variables
+        Process a template string with context variables using enhanced safe environment
         """
         # Replace simple variable references
         def replace_var(match):
             var_name = match.group(1)
             return str(context.get(var_name, f"{{var {var_name}}}"))
         
-        # Replace {variable} patterns
+        # Replace {variable} patterns (simple variables only)
         template = re.sub(r'\{(\w+)\}', replace_var, template)
         
-        # Replace {expression} patterns
+        # Replace {expression} patterns (complex expressions)
         def replace_expr(match):
             expr = match.group(1)
             try:
-                safe_globals = {'__builtins__': {}}
-                safe_locals = context.copy()
-                result = eval(expr, safe_globals, safe_locals)
+                # Use the enhanced safe environment
+                result = self.safe_eval(expr, context)
                 return str(result)
-            except:
-                return f"{{expr {expr}}}"
+            except Exception as e:
+                return f"{{expr error: {expr}}}"
         
-        template = re.sub(r'\{(.+?)\}', replace_expr, template)
+        # Use a more specific pattern to avoid replacing already processed variables
+        template = re.sub(r'\{([^{}\s][^{}]*)\}', replace_expr, template)
         
         return template
     
@@ -194,9 +391,9 @@ class PSXPythonLogicEngine:
             result
         )
         
-        # Process Python loops
+        # Process Python loops (using enhanced method)
         result = self.python_loop_pattern.sub(
-            lambda m: self.process_python_loops(m.group(0), context),
+            lambda m: self.process_for_loop(m.group(0), context),
             result
         )
         
@@ -214,7 +411,7 @@ class PSXPythonLogicEngine:
         
         # Process Python expressions
         result = self.python_expr_pattern.sub(
-            lambda m: str(eval(m.group(1), {"__builtins__": {}}, context)),
+            lambda m: str(self.safe_eval(m.group(1), context)),
             result
         )
         

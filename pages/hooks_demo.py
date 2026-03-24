@@ -157,7 +157,8 @@ def HooksDemo(props=None):
                         Toggle
                     </button>
 
-                    { if {{isVisible}}:
+                    { if {{isVisible}}
+                    :
                         <div class="p-6 bg-purple-50 rounded-lg">
                             Content is visible
                         </div>
