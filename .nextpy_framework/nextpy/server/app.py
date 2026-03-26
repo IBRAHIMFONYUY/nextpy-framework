@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from nextpy.psx import (
     compile_psx, render_psx, psx, PSXElement, component,
     useState, useEffect, process_python_logic,
-    VNode, create_element, vdom_render, vdom_update, get_vdom_metrics
+    VNode, create_element, render, update
 )
 
 from nextpy.core.router import Router

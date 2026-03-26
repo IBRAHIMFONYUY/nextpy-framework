@@ -8,11 +8,11 @@ from typing import Any, Dict, List, Optional, Union, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 from collections import defaultdict
-from .parser import PSXElement
+from ..core.parser import PSXElement
 
 
-class NodeType(Enum):
-    """Node types for Virtual DOM"""
+class VDOMNodeType(Enum):
+    """Node types for Virtual DOM (renamed to avoid conflict with core)"""
     ELEMENT = "element"
     TEXT = "text"
     COMPONENT = "component"
@@ -22,7 +22,7 @@ class NodeType(Enum):
 @dataclass
 class VNode:
     """Virtual DOM Node - Optimized for performance"""
-    type: Union[str, NodeType]
+    type: Union[str, VDOMNodeType]
     props: Dict[str, Any] = field(default_factory=dict)
     children: List['VNode'] = field(default_factory=list)
     key: Optional[str] = None
@@ -39,22 +39,22 @@ class VNode:
     @property
     def is_element(self) -> bool:
         """Check if this is an element node"""
-        return self.type == NodeType.ELEMENT or isinstance(self.type, str)
+        return self.type == VDOMNodeType.ELEMENT or isinstance(self.type, str)
     
     @property
     def is_text(self) -> bool:
         """Check if this is a text node"""
-        return self.type == NodeType.TEXT
+        return self.type == VDOMNodeType.TEXT
     
     @property
     def is_component(self) -> bool:
         """Check if this is a component node"""
-        return self.type == NodeType.COMPONENT
+        return self.type == VDOMNodeType.COMPONENT
     
     @property
     def is_fragment(self) -> bool:
         """Check if this is a fragment node"""
-        return self.type == NodeType.FRAGMENT
+        return self.type == VDOMNodeType.FRAGMENT
 
 
 class VDOMDiff:

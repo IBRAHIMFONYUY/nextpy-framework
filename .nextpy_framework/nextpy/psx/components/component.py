@@ -6,11 +6,12 @@
 import time
 import threading
 import uuid
+import inspect
 from typing import Any, Dict, List, Optional, Callable, Union
 from dataclasses import dataclass, field
 from functools import wraps
-from .virtual_dom import VNode, create_element, render, update, get_vdom_metrics
-from .parser import PSXElement, psx, render_psx
+from ..vdom.vnode import VNode, create_element, render, update
+from ..core.parser import PSXElement, psx, render_psx
 
 
 @dataclass
@@ -90,7 +91,6 @@ def component(func):
         component_state.props = props
         
         # Execute the component function and capture local variables
-        import inspect
         
         # Create a locals dictionary that will be populated by the function
         component_locals = {}
@@ -2172,6 +2172,46 @@ def create_onfullscreenchange(handler_func: Callable) -> str:
 def create_onfullscreenerror(handler_func: Callable) -> str:
     """Create onfullscreenerror handler"""
     return EventHandlers.create_onfullscreenerror(handler_func)
+
+def create_onbeforeprint(handler_func: Callable) -> str:
+    """Create onbeforeprint handler"""
+    func_name = getattr(handler_func, '__name__', 'handler')
+    return f"python_beforeprint_{func_name}"
+
+def create_onafterprint(handler_func: Callable) -> str:
+    """Create onafterprint handler"""
+    func_name = getattr(handler_func, '__name__', 'handler')
+    return f"python_afterprint_{func_name}"
+
+def create_onstorage(handler_func: Callable) -> str:
+    """Create onstorage handler"""
+    func_name = getattr(handler_func, '__name__', 'handler')
+    return f"python_storage_{func_name}"
+
+def create_onopen(handler_func: Callable) -> str:
+    """Create onopen handler"""
+    func_name = getattr(handler_func, '__name__', 'handler')
+    return f"python_open_{func_name}"
+
+def create_onmessage(handler_func: Callable) -> str:
+    """Create onmessage handler"""
+    func_name = getattr(handler_func, '__name__', 'handler')
+    return f"python_message_{func_name}"
+
+def create_onclose(handler_func: Callable) -> str:
+    """Create onclose handler"""
+    func_name = getattr(handler_func, '__name__', 'handler')
+    return f"python_close_{func_name}"
+
+def create_oninstall(handler_func: Callable) -> str:
+    """Create oninstall handler"""
+    func_name = getattr(handler_func, '__name__', 'handler')
+    return f"python_install_{func_name}"
+
+def create_onactivate(handler_func: Callable) -> str:
+    """Create onactivate handler"""
+    func_name = getattr(handler_func, '__name__', 'handler')
+    return f"python_activate_{func_name}"
 class ComponentRegistry:
     """Registry for PSX components"""
     
@@ -2228,5 +2268,33 @@ __all__ = [
     'map_list', 'conditional', 'and_condition', 'or_condition',
     'EventHandlers', 'ComponentRegistry', 'component_registry',
     'register_component', 'ChildrenComponent',
-    'get_current_component', 'reset_component_state'
+    'get_current_component', 'reset_component_state', 'clsx'
 ]
+
+
+def clsx(*classes):
+    """
+    Utility function for conditionally joining class names
+    Similar to the popular 'clsx' library in JavaScript
+    """
+    class_names = []
+    
+    for item in classes:
+        if isinstance(item, str):
+            # Direct string class name
+            class_names.append(item)
+        elif isinstance(item, (list, tuple)):
+            # Array of class names
+            nested_classes = clsx(*item)
+            if nested_classes:
+                class_names.append(nested_classes)
+        elif isinstance(item, dict):
+            # Object with conditional classes {class: boolean}
+            for class_name, condition in item.items():
+                if condition:
+                    class_names.append(class_name)
+        elif item:
+            # Truthy values (numbers, etc.)
+            class_names.append(str(item))
+    
+    return ' '.join(filter(None, class_names))

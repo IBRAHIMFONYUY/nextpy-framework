@@ -6,7 +6,7 @@ def get_template():
     return "robots.txt"
 
 async def get_server_side_props(context):
-    """Generate robots.txt"""/
+    """Generate robots.txt"""
     import os
     from fastapi.responses import Response
     

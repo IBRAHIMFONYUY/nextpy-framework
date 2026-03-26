@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from nextpy.psx import (
     compile_psx, render_psx, psx, PSXElement, PSXParser,
     component, useState, useEffect, process_python_logic,
-    VNode, create_element, vdom_render, vdom_update, get_vdom_metrics
+    VNode, create_element, render, update, get_vdom_metrics
 )
 
 from nextpy.components.head import Head
@@ -73,8 +73,8 @@ class Renderer:
             
             # Virtual DOM Functions
             'create_element': create_element,
-            'vdom_render': vdom_render,
-            'vdom_update': vdom_update,
+            'render': render,
+            'update': update,
             'get_vdom_metrics': get_vdom_metrics,
             
             # PSX Utilities
@@ -267,7 +267,7 @@ class Renderer:
                     return render_psx(result)
             elif isinstance(result, VNode):
                 # Virtual DOM node - render with VDOM renderer
-                return vdom_render(result)
+                return render(result)
             elif hasattr(result, '__html__'):
                 # Object with __html__ method
                 return result.__html__()
@@ -321,7 +321,7 @@ class Renderer:
             if isinstance(result, PSXElement):
                 return render_psx(result)
             elif isinstance(result, VNode):
-                return vdom_render(result)
+                return render(result)
             else:
                 return str(result)
                 
@@ -362,7 +362,7 @@ class Renderer:
                 if isinstance(result, PSXElement):
                     return render_psx(result)
                 elif isinstance(result, VNode):
-                    return vdom_render(result)
+                    return render(result)
                 else:
                     return result
             

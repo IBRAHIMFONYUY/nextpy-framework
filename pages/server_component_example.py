@@ -38,7 +38,7 @@ def ServerFeatureList(props=None):
             </h2>
             
             <div class="grid gap-8 md:grid-cols-3">
-                {for feature in server_features:
+                {server_features.map(feature => (
                 <div class="p-6 bg-white rounded-lg shadow-md border border-gray-200">
                     <div class="flex items-center mb-4">
                         <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -50,7 +50,7 @@ def ServerFeatureList(props=None):
                     </div>
                     <p class="text-gray-600">{feature['description']}</p>
                 </div>
-                }
+                ))}
             </div>
             
             <div class="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">

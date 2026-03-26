@@ -7,11 +7,12 @@ Following Next.js App Router pattern:
 
 import threading
 import uuid
+import inspect
 from typing import Any, Dict, List, Optional, Callable, Union
 from dataclasses import dataclass, field
 from functools import wraps
-from .virtual_dom import VNode, create_element, render
-from .parser import PSXElement, psx, render_psx
+from ..core.vnode import VNode, create_element, render
+from ..core.parser import PSXElement, psx, render_psx
 
 
 @dataclass
@@ -134,9 +135,7 @@ def component(func):
         metadata = get_component_metadata()
         
         # Check for "use client" directive in source code
-        import inspect
-        source = inspect.getsource(func)
-        is_client = parse_use_client_directive(source)
+        is_client = parse_use_client_directive(inspect.getsource(func))
         
         metadata.is_client = is_client
         
@@ -247,10 +246,8 @@ class ComponentRenderer:
             is_client = component_func._component_type == 'client'
         else:
             # Check source code for "use client" directive
-            import inspect
             try:
-                source = inspect.getsource(component_func)
-                is_client = parse_use_client_directive(source)
+                is_client = parse_use_client_directive(inspect.getsource(component_func))
             except:
                 is_client = False
         

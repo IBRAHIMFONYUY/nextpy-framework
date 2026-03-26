@@ -7,6 +7,7 @@ import importlib.util
 import sys
 import time
 import os
+import inspect
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 from ..true_jsx import JSXElement, render_jsx, JSXComponent

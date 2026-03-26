@@ -1,19 +1,52 @@
 """
-PSX Preprocessor - Regex-based PSX syntax transformer
-Transforms PSX syntax into valid Python before AST parsing
+PSX Helpers - Production-grade utilities with core integration
 """
 
 import re
 from typing import Any, Dict, Optional
+from ..core import PSXCore, PSXNodeUnion
+
+
+class PSXCompiler:
+    """
+    Production-grade PSX compiler using core system
+    Replaces old preprocessor with AST-based compilation
+    """
+    
+    def __init__(self):
+        self.core = PSXCore()
+    
+    def compile_psx(self, psx_str: str, context: Dict[str, Any] = None) -> str:
+        """
+        Compile PSX string to HTML using production-grade core
+        """
+        try:
+            return self.core.parse_and_render(psx_str, context)
+        except Exception as e:
+            # If compilation fails, return original with error comment
+            return f"<!-- PSX Compilation Error: {e} -->{psx_str}"
+    
+    def compile_psx_file(self, file_path: str, context: Dict[str, Any] = None) -> str:
+        """
+        Compile PSX file to HTML using production-grade core
+        """
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            return self.compile_psx(content, context)
+        except Exception as e:
+            return f"<!-- File Error: {e} -->"
 
 
 class PSXPreprocessor:
     """
-    Preprocessor that transforms PSX syntax into valid Python code
-    Uses regex to find and replace PSX patterns before Python parsing
+    Legacy preprocessor - maintained for backwards compatibility
+    Uses production-grade core under the hood
     """
     
     def __init__(self):
+        self.compiler = PSXCompiler()
         self.psx_function_name = "psx"
         # Pattern to match return statements with PSX
         self.return_psx_pattern = re.compile(
@@ -29,25 +62,41 @@ class PSXPreprocessor:
     def compile(self, source_code: str) -> str:
         """
         Transform PSX syntax into valid Python code
+        Legacy interface - uses core system when possible
         """
         try:
-            # Transform return statements with PSX
-            transformed_code = self.return_psx_pattern.sub(
-                self._replace_return_psx,
-                source_code
-            )
-            
-            return transformed_code
-            
-        except Exception as e:
-            # If transformation fails, return original code
-            print(f"PSX preprocessing warning: {e}")
-            return source_code
+            # Try to use production-grade compiler for PSX blocks
+            return self._compile_with_core(source_code)
+        except Exception:
+            # Fallback to old regex-based approach
+            return self._compile_legacy(source_code)
+    
+    def _compile_with_core(self, source_code: str) -> str:
+        """Use production-grade core for compilation"""
+        def replace_psx_block(match):
+            psx_content = match.group(1)
+            try:
+                # Use core to compile PSX
+                html = self.compiler.compile_psx(psx_content)
+                return f'return "{html}"'
+            except Exception:
+                return match.group(0)
+        
+        return self.return_psx_pattern.sub(replace_psx_block, source_code)
+    
+    def _compile_legacy(self, source_code: str) -> str:
+        """Legacy regex-based compilation"""
+        return self.return_psx_pattern.sub(
+            self._replace_return_psx,
+            source_code
+        )
     
     def _replace_return_psx(self, match) -> str:
         """
         Replace a return statement containing PSX with psx() call
         """
+        psx_content = match.group(1)
+        return f'return {self.psx_function_name}("""{psx_content}""")'
         psx_content = match.group(1).strip()
         
         # Clean up the PSX content - remove extra whitespace and newlines
