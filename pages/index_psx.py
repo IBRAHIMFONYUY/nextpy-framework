@@ -3,7 +3,7 @@ Homepage - PSX Version with Server & Client Components
 NextPy Demo following Next.js App Router pattern
 """
 
-"use client"  # This makes it a Client Component
+
 
 @component
 def Index(props = None):

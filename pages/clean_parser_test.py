@@ -9,7 +9,7 @@ def CleanParserTest(props=None):
     count = 42
     items = ["apple", "banana", "cherry"]
     
-    return jsx("""
+    return (
         <div class="clean-test">
             <h1>Clean Parser Test</h1>
             <p>Count: {count}</p>
@@ -17,9 +17,12 @@ def CleanParserTest(props=None):
                 <div class="inner">
                     <span>Nested content: {count * 2}</span>
                 </div>
+                {for item in items:
+                <b>{item}</b>
+                }
             </div>
         </div>
-    """)
+    )
 
 def getServerSideProps(context):
     return {

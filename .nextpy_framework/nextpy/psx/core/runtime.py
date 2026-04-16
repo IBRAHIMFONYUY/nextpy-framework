@@ -264,13 +264,22 @@ class PSXRuntime:
             else:
                 attrs.append(f'{html_key}="{html.escape(str(value))}"')
         
-        # Handle events (onClick, onChange, etc.)
+        # Handle events (onClick, onChange, etc.) with interactive component integration
         for key, value in node.events.items():
             # Keep event handlers as they are or wrap them if needed
             str_value = str(value)
             if str_value.startswith('{') and str_value.endswith('}'):
                 str_value = str_value[1:-1]
-            attrs.append(f'{key}="{self._escape_html(str_value)}"')
+            
+            # Check if we should apply interactive component conversion
+            if hasattr(self.context, '_interactive_handlers') and str_value in self.context._interactive_handlers:
+                # This is an interactive component - convert to data-handler format
+                event_type = key[2:].lower() if key.startswith('on') else key.lower()
+                attrs.append(f'data-handler-{event_type}="{str_value}"')
+                attrs.append(f'{key}="return false;"')
+            else:
+                # Regular event handler
+                attrs.append(f'{key}="{self._escape_html(str_value)}"')
             
         attr_str = " " + " ".join(attrs) if attrs else ""
         

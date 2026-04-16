@@ -547,7 +547,7 @@ NextPyRuntime.Component = class {
     /**
      * Auto-discover and setup data bindings from data-bind attributes
      */
-    setupDataBindings() {
+    function setupDataBindings() {
         const elements = this.element.querySelectorAll("[data-bind]");
         elements.forEach(element => {
             const binding = element.getAttribute("data-bind");

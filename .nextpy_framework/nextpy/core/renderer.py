@@ -311,8 +311,9 @@ class Renderer:
         context = context or {}
         
         try:
-            # Check if this is an interactive component
-            if '@interactive_component' in psx_code:
+            # DEBUG: Check if this is an interactive component
+            has_decorator = '@interactive_component' in psx_code
+            if has_decorator:
                 # For interactive components, we need to execute the code and get the component function
                 # Create a temporary module to execute the PSX code
                 import types
@@ -349,10 +350,12 @@ class Renderer:
                         if hasattr(result, 'to_html'):
                             return result.to_html()
                         else:
-                            return str(result)
+                            return f"<div class='psx-error'>Component function returned: {type(result)} - {str(result)[:200]}</div>"
                     else:
-                        return "<div class='psx-error'>No component function found in interactive PSX</div>"
+                        return f"<div class='psx-error'>No component function found in interactive PSX. Available attributes: {[attr for attr in dir(temp_module) if not attr.startswith('_')]}</div>"
                         
+                except Exception as e:
+                    return f"<div class='psx-error'>Error executing interactive PSX: {str(e)}</div>"
                 finally:
                     # Clean up temp file
                     os.unlink(temp_file)

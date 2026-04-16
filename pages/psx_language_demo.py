@@ -22,16 +22,7 @@ def PSXLanguageDemo(props=None):
        
     <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
     
-        <header class="bg-white border-b border-gray-200 shadow-sm">
-            <div class="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <h1 class="text-3xl font-bold text-gray-900">
-                    PSX Language Demo - No Imports Needed!
-                </h1>
-                <p class="mt-2 text-gray-600">
-                    Everything is automatically available: map, filter, console, Math, etc.
-                </p>
-            </div>
-        </header>
+        
         
         <main class="px-4 py-12 mx-auto max-w-7xl sm:px-6 lg:px-8">
             {/* Array Methods - AUTO-AVAILABLE! */}

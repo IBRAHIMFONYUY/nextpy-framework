@@ -3,6 +3,7 @@ Interactive Component Decorator for NextPy PSX - PRODUCTION VERSION
 Enables client-side interactivity with proper handler registration
 """
 
+import sys
 import inspect
 import re
 from functools import wraps
@@ -304,12 +305,12 @@ def convert_handler_attributes_in_html(html: str, handlers: Dict[str, str], stat
     - on{EventName}={handler} -> data-handler-{eventname}="handler"
     - {variable} -> data-bind="textContent:state_key"
     """
-    
-    # Pattern 1: onClick={handler_name}, onChange={handler_name}, etc.
+        
+    # Pattern 1: onClick={handler_name} (JSX format)
     # Matches: onClick, onChange, onSubmit, onFocus, onBlur, onMouseEnter, etc.
-    pattern = r'\bon([A-Z][a-z]*)\s*=\s*\{(\w+)\}'
+    jsx_pattern = r'\bon([A-Z][a-z]*)\s*=\s*\{(\w+)\}'
     
-    def replace_event_handler(match):
+    def replace_jsx_event_handler(match):
         event_name = match.group(1).lower()  # "Click" -> "click"
         handler_name = match.group(2)
         
@@ -319,7 +320,23 @@ def convert_handler_attributes_in_html(html: str, handlers: Dict[str, str], stat
             return f'data-handler-{event_name}="{handler_name}" on{match.group(1)}="return false;"'
         return match.group(0)
     
-    html = re.sub(pattern, replace_event_handler, html)
+    html = re.sub(jsx_pattern, replace_jsx_event_handler, html)
+    
+    # Pattern 1b: onClick="handler_name" (HTML format from PSX)
+    # Matches: onClick="handler", onChange="handler", etc.
+    html_pattern = r'\bon([A-Z][a-z]*)\s*=\s*"([^"]+)"'
+    
+    def replace_html_event_handler(match):
+        event_name = match.group(1).lower()  # "Click" -> "click"
+        handler_name = match.group(2)
+        
+        # Only replace if it's a known handler
+        if handler_name in handlers:
+            # Return data-handler attribute with event type and default onclick behavior
+            return f'data-handler-{event_name}="{handler_name}" on{match.group(1)}="return false;"'
+        return match.group(0)
+    
+    html = re.sub(html_pattern, replace_html_event_handler, html)
     
     # Pattern 2: Add data bindings for state variables
     if state_keys:
@@ -359,14 +376,74 @@ def interactive_component(func: Callable) -> Callable:
         # Extract props if provided
         props = args[0] if args and isinstance(args[0], dict) else kwargs
         
-        # Get the HTML output
+        # Extract named handler functions from the component
+        # Since the function might be wrapped by JSX transformer, extract from file content
+        handlers = {}
+        try:
+            # Try to get the original file path from the module
+            file_path = None
+            if hasattr(func, '__module__') and func.__module__ in sys.modules:
+                module = sys.modules[func.__module__]
+                if hasattr(module, '__original_file__'):
+                    file_path = module.__original_file__
+            
+            # Fallback to inspect.getfile if original file not found
+            if not file_path:
+                file_path = inspect.getfile(func)
+            
+            print(f"DEBUG: Extracting handlers from {file_path}")
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Extract handlers using regex pattern (same as extract_handler_functions)
+            lines = content.split('\n')
+            i = 0
+            while i < len(lines):
+                line = lines[i]
+                # Look for def handle_* or def on_* at component level (4+ spaces)
+                match = re.match(r'^    def\s+((?:handle|on)_\w+)\s*\([^)]*\)\s*:', line)
+                if match:
+                    func_name = match.group(1)
+                    func_lines = []
+                    i += 1
+                    # Collect lines until next def or end of component
+                    while i < len(lines):
+                        next_line = lines[i]
+                        # Stop if we hit another def at same level or less indentation
+                        if next_line.startswith('    def ') or (next_line and not next_line.startswith('        ')):
+                            break
+                        # Add if it's body (starts with 8 spaces)
+                        if next_line.startswith('        '):
+                            func_lines.append(next_line[8:])  # Remove 8 spaces
+                        i += 1
+                    
+                    # Store handler
+                    body = '\n'.join(func_lines).strip()
+                    if body:
+                        handlers[func_name] = body
+                else:
+                    i += 1
+            
+            print(f"DEBUG: Found {len(handlers)} handlers: {list(handlers.keys())}")
+        except Exception as e:
+            print(f"DEBUG: Exception in handler extraction: {e}")
+            # Fallback to try extracting from the function directly
+            try:
+                handlers = extract_handler_functions(func)
+            except:
+                handlers = {}
+        
+        # Get the HTML output with interactive handler context
         if hasattr(base_component_result, 'to_html'):
-            html = base_component_result.to_html()
+            # Check if this is a PSX element with context
+            if hasattr(base_component_result, '_psx_context'):
+                # Add interactive handlers to the context for PSX runtime processing
+                base_component_result._psx_context['_interactive_handlers'] = {name: True for name in handlers.keys()}
+                html = base_component_result.to_html(base_component_result._psx_context)
+            else:
+                html = base_component_result.to_html()
         else:
             html = str(base_component_result)
-        
-        # Extract named handler functions from the component
-        handlers = extract_handler_functions(func)
         
         # Extract state keys from the component for better conversion
         try:
@@ -377,8 +454,12 @@ def interactive_component(func: Callable) -> Callable:
         except (OSError, TypeError):
             state_keys = []
         
-        # Convert handler attributes in HTML (onClick={handle_x} -> data-handler="handle_x")
+        # Convert handler attributes in HTML to data-handler format
+        print(f"DEBUG: Converting HTML with {len(handlers)} handlers")
+        print(f"DEBUG: HTML before conversion has onClick handle_increment: {'onClick=\"handle_increment\"' in html}")
         html = convert_handler_attributes_in_html(html, handlers, state_keys)
+        print(f"DEBUG: HTML after conversion has data-handler: {'data-handler' in html}")
+        print(f"DEBUG: HTML after conversion has onClick handle_increment: {'onClick=\"handle_increment\"' in html}")
         
         # Get engine first to generate consistent component ID
         from .engine import get_hydration_engine

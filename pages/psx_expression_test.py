@@ -14,11 +14,13 @@ def PSXExpressionTest(props=None):
         "age": 30,
         "active": True
     }
+
+    count_state=props.get('count', count)
     
     return (
         <div class="test-container">
             <h1>PSX Expression Test</h1>
-            <p>Count: {count}</p>
+            <p>Count: {count_state}</p>
             <p>Double Count: {count * 2}</p>
             <p>User: {user_data['name']} (Age: {user_data['age']})</p>
             

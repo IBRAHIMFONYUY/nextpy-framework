@@ -101,8 +101,8 @@ class ComponentRenderer:
         self.cache_stats['misses'] += 1
         
         try:
-            # Check if file contains JSX syntax
-            if is_jsx_file(file_path):
+            # Check if file contains JSX syntax or is a .psx file
+            if is_jsx_file(file_path) or file_path.suffix == '.psx':
                 # Load with JSX transformer
                 module = load_jsx_module(file_path)
             else:
@@ -210,10 +210,25 @@ class ComponentRenderer:
             if component is None:
                 raise ValueError(f"No component found in {file_path}")
             
+            # Check if the original file has an interactive component decorator
+            has_interactive_decorator = False
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    original_content = f.read()
+                has_interactive_decorator = '@interactive_component' in original_content
+            except:
+                pass
+            
             # Render the component with props
             if callable(component):
-                # Check if it's a decorated component
-                if hasattr(component, 'is_component'):
+                # Check if it's an interactive component (has __wrapped__ attribute from decorator)
+                is_interactive = hasattr(component, '__wrapped__')
+                is_component = hasattr(component, 'is_component')
+                
+                if is_interactive:
+                    # This is an interactive component, call it through the decorator
+                    rendered = component(page_props)
+                elif is_component:
                     rendered = component(page_props)
                 else:
                     rendered = component(page_props)
@@ -221,47 +236,56 @@ class ComponentRenderer:
                 # It's already a JSX element
                 rendered = component
             
-            # Convert to HTML, passing page props as context for {expressions}
-            # Check if this is a PSX component and handle Server/Client components
-            if hasattr(component, '_is_psx_component') or 'psx' in str(type(rendered)):
-                # Import server/client component system
-                try:
-                    from ..psx.server_client_components import render_component
-                    result = render_component(component, page_props)
-                    
-                    # Handle client component return format
-                    if isinstance(result, dict) and result.get('is_client'):
-                        # Client component - extract HTML and prepare for hydration
-                        html = result['html']
-                        
-                        # Add client component hydration script
-                        hydration_script = f"""
-                        <script>
-                        window.__NEXTPY_CLIENT_COMPONENTS__ = window.__NEXTPY_CLIENT_COMPONENTS__ || [];
-                        window.__NEXTPY_CLIENT_COMPONENTS__.push({{
-                            id: '{result['component_id']}',
-                            props: {repr(result['props'])},
-                            hasInteractivity: {result['has_interactivity']}
-                        }});
-                        </script>
-                        """
-                        
-                        # Append hydration script to HTML
-                        if '</body>' in html:
-                            html = html.replace('</body>', f'{hydration_script}</body>')
-                        else:
-                            html += hydration_script
-                            
-                    else:
-                        # Server component - just use the HTML
-                        html = result
-                        
-                except ImportError:
-                    # Fallback to regular PSX rendering
-                    from ..psx.core.parser import render_psx
-                    html = render_psx(rendered, page_props)
+            # Check if this is an InteractiveComponentResult
+            if hasattr(rendered, 'is_interactive') and hasattr(rendered, 'to_html'):
+                # This is an interactive component result
+                html = rendered.to_html()
+            elif has_interactive_decorator and not hasattr(component, '__wrapped__'):
+                # The original file had @interactive_component but the decorator wasn't applied
+                # This means we need to apply the decorator to the rendered HTML
+                html = self._apply_interactive_component_to_rendered_html(rendered, original_content, page_props)
             else:
-                html = render_jsx(rendered, page_props)
+                # Convert to HTML, passing page props as context for {expressions}
+                # Check if this is a PSX component and handle Server/Client components
+                if hasattr(component, '_is_psx_component') or 'psx' in str(type(rendered)):
+                    # Import server/client component system
+                    try:
+                        from ..psx.server_client_components import render_component
+                        result = render_component(component, page_props)
+                        
+                        # Handle client component return format
+                        if isinstance(result, dict) and result.get('is_client'):
+                            # Client component - extract HTML and prepare for hydration
+                            html = result['html']
+                            
+                            # Add client component hydration script
+                            hydration_script = f"""
+                            <script>
+                            window.__NEXTPY_CLIENT_COMPONENTS__ = window.__NEXTPY_CLIENT_COMPONENTS__ || [];
+                            window.__NEXTPY_CLIENT_COMPONENTS__.push({{
+                                id: '{result['component_id']}',
+                                props: {repr(result['props'])},
+                                hasInteractivity: {result['has_interactivity']}
+                            }});
+                            </script>
+                            """
+                            
+                            # Append hydration script to HTML
+                            if '</body>' in html:
+                                html = html.replace('</body>', f'{hydration_script}</body>')
+                            else:
+                                html += hydration_script
+                                
+                        else:
+                            # Server component - just use the HTML
+                            html = result
+                            
+                    except ImportError:
+                        # Fallback to regular PSX rendering
+                        from ..psx.core.parser import render_psx
+                        html = render_psx(rendered, page_props)
+                else:
+                    html = render_jsx(rendered, page_props)
             
             # Inject debug icon in development mode
             if AUTO_DEBUG_AVAILABLE and should_show_debug():
@@ -303,7 +327,7 @@ class ComponentRenderer:
     NextPy Live Error Overlay
     ================================ */
 
-    const socket = new WebSocket("ws://localhost:8765");
+    const socket = new WebSocket("ws://localhost:5000");
 
     let lastError = null;
 
@@ -698,6 +722,101 @@ class ComponentRenderer:
     </body>
     </html>
     """
+
+    def _apply_interactive_component_to_rendered_html(self, rendered_html: str, original_content: str, page_props: Dict[str, Any]) -> str:
+        """
+        Apply interactive component decorator to already-rendered HTML
+        This method bridges the gap between PSX rendering and hydration system
+        """
+        try:
+            # Import the interactive component decorator
+            from ..psx.hydration.decorators import (
+                extract_handler_functions, 
+                convert_handler_attributes_in_html,
+                generate_handler_registration_script,
+                python_code_to_js
+            )
+            from ..psx.hydration.engine import get_hydration_engine
+            from ..psx.hydration.integration import get_component_hydrator
+            
+            # Extract handlers from the original content
+            handlers = extract_handler_functions(lambda: None)  # We'll parse the content directly
+            
+            # Parse the original content to find handler functions
+            import re
+            handler_pattern = r'def\s+(\w+)\s*\([^)]*\)\s*:'
+            handler_matches = re.findall(handler_pattern, original_content)
+            
+            # Create a temporary function to extract handlers
+            def temp_func():
+                pass
+            
+            # Manually extract handler code from original content
+            handlers = {}
+            lines = original_content.split('\n')
+            current_handler = None
+            handler_lines = []
+            
+            for line in lines:
+                if re.match(r'\s*def\s+(\w+)\s*\(', line):
+                    if current_handler:
+                        handlers[current_handler] = '\n'.join(handler_lines)
+                    current_handler = re.match(r'\s*def\s+(\w+)\s*\(', line).group(1)
+                    handler_lines = [line]
+                elif current_handler and line.strip():
+                    # Check if we're still in the function (based on indentation)
+                    if line.startswith('    ') or line.startswith('\t'):
+                        handler_lines.append(line)
+                    else:
+                        # Function ended
+                        handlers[current_handler] = '\n'.join(handler_lines)
+                        current_handler = None
+                        handler_lines = []
+            
+            # Add the last handler if there is one
+            if current_handler:
+                handlers[current_handler] = '\n'.join(handler_lines)
+            
+            # Extract state keys
+            state_pattern = r'\[(\w+),\s*set\w+\]\s*=\s*useState'
+            state_keys = re.findall(state_pattern, original_content)
+            
+            # Convert handler attributes in HTML
+            html_with_handlers = convert_handler_attributes_in_html(rendered_html, handlers, state_keys)
+            
+            # Get hydration engine and generate component ID
+            engine = get_hydration_engine()
+            component_id = engine.generate_component_id()
+            
+            # Register component
+            component_data = {
+                'name': file_path.stem,
+                'state': {key: page_props.get(key, '') for key in state_keys},
+                'handlers': list(handlers.keys()),
+                'effects': [],
+                'props': page_props,
+            }
+            engine.register_component(component_data)
+            
+            # Wrap HTML with hydration data
+            state = {key: page_props.get(key, '') for key in state_keys}
+            hydrated_html = engine.generate_html_wrapper(component_id, html_with_handlers, state)
+            
+            # Generate scripts
+            full_script = engine.generate_hydration_script()
+            handler_script = generate_handler_registration_script(handlers, component_id, state_keys=state_keys)
+            hydrator = get_component_hydrator()
+            hydration_script = hydrator.generate_hydration_script()
+            
+            # Combine all scripts in correct order
+            complete_script = f"{full_script}\n\n{hydration_script}\n\n{handler_script}"
+            
+            # Return HTML with embedded scripts
+            return f"{hydrated_html}\n<script type='text/javascript'>\n{complete_script}\n</script>"
+            
+        except Exception as e:
+            # Fallback: return original HTML with error comment
+            return f"<!-- Interactive component error: {str(e)} -->\n{rendered_html}"
 
     def render_api_route(self, file_path: Path, request_data: Dict[str, Any]) -> Dict[str, Any]:
         """

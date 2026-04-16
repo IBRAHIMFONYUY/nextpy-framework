@@ -1,131 +1,108 @@
 """
-PSX Component Hydration Integration
-Integrates hydration engine with PSX component system
+Component Hydrator - Clean integration with hydration engine
+Works with the new engine architecture for proper component management
 """
 
+import sys
 import inspect
-import json
+import ast
 import re
-from typing import Any, Dict, List, Optional, Callable
-from .engine import HydrationContext, get_hydration_engine
+from typing import Dict, Any, Optional, Callable, List
+from .engine import get_hydration_engine, HydrationEngine
 
 
 class ComponentHydrator:
-    """Handles component hydration for interactive components"""
+    """
+    Clean component hydrator that works with the new engine
+    """
     
-    def __init__(self):
-        self.engine = get_hydration_engine()
-        self.component_metadata: Dict[str, Dict[str, Any]] = {}
+    def __init__(self, engine: Optional[HydrationEngine] = None):
+        self.engine = engine or get_hydration_engine()
     
     def extract_component_metadata(self, component_func: Callable) -> Dict[str, Any]:
-        """Extract metadata about a component for hydration"""
-        metadata = {
-            'name': component_func.__name__,
-            'state': {},
-            'handlers': {},
-            'effects': [],
-            'bindings': {},
+        """Extract component metadata from function"""
+        return {
+            "name": component_func.__name__,
+            "state": self._extract_state(component_func),
+            "handlers": self._extract_handlers(component_func),
         }
+    
+    def _extract_state(self, component_func: Callable) -> Dict[str, Any]:
+        """Extract state from useState calls using regex"""
+        try:
+            # Try to get the original file path
+            file_path = None
+            if hasattr(component_func, '__module__') and component_func.__module__ in sys.modules:
+                module = sys.modules[component_func.__module__]
+                if hasattr(module, '__original_file__'):
+                    file_path = module.__original_file__
+            
+            if file_path:
+                # Read the original file
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    source = f.read()
+            else:
+                # Fallback to inspect.getsource
+                source = inspect.getsource(component_func)
+            
+            # Use regex to find useState patterns
+            pattern = r'\[(\w+),\s*set\w+\]\s*=\s*useState\s*\(\s*([^)]*)\s*\)'
+            matches = re.findall(pattern, source)
+            
+            state = {}
+            for var_name, initial_value in matches:
+                try:
+                    # Safely evaluate the initial value
+                    if initial_value.strip().startswith(('"') or initial_value.strip().startswith("'")):
+                        value = initial_value.strip()[1:-1]
+                    else:
+                        value = ast.literal_eval(initial_value.strip())
+                    state[var_name] = value
+                except:
+                    state[var_name] = initial_value.strip()
+            
+            return state
+        except Exception as e:
+            print(f"Warning: Could not extract state: {e}")
+            return {}
+    
+    def _extract_handlers(self, component_func: Callable) -> Dict[str, str]:
+        """Extract handlers from _handlers attribute or function definition"""
+        # Check if handlers are defined as attribute (new way)
+        if hasattr(component_func, '_handlers'):
+            return getattr(component_func, '_handlers', {})
         
-        # Try to analyze function source to extract useState calls
-        source = None
+        # Fallback to extracting from function source
         try:
             source = inspect.getsource(component_func)
-        except (OSError, TypeError):
-            # Source not available - this is OK, happens with wrapped functions
-            # Continue with empty state/handlers
-            return metadata
-        
-        if source:
-            try:
-                metadata['state'] = self._extract_state_from_source(source)
-                metadata['handlers'] = self._extract_handlers_from_source(source)
-                metadata['effects'] = self._extract_effects_from_source(source)
-            except Exception:
-                # Continue with whatever we have so far
-                pass
-        
-        return metadata
-    
-    def _extract_state_from_source(self, source: str) -> Dict[str, Any]:
-        """Extract initial state values from useState calls"""
-        state = {}
-        
-        # Match useState patterns: [variable, setVariable] = useState(initialValue)
-        pattern = r'\[(\w+),\s*set\w+\]\s*=\s*useState\(([^)]+)\)'
-        matches = re.findall(pattern, source)
-        
-        for var_name, initial_value in matches:
-            try:
-                # Try to safely evaluate initial value
-                # Safe evaluation: only allow literals
-                safe_initial = self._safe_eval(initial_value.strip())
-                if safe_initial is not None:
-                    state[var_name] = safe_initial
-                else:
-                    state[var_name] = initial_value
-            except Exception:
-                # If can't eval, store as string
-                state[var_name] = str(initial_value)
-        
-        return state
-    
-    def _safe_eval(self, value_str: str) -> Any:
-        """Safely evaluate literal values"""
-        value_str = value_str.strip()
-        
-        # Handle numbers
-        try:
-            if '.' in value_str:
-                return float(value_str)
-            else:
-                return int(value_str)
-        except ValueError:
-            pass
-        
-        # Handle strings
-        if (value_str.startswith('"') and value_str.endswith('"')) or \
-           (value_str.startswith("'") and value_str.endswith("'")):
-            return value_str[1:-1]
-        
-        # Handle booleans
-        if value_str == 'True':
-            return True
-        if value_str == 'False':
-            return False
-        if value_str == 'None':
-            return None
-        
-        # Handle lists/arrays
-        if value_str.startswith('[') and value_str.endswith(']'):
-            try:
-                return eval(value_str)
-            except Exception:
-                return value_str
-        
-        # Handle dicts/objects
-        if value_str.startswith('{') and value_str.endswith('}'):
-            try:
-                return eval(value_str)
-            except Exception:
-                return value_str
-        
-        return value_str
-    
-    def _extract_handlers_from_source(self, source: str) -> Dict[str, str]:
-        """Extract event handler code from source"""
-        handlers = {}
-        
-        # Match multiple patterns:
-        # 1. onclick={lambda e: ...}
-        # 2. create_onclick(lambda e: ...)
-        # 3. on[event]={...}
-        
-        # Pattern for inline event handlers: onclick={lambda e: code}
-        pattern = r'on\w+\s*=\s*\{?\s*lambda\s+e\s*:\s*([^}]+)\}?'
-        matches = re.findall(pattern, source)
-        
-        for code in matches:
+            lines = source.split('\n')
+            handlers = {}
+            
+            for line in lines:
+                # Match handler functions at component level (4+ spaces)
+                match = re.match(r'^    def\s+((?:handle|on)_\w+)\s*\([^)]*\)\s*:', line)
+                if match:
+                    handler_name = match.group(1)
+                    # Extract function body
+                    func_lines = []
+                    i = lines.index(line) + 1
+                    while i < len(lines):
+                        next_line = lines[i]
+                        # Stop if we hit another def or end of component
+                        if next_line.startswith('    def ') or (next_line and not next_line.startswith('        ')):
+                            break
+                        # Add if it's body (starts with 8 spaces)
+                        if next_line.startswith('        '):
+                            func_lines.append(next_line[8:])  # Remove 8 spaces
+                        i += 1
+                    
+                    # Store handler
+                    body = '\n'.join(func_lines).strip()
+                    if body:
+                        handlers[handler_name] = body
+            return handlers
+        except:
+            return {}
             # Generate a unique handler name
             handler_name = f'handler_{len(handlers)}'
             handlers[handler_name] = code.strip()
@@ -156,29 +133,51 @@ class ComponentHydrator:
         
         return effects
     
-    def register_component(self, component_func: Callable, props: Dict[str, Any]) -> str:
+    def register_component(self, component_func: Callable, props: Dict[str, Any] = None) -> str:
         """Register a component for hydration"""
         metadata = self.extract_component_metadata(component_func)
         
-        component_data = {
+        # Execute the component function to get the result
+        if props is None:
+            result = component_func()
+        else:
+            result = component_func(props)
+        
+        # Handle different return types
+        if hasattr(result, 'to_html'):
+            # This is a PSX element - get the HTML
+            html = result.to_html()
+        elif hasattr(result, '__html__'):
+            # This is an HTML string
+            html = result.__html__
+        else:
+            # Convert to HTML string
+            html = str(result)
+        
+        # Use the engine's HTML wrapper to properly hydrate the component
+        component_id = self.engine.register_component({
             'name': metadata['name'],
             'state': metadata['state'],
             'handlers': metadata['handlers'],
-            'effects': metadata['effects'],
+            'effects': metadata.get('effects', []),
             'props': props or {},
-        }
+        })
+        wrapped_html = self.engine.generate_html_wrapper(component_id, html, metadata['state'])
         
-        component_id = self.engine.register_component(component_data)
-        return component_id
-    
-    def generate_hydration_script(self) -> str:
-        """Generate complete hydration script"""
-        return self.engine.generate_hydration_script()
+        # Generate hydration script for all components
+        hydration_script = self.engine.generate_hydration_script()
+        
+        # Combine HTML and script
+        return f"{wrapped_html}\n<script type='text/javascript'>\n{hydration_script}\n</script>"
     
     def wrap_component_html(self, component_id: str, html: str, 
                           state: Dict[str, Any]) -> str:
         """Wrap component HTML with hydration data"""
         return self.engine.generate_html_wrapper(component_id, html, state)
+    
+    def generate_hydration_script(self) -> str:
+        """Generate complete hydration script"""
+        return self.engine.generate_hydration_script()
 
 
 # Global component hydrator instance
