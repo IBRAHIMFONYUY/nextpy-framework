@@ -557,7 +557,7 @@ def version():
     click.echo(click.style("\n  📋 NextPy Framework Info", fg="cyan", bold=True))
     click.echo(click.style("  ===================\n", fg="cyan"))
     
-    click.echo(f"  🏷️  Version: 3.5.0 ")
+    click.echo(f"  🏷️  Version: 3.6.1 ")
     click.echo(f"  🐍 Python: {sys.version.split()[0]}")
     click.echo(f"  ⚡ Framework: NextPy")
     click.echo(f"  🎨 Architecture: True JSX")

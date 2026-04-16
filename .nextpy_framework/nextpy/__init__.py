@@ -3,7 +3,7 @@ NextPy - A Python web framework inspired by Next.js
 File-based routing, SSR, SSG, and more with FastAPI + PSX (True JSX)
 """
 
-__version__ = "3.5.1"
+__version__ = "3.6.1"
 
 from nextpy.core.router import Router, Route, DynamicRoute
 from nextpy.core.renderer import Renderer
