@@ -311,19 +311,65 @@ class Renderer:
         context = context or {}
         
         try:
-            # Compile PSX code
-            compiled = compile_psx(psx_code)
-            
-            # Execute with context
-            result = compiled(**context)
-            
-            # Render result
-            if isinstance(result, PSXElement):
-                return render_psx(result)
-            elif isinstance(result, VNode):
-                return render(result)
+            # Check if this is an interactive component
+            if '@interactive_component' in psx_code:
+                # For interactive components, we need to execute the code and get the component function
+                # Create a temporary module to execute the PSX code
+                import types
+                import tempfile
+                import os
+                
+                # Create temporary file
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+                    f.write(psx_code)
+                    temp_file = f.name
+                
+                try:
+                    # Import the temporary module
+                    import importlib.util
+                    spec = importlib.util.spec_from_file_location("temp_psx", temp_file)
+                    temp_module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(temp_module)
+                    
+                    # Get the component function (usually 'default' or the first function)
+                    component_func = getattr(temp_module, 'default', None)
+                    if not component_func:
+                        # Find the first callable that might be the component
+                        for attr_name in dir(temp_module):
+                            attr = getattr(temp_module, attr_name)
+                            if callable(attr) and hasattr(attr, '__wrapped__'):
+                                component_func = attr
+                                break
+                    
+                    if component_func:
+                        # Call the interactive component
+                        result = component_func(context.get('props', {}))
+                        
+                        # The result should be an InteractiveComponentResult
+                        if hasattr(result, 'to_html'):
+                            return result.to_html()
+                        else:
+                            return str(result)
+                    else:
+                        return "<div class='psx-error'>No component function found in interactive PSX</div>"
+                        
+                finally:
+                    # Clean up temp file
+                    os.unlink(temp_file)
             else:
-                return str(result)
+                # Regular PSX component - compile and render
+                compiled = compile_psx(psx_code)
+                
+                # Execute with context
+                result = compiled(**context)
+                
+                # Render result
+                if isinstance(result, PSXElement):
+                    return render_psx(result)
+                elif isinstance(result, VNode):
+                    return render(result)
+                else:
+                    return str(result)
                 
         except Exception as e:
             return f"<div class='psx-error'>PSX Rendering Error: {str(e)}</div>"

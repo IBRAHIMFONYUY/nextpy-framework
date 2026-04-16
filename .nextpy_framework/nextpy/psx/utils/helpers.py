@@ -178,7 +178,7 @@ def compile_psx(source_code: str) -> str:
     """
     Compile PSX syntax into valid Python code
     """
-    return _compiler.compile(source_code)
+    return _compiler.compile_psx(source_code)
 
 
 def compile_psx_file(file_path: str) -> str:

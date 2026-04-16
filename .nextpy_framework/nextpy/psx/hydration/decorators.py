@@ -55,7 +55,33 @@ def extract_handler_functions(component_func: Callable) -> Dict[str, str]:
     return handlers
 
 
-def python_code_to_js(python_code: str) -> str:
+def replace_state_variables(expr: str, state_keys: Optional[List[str]] = None) -> str:
+    """
+    Replace state variables with stateManager.get calls in complex expressions
+    """
+    import re
+    
+    # Use provided state keys or fall back to common ones
+    keys_to_check = state_keys if state_keys else ['count', 'name', 'loading', 'data', 'items', 'index', 'value', 'user', 'error', 'success']
+    
+    for potential_key in keys_to_check:
+        # More sophisticated patterns to avoid false positives
+        # Don't replace if part of a larger variable name or function call
+        patterns = [
+            # Standalone variable: count -> this.stateManager.get('count')
+            (rf'\b{potential_key}\b(?!\s*[\.\(\[])', f'this.stateManager.get(\'{potential_key}\')'),
+            # Method calls: name.upper() -> this.stateManager.get('name').upper()
+            (rf'\b{potential_key}\b(?=\s*\.)', f'this.stateManager.get(\'{potential_key}\')'),
+            # Array access: items[0] -> this.stateManager.get('items')[0]
+            (rf'\b{potential_key}\b(?=\s*\[)', f'this.stateManager.get(\'{potential_key}\')'),
+        ]
+        
+        for pattern, replacement in patterns:
+            expr = re.sub(pattern, replacement, expr)
+    return expr
+
+
+def python_code_to_js(python_code: str, state_keys: Optional[List[str]] = None) -> str:
     """
     Convert Python event handler code to JavaScript.
     
@@ -96,12 +122,56 @@ def python_code_to_js(python_code: str) -> str:
         # IMPROVED: Handle nested function calls better
         expression = expression.strip()
         
-        # Handle common nested patterns
+        # Replace state variables with stateManager.get calls
+        # Handle patterns like: count + 1 -> this.stateManager.get('count') + 1
+        
+        # Handle enhanced nested patterns
         expr_js = expression
-        expr_js = re.sub(r'\.upper\s*\(\s*\)', '.toUpperCase()', expr_js)
-        expr_js = re.sub(r'\.lower\s*\(\s*\)', '.toLowerCase()', expr_js)
-        expr_js = re.sub(r'\.strip\s*\(\s*\)', '.trim()', expr_js)
-        expr_js = re.sub(r'len\s*\(\s*(\w+)\s*\)', r'\1.length', expr_js)
+        expr_js = replace_state_variables(expr_js, state_keys)
+        
+        # Enhanced string method conversions
+        string_conversions = [
+            (r'\.upper\s*\(\s*\)', '.toUpperCase()'),
+            (r'\.lower\s*\(\s*\)', '.toLowerCase()'),
+            (r'\.strip\s*\(\s*\)', '.trim()'),
+            (r'\.title\s*\(\s*\)', '.charAt(0).toUpperCase() + this.slice(1).toLowerCase()'),
+            (r'\.replace\s*\(([^,]+),\s*([^)]+)\)', r'.replace($1, $2)'),
+            (r'\.split\s*\(', '.split('),
+            (r'\.join\s*\(', '.join('),
+            (r'\.startswith\s*\(', '.startsWith('),
+            (r'\.endswith\s*\(', '.endsWith('),
+        ]
+        
+        # Enhanced list/array method conversions
+        list_conversions = [
+            (r'\.append\s*\(', '.push('),
+            (r'\.extend\s*\(', '.concat('),
+            (r'\.pop\s*\(', '.pop('),
+            (r'\.remove\s*\(', '.filter(item => item !== '),  # Simplified
+            (r'\.sort\s*\(', '.sort('),
+            (r'\.reverse\s*\(', '.reverse('),
+            (r'\.clear\s*\(', '.length = 0'),  # Simplified
+        ]
+        
+        # Enhanced built-in function conversions
+        builtin_conversions = [
+            (r'\blen\s*\(\s*(\w+)\s*\)', r'$1.length'),
+            (r'\bstr\s*\(', 'String('),
+            (r'\bint\s*\(', 'parseInt('),
+            (r'\bfloat\s*\(', 'parseFloat('),
+            (r'\bbool\s*\(', 'Boolean('),
+            (r'\btype\s*\(', 'typeof '),
+            (r'\babs\s*\(', 'Math.abs('),
+            (r'\bround\s*\(', 'Math.round('),
+            (r'\bmin\s*\(', 'Math.min('),
+            (r'\bmax\s*\(', 'Math.max('),
+            (r'\bsum\s*\(', '.reduce((a, b) => a + b, 0)'),
+        ]
+        
+        # Apply all conversions
+        all_conversions = string_conversions + list_conversions + builtin_conversions
+        for pattern, replacement in all_conversions:
+            expr_js = re.sub(pattern, replacement, expr_js)
         
         return f"this.stateManager.set('{state_key}', {expr_js})"
     
@@ -113,33 +183,36 @@ def python_code_to_js(python_code: str) -> str:
         js_code
     )
     
-    # Pattern 2: String conversions
-    replacements = [
+    # Pattern 2: Additional global conversions
+    global_replacements = [
         (r'\bprint\s*\(', 'console.log('),          # print() -> console.log()
-        (r'\.upper\s*\(\)', '.toUpperCase()'),      # .upper() -> .toUpperCase()
-        (r'\.lower\s*\(\)', '.toLowerCase()'),      # .lower() -> .toLowerCase()
-        (r'\.strip\s*\(\)', '.trim()'),             # .strip() -> .trim()
-        (r'\blen\s*\((\w+)\)', r'\1.length'),       # len(x) -> x.length
+        (r'\bTrue\b', 'true'),                      # True -> true
+        (r'\bFalse\b', 'false'),                    # False -> false
+        (r'\bNone\b', 'null'),                       # None -> null
     ]
     
-    for pattern, replacement in replacements:
+    for pattern, replacement in global_replacements:
         js_code = re.sub(pattern, replacement, js_code)
     
-    # Pattern 3: Logical operators
+    # Pattern 3: Enhanced logical operators (more precise patterns)
     logical_replacements = [
-        (r'\s+and\s+', ' && '),                     # and -> &&
-        (r'\s+or\s+', ' || '),                      # or -> ||
-        (r'\bnot\s+', '!'),                         # not -> !
-        (r'is\s+None', '=== null'),                 # is None -> === null
-        (r'is\s+not\s+None', '!== null'),           # is not None -> !== null
+        (r'(?<!\w)\s*and\s*(?!\w)', ' && '),        # and -> &&
+        (r'(?<!\w)\s*or\s*(?!\w)', ' || '),         # or -> ||
+        (r'(?<!\w)\s*not\s*(?!\w)', '!'),            # not -> !
+        (r'\s+is\s+None\s*', ' === null '),          # is None -> === null
+        (r'\s+is\s+not\s+None\s*', ' !== null '),    # is not None -> !== null
+        (r'\s+in\s+', ' in '),                       # in operator (preserved)
     ]
     
     for pattern, replacement in logical_replacements:
         js_code = re.sub(pattern, replacement, js_code)
     
-    # Pattern 4: List/dict operations
-    js_code = re.sub(r'\.append\s*\(', '.push(', js_code)  # .append() -> .push()
-    js_code = re.sub(r'\.pop\s*\(', '.pop(', js_code)      # .pop() -> .pop()
+    # Pattern 4: Handle any remaining state variables that weren't in setters
+    js_code = replace_state_variables(js_code, state_keys)
+    
+    # Pattern 5: Final cleanup and normalization
+    js_code = re.sub(r'\s+', ' ', js_code)  # Normalize whitespace
+    js_code = js_code.strip()
     
     return js_code
 
@@ -147,7 +220,8 @@ def python_code_to_js(python_code: str) -> str:
 def generate_handler_registration_script(
     handlers: Dict[str, str], 
     component_id: str,
-    event_types: Optional[Dict[str, str]] = None
+    event_types: Optional[Dict[str, str]] = None,
+    state_keys: Optional[List[str]] = None
 ) -> str:
     """
     Generate JavaScript to register all handlers for a component.
@@ -158,6 +232,7 @@ def generate_handler_registration_script(
         handlers: {handler_name: handler_code}
         component_id: Component ID for scoping
         event_types: Optional {handler_name: 'click'|'change'|'submit'...}
+        state_keys: Optional list of state variable names for better conversion
     """
     if not handlers:
         return ""
@@ -169,6 +244,12 @@ def generate_handler_registration_script(
     script = f"""
 // Handler registration for component: {component_id}
 (function() {{
+    // Safety check: Ensure NextPyRuntime exists
+    if (typeof window.NextPyRuntime === 'undefined') {{
+        console.error('NextPyRuntime not found. Skipping handler registration for component: {component_id}');
+        return;
+    }}
+    
     const componentId = '{component_id}';
     const component = NextPyRuntime.components.get(componentId);
     
@@ -182,7 +263,7 @@ def generate_handler_registration_script(
 """
     
     for handler_name, handler_body in handlers.items():
-        js_body = python_code_to_js(handler_body)
+        js_body = python_code_to_js(handler_body, state_keys)
         event_type = event_types.get(handler_name, 'click')
         
         # Create the handler function with error handling
@@ -210,16 +291,18 @@ def generate_handler_registration_script(
     return script
 
 
-def convert_handler_attributes_in_html(html: str, handlers: Dict[str, str]) -> str:
+def convert_handler_attributes_in_html(html: str, handlers: Dict[str, str], state_keys: Optional[List[str]] = None) -> str:
     """
     Convert onClick/onChange/etc. attributes from JSX to data-handler format.
     
     IMPROVED: Supports multiple event types and better attribute patterns.
+    Also adds data bindings for state variables.
     
     Converts:
     - onClick={handle_increment} -> data-handler-click="handle_increment"
     - onChange={handle_change} -> data-handler-change="handle_change"
     - on{EventName}={handler} -> data-handler-{eventname}="handler"
+    - {variable} -> data-bind="textContent:state_key"
     """
     
     # Pattern 1: onClick={handler_name}, onChange={handler_name}, etc.
@@ -238,7 +321,19 @@ def convert_handler_attributes_in_html(html: str, handlers: Dict[str, str]) -> s
     
     html = re.sub(pattern, replace_event_handler, html)
     
-    # Pattern 2: data-event="click:handler_name" format (alternative syntax)
+    # Pattern 2: Add data bindings for state variables
+    if state_keys:
+        for state_key in state_keys:
+            # Find {state_key} patterns and add data binding
+            pattern = rf'\{{\s*{state_key}\s*\}}'
+            def add_binding(match):
+                # Generate unique ID for this binding
+                binding_id = f"bind_{state_key}_{abs(hash(match.group(0)))}"
+                return f'<span id="{binding_id}" data-bind="textContent:{state_key}">{{{state_key}}}</span>'
+            
+            html = re.sub(pattern, add_binding, html)
+    
+    # Pattern 3: data-event="click:handler_name" format (alternative syntax)
     # This allows more flexible specification if developer uses this pattern
     
     return html
@@ -273,22 +368,55 @@ def interactive_component(func: Callable) -> Callable:
         # Extract named handler functions from the component
         handlers = extract_handler_functions(func)
         
+        # Extract state keys from the component for better conversion
+        try:
+            source = inspect.getsource(func)
+            # Match useState patterns to get state variable names
+            state_pattern = r'\[(\w+),\s*set\w+\]\s*=\s*useState'
+            state_keys = re.findall(state_pattern, source)
+        except (OSError, TypeError):
+            state_keys = []
+        
         # Convert handler attributes in HTML (onClick={handle_x} -> data-handler="handle_x")
-        html = convert_handler_attributes_in_html(html, handlers)
+        html = convert_handler_attributes_in_html(html, handlers, state_keys)
         
-        # Hydrate the component
-        hydrated_html, hydration_script = hydrate_component(func, props, html)
-        
-        # Get engine to add full runtime script
+        # Get engine first to generate consistent component ID
         from .engine import get_hydration_engine
         engine = get_hydration_engine()
+        component_id = engine.generate_component_id()
+        
+        # Register component with the generated ID
+        from .integration import get_component_hydrator
+        hydrator = get_component_hydrator()
+        
+        # Manually register component to ensure consistent ID
+        metadata = hydrator.extract_component_metadata(func)
+        component_data = {
+            'name': metadata['name'],
+            'state': metadata['state'],
+            'handlers': metadata['handlers'],
+            'effects': metadata['effects'],
+            'props': props or {},
+        }
+        # Override the generated ID with our consistent one
+        original_id = engine.register_component(component_data)
+        engine.contexts[component_id] = engine.contexts[original_id]
+        del engine.contexts[original_id]
+        
+        # Wrap HTML with hydration data using consistent ID
+        state = metadata['state']
+        hydrated_html = engine.generate_html_wrapper(component_id, html, state)
+        
+        # Generate scripts
         full_script = engine.generate_hydration_script()
+        handler_script = generate_handler_registration_script(handlers, component_id, state_keys=state_keys)
+        hydration_script = hydrator.generate_hydration_script()
         
-        # Generate handler registration script
-        handler_script = generate_handler_registration_script(handlers, 'psx_component_1')
-        
-        # Combine all scripts
-        complete_script = f"{full_script}\n\n{handler_script}\n\n{hydration_script}"
+        # Combine all scripts in correct order
+        # 1. Full runtime script (defines NextPyRuntime)
+        # 2. Hydration script (initializes components)
+        # 3. Handler registration script (uses NextPyRuntime)
+        complete_script = f"{full_script}\n\n{hydration_script}\n\n{handler_script}"
         
         # Create a wrapped result that includes hydration data
         class InteractiveComponentResult:

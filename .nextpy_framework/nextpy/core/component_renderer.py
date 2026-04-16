@@ -307,6 +307,17 @@ class ComponentRenderer:
 
     let lastError = null;
 
+    // Handle WebSocket connection errors gracefully
+    socket.onerror = (error) => {
+        console.log("NextPy Live Error Overlay: WebSocket connection failed - development tool not available");
+    };
+    
+    socket.onclose = (event) => {
+        if (event.code !== 1000) {
+            console.log("NextPy Live Error Overlay: WebSocket connection closed");
+        }
+    };
+
     socket.onmessage = (event) => {
         const err = JSON.parse(event.data);
         lastError = err;
