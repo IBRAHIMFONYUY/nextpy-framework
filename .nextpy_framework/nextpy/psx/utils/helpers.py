@@ -46,7 +46,6 @@ class PSXPreprocessor:
     """
     
     def __init__(self):
-        self.compiler = PSXCompiler()
         self.psx_function_name = "psx"
         # Pattern to match return statements with PSX
         self.return_psx_pattern = re.compile(
@@ -76,8 +75,10 @@ class PSXPreprocessor:
         def replace_psx_block(match):
             psx_content = match.group(1)
             try:
-                # Use core to compile PSX
-                html = self.compiler.compile_psx(psx_content)
+                # Use core directly to avoid recursion
+                from ..core import PSXCore
+                core = PSXCore()
+                html = core.parse_and_render(psx_content)
                 return f'return "{html}"'
             except Exception:
                 return match.group(0)
@@ -96,7 +97,7 @@ class PSXPreprocessor:
         Replace a return statement containing PSX with psx() call
         """
         psx_content = match.group(1)
-        return f'return {self.psx_function_name}("""{psx_content}""")'
+        
         psx_content = match.group(1).strip()
         
         # Clean up the PSX content - remove extra whitespace and newlines
@@ -104,6 +105,7 @@ class PSXPreprocessor:
         
         # Create the psx() call
         return f'return {self.psx_function_name}("""\n{psx_content}\n""")'
+       
     
     def _clean_psx_content(self, content: str) -> str:
         """
@@ -126,9 +128,10 @@ class PSXPreprocessor:
         return cleaned_content
 
 
-class PSXCompiler:
+# Legacy compiler for backwards compatibility
+class PSXLegacyCompiler:
     """
-    Main PSX compiler that uses preprocessing
+    Legacy PSX compiler that uses preprocessing
     """
     
     def __init__(self):

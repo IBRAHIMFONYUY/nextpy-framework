@@ -430,13 +430,19 @@ Allow: /
                     component_props = {**props, "params": params}
                     jsx_element = component(component_props)
                     
-                    # Convert JSX to HTML
+                    # Convert JSX/PSX to HTML
                     try:
-                        from nextpy.jsx import render_jsx
-                        content = render_jsx(jsx_element)
+                        # Try PSX renderer first (preferred)
+                        from nextpy.psx import render_psx_component
+                        content = render_psx_component(jsx_element, component_props)
                     except ImportError:
-                        # Fail fast - JSX renderer is required
-                        raise RuntimeError("JSX renderer not available. Please install nextpy.jsx module.")
+                        # Fallback to old JSX renderer
+                        try:
+                            from nextpy.jsx import render_jsx
+                            content = render_jsx(jsx_element)
+                        except ImportError:
+                            # Fail fast - renderer is required
+                            raise RuntimeError("Neither PSX nor JSX renderer available. Please install nextpy.psx module.")
                         
             template_name = self._get_template_name(route, module)
             
@@ -565,7 +571,8 @@ Allow: /
             return module.get_template()
             
         relative = route.file_path.relative_to(self.pages_dir)
-        template_name = str(relative).replace(".py", ".html")
+        # Handle both .py and .psx files for template naming
+        template_name = str(relative).replace(".py", ".html").replace(".psx", ".html")
         
         template_path = self.templates_dir / template_name
         if template_path.exists():

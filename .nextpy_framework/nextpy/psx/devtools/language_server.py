@@ -110,7 +110,9 @@ class PSXLanguageServer:
             'html_tags': [],
             'events': [],
             'attributes': [],
-            'utilities': []
+            'utilities': [],
+            'hooks': [],
+            'components': []
         }
         
         # HTML tags
@@ -150,7 +152,7 @@ class PSXLanguageServer:
             ))
         
         # Utilities from language context
-        utilities = self.language_context.get_context_dict()
+        utilities = {}  # Simplified for now
         for util_name, util_func in utilities.items():
             if callable(util_func) or isinstance(util_func, dict):
                 cache['utilities'].append(PSXCompletionItem(
@@ -162,6 +164,101 @@ class PSXLanguageServer:
                     filter_text=util_name,
                     sort_text=f'3{util_name}'
                 ))
+        
+        # Add PSX hooks for auto-completion
+        psx_hooks = {
+            'useState': 'useState(initial) - React hook for state management',
+            'useEffect': 'useEffect(callback, deps) - React hook for side effects',
+            'useContext': 'useContext(context) - React hook for context consumption',
+            'useReducer': 'useReducer(reducer, initial) - React hook for complex state',
+            'useRef': 'useRef(initial) - React hook for mutable ref object',
+            'useMemo': 'useMemo(callback, deps) - React hook for memoization',
+            'useCallback': 'useCallback(callback, deps) - React hook for memoized callbacks',
+            'useImperativeHandle': 'useImperativeHandle(ref, create) - React hook for imperative handles',
+            'useLayoutEffect': 'useLayoutEffect(callback, deps) - React hook for layout effects',
+            'useDebugValue': 'useDebugValue(value) - React hook for debugging values',
+            'useTransition': 'useTransition() - React hook for state transitions',
+            'useDeferredValue': 'useDeferredValue(value) - React hook for deferred values',
+            'useId': 'useId() - React hook for unique IDs',
+            # Custom hooks
+            'useCounter': 'useCounter(initial) - Custom hook for counter state',
+            'useToggle': 'useToggle(initial) - Custom hook for boolean toggle',
+            'useLocalStorage': 'useLocalStorage(key, initial) - Custom hook for localStorage',
+            'useFetch': 'useFetch(url) - Custom hook for API calls',
+            'useDebounce': 'useDebounce(value, delay) - Custom hook for debounced values',
+            'useInterval': 'useInterval(callback, delay) - Custom hook for intervals',
+            'usePrevious': 'usePrevious(value) - Custom hook for previous value',
+            'useAsync': 'useAsync(asyncFn, deps) - Custom hook for async operations',
+            'useMediaQuery': 'useMediaQuery(query) - Custom hook for media queries',
+            'useGeolocation': 'useGeolocation() - Custom hook for geolocation',
+            'usePerformance': 'usePerformance() - Custom hook for performance metrics',
+        }
+        
+        for hook_name, hook_doc in psx_hooks.items():
+            cache['hooks'] = cache.get('hooks', [])
+            cache['hooks'].append(PSXCompletionItem(
+                label=hook_name,
+                kind='function',
+                detail=f'PSX Hook: {hook_name}',
+                documentation=hook_doc,
+                insert_text=f'{hook_name}($1)',
+                filter_text=hook_name,
+                sort_text=f'4{hook_name}'
+            ))
+        
+        # Add PSX components and utilities
+        psx_components = {
+            'component': '@component - Decorator for PSX components',
+            'psx': 'psx - PSX element creator',
+            'render_psx': 'render_psx(element) - Render PSX element',
+            'fragment': 'fragment - Fragment component',
+            'key': 'key - Key prop for lists',
+            'clsx': 'clsx(...classes) - Conditional class names',
+            'VNode': 'VNode - Virtual DOM node',
+            'create_element': 'create_element(type, props) - Create VDOM element',
+            'process_python_logic': 'process_python_logic(code) - Process Python expressions',
+            'runtime': 'runtime - PSX runtime instance',
+            'compile_psx': 'compile_psx(file) - Compile PSX file',
+            'PSXCompiler': 'PSXCompiler - PSX compilation utility',
+        }
+        
+        for comp_name, comp_doc in psx_components.items():
+            cache['components'] = cache.get('components', [])
+            cache['components'].append(PSXCompletionItem(
+                label=comp_name,
+                kind='class' if comp_name[0].isupper() else 'function',
+                detail=f'PSX {comp_name}',
+                documentation=comp_doc,
+                insert_text=comp_name,
+                filter_text=comp_name,
+                sort_text=f'5{comp_name}'
+            ))
+        
+        # Add event handlers
+        event_handlers = {
+            'create_onclick': 'create_onclick(handler) - Click event handler',
+            'create_onchange': 'create_onchange(handler) - Change event handler',
+            'create_onsubmit': 'create_onsubmit(handler) - Submit event handler',
+            'create_oninput': 'create_oninput(handler) - Input event handler',
+            'create_onfocus': 'create_onfocus(handler) - Focus event handler',
+            'create_onblur': 'create_onblur(handler) - Blur event handler',
+            'create_onkeydown': 'create_onkeydown(handler) - Key down event handler',
+            'create_onkeyup': 'create_onkeyup(handler) - Key up event handler',
+            'create_onload': 'create_onload(handler) - Load event handler',
+            'create_onresize': 'create_onresize(handler) - Resize event handler',
+            'create_onscroll': 'create_onscroll(handler) - Scroll event handler',
+        }
+        
+        for event_name, event_doc in event_handlers.items():
+            cache['events'].append(PSXCompletionItem(
+                label=event_name,
+                kind='function',
+                detail=f'Event Handler: {event_name}',
+                documentation=event_doc,
+                insert_text=f'{event_name}($1)',
+                filter_text=event_name,
+                sort_text=f'6{event_name}'
+            ))
         
         return cache
     
@@ -235,6 +332,15 @@ class PSXLanguageServer:
         # Check if we're inside an expression
         if self._is_inside_expression(context, position - start):
             completions.extend(self.completion_cache['utilities'])
+            completions.extend(self.completion_cache['hooks'])
+            completions.extend(self.completion_cache['components'])
+            completions.extend(self.completion_cache['events'])
+        
+        # Always provide hooks and components at top level
+        if self._is_at_top_level(context, position - start):
+            completions.extend(self.completion_cache['hooks'])
+            completions.extend(self.completion_cache['components'])
+            completions.extend(self.completion_cache['events'])
         
         # Filter completions based on current word
         current_word = self._get_current_word(context, position - start)
@@ -284,6 +390,21 @@ class PSXLanguageServer:
             return match.group(1)
         
         return ''
+    
+    def _is_at_top_level(self, context: str, pos: int) -> bool:
+        """Check if position is at top level (not inside tags or expressions)"""
+        before = context[:pos]
+        
+        # Count braces and tags to determine context
+        open_braces = before.count('{')
+        close_braces = before.count('}')
+        open_tags = before.count('<')
+        close_tags = before.count('>')
+        
+        # At top level if not inside expressions or tags
+        return (open_braces == close_braces and 
+                not self._is_inside_attributes(before, len(before)) and
+                not re.search(r'<\s*[a-zA-Z]*[^>]*$', before))
     
     async def get_diagnostics(self, text: str) -> List[PSXDiagnostic]:
         """Get diagnostic information for text using production-grade validator"""

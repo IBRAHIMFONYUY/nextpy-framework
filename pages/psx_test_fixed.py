@@ -1,12 +1,13 @@
 """
 Test PSX parsing issue with nested elements - Fixed
 """
+from nextpy import component
 
 @component
 def PSXTestFixed(props=None):
     """Test component to demonstrate PSX parsing fix"""
     
-    return jsx("""
+    return (
         <div class="outer">
             <div class="inner1">
                 <p>First paragraph</p>
@@ -15,7 +16,7 @@ def PSXTestFixed(props=None):
                 <p>Second paragraph</p>
             </div>
         </div>
-    """)
+    )
 
 def getServerSideProps(context):
     return {

@@ -40,6 +40,13 @@ from .components.component import (
 )
 from .utils.helpers import compile_psx, compile_psx_file, is_psx_file, PSXCompiler
 
+# Hydration Engine imports
+from .hydration import (
+    HydrationEngine, get_hydration_engine,
+    interactive_component, enable_hydration_globally, create_interactive_page,
+    hydrate_component, get_component_hydrator,
+)
+
 # Convenience functions
 def render_psx_component(element, context=None):
     """Render PSX component using the clean renderer"""
@@ -91,4 +98,9 @@ __all__ = [
     
     # Utils
     'compile_psx', 'compile_psx_file', 'is_psx_file', 'PSXCompiler',
+    
+    # Hydration Engine
+    'HydrationEngine', 'get_hydration_engine',
+    'interactive_component', 'enable_hydration_globally', 'create_interactive_page',
+    'hydrate_component', 'get_component_hydrator',
 ]

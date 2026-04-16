@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
 # Import all necessary PSX components
-from nextpy.psx import component, useState, create_onclick, useEffect
-from nextpy.psx.hydration import interactive_component
+from nextpy.psx import component, psx, useState, useEffect, useCallback, useMemo, create_onclick, create_onchange, create_onsubmit
 
-@interactive_component
+@component
 def Home(props=None):
     # Python-style array destructuring for hooks
     [name, setName] = useState('rahim')
@@ -15,18 +13,9 @@ def Home(props=None):
     title = props.get("title", "Welcome to NextPy")
     message = props.get("message", "Your Python-powered web framework with True JSX")
     
-    # Named event handlers (not lambdas - prevents serialization issues)
-    def handle_increment(e):
-        setCount(count + 1)
-    
-    def handle_uppercase(e):
-        setName(name.upper())
-    
-    def handle_reset(e):
-        setCount(0)
-    
-    def handle_nested_click(e):
-        print("Nested button clicked!")
+    # Event handlers with create utilities
+    handleClick = create_onclick(lambda e: setName(name.upper()))
+    handleIncrement = create_onclick(lambda e: setCount(count + 1))
     
     # Client-side data fetching
     def fetch_data():
@@ -43,20 +32,20 @@ def Home(props=None):
                 <p className="text-xl mb-8">{message} {name}</p>
                 
                 {/* Interactive Section */}
-                <div className="mb-8 bg-white text-black bg-opacity-10 backdrop-blur-sm rounded-lg p-6">
+                <div className="mb-8 bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-6">
                     <h2 className="text-2xl font-bold mb-4">Interactive Demo</h2>
                     <p className="mb-4">Count: {count}</p>
                     
                     <div className="flex flex-wrap gap-4 justify-center">
-                        <button onClick={handle_increment} className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium">
+                        <button onclick={handleIncrement} className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium">
                             Increment: {count}
                         </button>
                         
-                        <button onClick={handle_uppercase} className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg font-medium">
+                        <button onclick={handleClick} className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg font-medium">
                             Uppercase Name
                         </button>
                         
-                        <button onClick={handle_reset} className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-medium">
+                        <button onclick={lambda e: setCount(0)} className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-medium">
                             Reset
                         </button>
                     </div>
@@ -65,7 +54,7 @@ def Home(props=None):
                 {/* Component Nesting Demo */}
                 <div className="mb-8 bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-6">
                     <h2 className="text-2xl font-bold mb-4">Component Nesting</h2>
-                    <button onClick={handle_nested_click} className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium">
+                    <button onclick={lambda e: print("Nested button clicked!")} className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium">
                         Nested Button Component
                     </button>
                 </div>
@@ -76,9 +65,9 @@ def Home(props=None):
                     
                     {/* Conditional rendering */}
                     {if len(name) > 5:
-                        <p className="text-green-300">[LONG] Long name detected!</p>
-                    else:
-                        <p className="text-yellow-300">[SHORT] Short name</p>
+                        <p className="text-green-300">✅ Long name detected!</p>
+                    {else:
+                        <p className="text-yellow-300">⚠️ Short name</p>
                     }
                     
                     {/* For loop */}
@@ -106,6 +95,12 @@ def Home(props=None):
     )
 
 # Server-side props (Next.js style)
-
+def getServerSideProps(context):
+    return {
+        "props": {
+            "title": "Welcome to NextPy by RAHIMSTUDIOS",
+            "message": "Your Python-powered web framework with True JSX"
+        }
+    }
 
 default = Home

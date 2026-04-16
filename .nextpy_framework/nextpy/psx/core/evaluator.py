@@ -41,41 +41,42 @@ class SafeExpressionEngine:
         ast.IsNot: operator.is_not,
         ast.In: lambda a, b: a in b,
         ast.NotIn: lambda a, b: a not in b,
+        # Unary operators
+        ast.UAdd: lambda a: +a,
+        ast.USub: lambda a: -a,
+        ast.Not: lambda a: not a,
     }
     
     # Whitelisted functions (SAFE ONLY - NO dangerous functions)
     SAFE_FUNCTIONS = {
         # Basic operations
-        'len': len,
-        'str': str,
-        'int': int,
-        'float': float,
-        'bool': bool,
-        'abs': abs,
-        'round': round,
-        'min': min,
-        'max': max,
-        'sum': sum,
-        'any': any,
-        'all': all,
+        'len': len, 'str': str, 'int': int, 'float': float, 'bool': bool,
+        'abs': abs, 'round': round, 'min': min, 'max': max, 'sum': sum,
+        'any': any, 'all': all,
         
         # Collections
-        'sorted': sorted,
-        'reversed': reversed,
-        'range': range,
-        'enumerate': enumerate,
-        'zip': zip,
-        'list': list,
-        'tuple': tuple,
-        'set': set,
-        'dict': dict,
+        'sorted': sorted, 'reversed': reversed, 'range': range,
+        'enumerate': enumerate, 'zip': zip, 'list': list, 'tuple': tuple,
+        'set': set, 'dict': dict,
         
         # Math (safe only)
         'pow': pow,
         
         # Type checking (safe only)
-        'isinstance': isinstance,
-        'callable': callable,
+        'isinstance': isinstance, 'callable': callable, 'type': type,
+        'hasattr': hasattr, 'getattr': getattr,
+        
+        # Iteration utilities
+        'iter': iter, 'next': next,
+        
+        # Conversion utilities
+        'ord': ord, 'chr': chr, 'hex': hex, 'oct': oct, 'bin': bin,
+        
+        # Constants
+        'True': True, 'False': False, 'None': None,
+        
+        # PSX utilities
+        'clsx': lambda *args: ' '.join(str(arg) for arg in args if arg),
     }
     
     # Whitelisted attributes (NO __* attributes!)
@@ -119,7 +120,6 @@ class SafeExpressionEngine:
             ast.IfExp,
             ast.DictComp,
             ast.SetComp,
-            ast.ListComp,
             ast.GeneratorExp,
             ast.Await,
             ast.Yield,
@@ -158,6 +158,10 @@ class SafeExpressionEngine:
             ast.arg,
             ast.comprehension,
         )
+        
+        # Allow list comprehensions but handle them specially
+        if isinstance(node, ast.ListComp):
+            return self._evaluate_list_comp(node)
         
         # Check if node type is dangerous
         if isinstance(node, dangerous_nodes):
@@ -247,8 +251,19 @@ class SafeExpressionEngine:
             # Handle function calls with strict validation
             func = self._evaluate_node(node.func)
             
-            # Only allow whitelisted functions
-            if func not in self.SAFE_FUNCTIONS.values():
+            # Allow whitelisted functions and method calls on safe objects
+            is_safe = False
+            
+            # Check if it's a whitelisted function
+            if func in self.SAFE_FUNCTIONS.values():
+                is_safe = True
+            # Check if it's a bound method on a safe object
+            elif hasattr(func, '__self__') and isinstance(func.__self__, (str, list, dict, tuple, set)):
+                method_name = func.__name__
+                if method_name in self.SAFE_ATTRIBUTES:
+                    is_safe = True
+            
+            if not is_safe:
                 raise ValueError("Attempted to call non-whitelisted function")
             
             args = [self._evaluate_node(arg) for arg in node.args]
@@ -277,8 +292,59 @@ class SafeExpressionEngine:
             values = [self._evaluate_node(v) for v in node.values]
             return dict(zip(keys, values))
             
+        elif isinstance(node, ast.ListComp):
+            return self._evaluate_list_comp(node)
+            
         else:
             raise ValueError(f"Unsupported AST node type: {type(node).__name__}")
+    
+    def _evaluate_list_comp(self, node: ast.ListComp) -> list:
+        """Evaluate list comprehension safely"""
+        result = []
+        
+        # Create a copy of the current context to avoid side effects
+        original_context = self.context.copy()
+        
+        try:
+            for generator in node.generators:
+                # Evaluate the iterable
+                iterable = self._evaluate_node(generator.iter)
+                
+                for item in iterable:
+                    # Set loop variable(s) in context
+                    if isinstance(generator.target, ast.Name):
+                        # Simple variable: for x in items
+                        var_name = generator.target.id
+                        self.context[var_name] = item
+                    elif isinstance(generator.target, ast.Tuple):
+                        # Tuple unpacking: for x, y in items
+                        if isinstance(item, (list, tuple)) and len(item) == len(generator.target.elts):
+                            for i, elt in enumerate(generator.target.elts):
+                                if isinstance(elt, ast.Name):
+                                    self.context[elt.id] = item[i]
+                        else:
+                            raise ValueError("Unpacking mismatch in list comprehension")
+                    else:
+                        raise ValueError("Unsupported target in list comprehension")
+                    
+                    # Check if conditions are met
+                    conditions_met = True
+                    for condition in generator.ifs:
+                        if not self._evaluate_node(condition):
+                            conditions_met = False
+                            break
+                    
+                    if conditions_met:
+                        # Evaluate the element and add to result
+                        element = self._evaluate_node(node.elt)
+                        result.append(element)
+            
+            return result
+            
+        finally:
+            # Restore original context
+            self.context.clear()
+            self.context.update(original_context)
 
 def safe_eval(expression: str, context: Dict[str, Any] = None) -> Any:
     """

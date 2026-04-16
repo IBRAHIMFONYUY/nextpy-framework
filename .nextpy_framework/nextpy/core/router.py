@@ -91,6 +91,18 @@ class Router:
                     self.api_routes.append(route)
                 else:
                     self.routes.append(route)
+        
+        # Also scan for .psx files (PSX components)
+        for file_path in self.pages_dir.rglob("*.psx"):
+            if file_path.name.startswith("_"):
+                continue
+                
+            route = self._create_route_from_file(file_path)
+            if route:
+                if route.is_api:
+                    self.api_routes.append(route)
+                else:
+                    self.routes.append(route)
                     
         self._sort_routes()
         
@@ -107,8 +119,11 @@ class Router:
         is_catch_all = False
         
         for part in parts:
+            # Handle both .py and .psx file extensions
             if part.endswith(".py"):
                 part = part[:-3]
+            elif part.endswith(".psx"):
+                part = part[:-4]
                 
             if part == "index":
                 continue

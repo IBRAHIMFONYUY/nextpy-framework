@@ -462,7 +462,7 @@ _vdom_renderer = VDOMRenderer()
 _vdom_scheduler = VDOMScheduler()
 
 
-def create_vnode(type: Union[str, NodeType], props: Dict[str, Any] = None, children: List[VNode] = None, key: str = None) -> VNode:
+def create_vnode(type: Union[str, VDOMNodeType], props: Dict[str, Any] = None, children: List[VNode] = None, key: str = None) -> VNode:
     """Create a virtual DOM node"""
     return VNode(
         type=type,
@@ -488,9 +488,9 @@ def create_element(tag: str, props: Dict[str, Any] = None, *children) -> VNode:
         if isinstance(child, VNode):
             vnode_children.append(child)
         elif isinstance(child, str):
-            vnode_children.append(create_vnode(NodeType.TEXT, {'text': child}))
+            vnode_children.append(create_vnode(VDOMNodeType.TEXT, {'text': child}))
         else:
-            vnode_children.append(create_vnode(NodeType.TEXT, {'text': str(child)}))
+            vnode_children.append(create_vnode(VDOMNodeType.TEXT, {'text': str(child)}))
     
     return create_vnode(tag, props, vnode_children)
 
@@ -513,7 +513,7 @@ def get_vdom_metrics() -> Dict[str, Any]:
 
 # Export Virtual DOM components
 __all__ = [
-    'VNode', 'NodeType', 'VDOMDiff', 'Patch', 'PatchType',
+    'VNode', 'VDOMNodeType', 'VDOMDiff', 'Patch', 'PatchType',
     'VDOMRenderer', 'VDOMScheduler', 'create_vnode', 'create_element',
     'render', 'update', 'get_vdom_metrics'
 ]

@@ -59,12 +59,34 @@ class PSXElement:
     
     def to_html(self, context: Dict[str, Any] = None) -> str:
         """Convert PSX element to HTML string"""
-        context = context or {}
-        runtime = PSXRuntime(context)
-        
-        # Convert to AST and render
-        ast_node = self.to_ast()
-        return runtime._render_node(ast_node)
+        # Use stored AST node if available, otherwise use stored context
+        if hasattr(self, '_ast_node') and self._ast_node:
+            # Use stored context if available, otherwise use provided context
+            if hasattr(self, '_psx_context') and self._psx_context:
+                render_context = self._psx_context
+            elif context:
+                render_context = context
+            else:
+                render_context = {}
+            
+            runtime = PSXRuntime(render_context)
+            return runtime._render_node(self._ast_node)
+        else:
+            # Fallback to legacy behavior
+            # Use stored context if available, otherwise use provided context
+            if hasattr(self, '_psx_context') and self._psx_context:
+                context = self._psx_context
+            elif context:
+                # Use provided context
+                pass
+            else:
+                context = {}
+            
+            runtime = PSXRuntime(context)
+            
+            # Convert to AST and render
+            ast_node = self.to_ast()
+            return runtime._render_node(ast_node)
 
 
 class PSXParser:
@@ -76,9 +98,9 @@ class PSXParser:
         self.optimizer = PSXNodeOptimizer()
         self.runtime = PSXRuntime()
         
-        # Regex patterns for parsing
-        self.psx_pattern = re.compile(r'<([a-zA-Z][a-zA-Z0-9]*)\s*([^>]*)>(.*?)</\1>', re.DOTALL)
-        self.self_closing_pattern = re.compile(r'<([a-zA-Z][a-zA-Z0-9]*)\s*([^>]*)\s*/>', re.DOTALL)
+        # Regex patterns for parsing - use non-greedy matching
+        self.psx_pattern = re.compile(r'<([a-zA-Z][a-zA-Z0-9]*)\s*([^>]*?)>(.*?)</\1>', re.DOTALL)
+        self.self_closing_pattern = re.compile(r'<([a-zA-Z][a-zA-Z0-9]*)\s*([^>]*?)\s*/>', re.DOTALL)
         self.prop_pattern = re.compile(
             r'([a-zA-Z][a-zA-Z0-9-]*)\s*=\s*\{([^}]+)\}|'
             r'([a-zA-Z][a-zA-Z0-9-]*)\s*=\s*"([^"]*)"|'
@@ -90,6 +112,9 @@ class PSXParser:
     def parse_psx(self, psx_str: str, context: Dict[str, Any] = None) -> PSXNodeUnion:
         """Parse PSX string to production-grade AST node"""
         context = context or {}
+        
+        # Update runtime context with new variables
+        self.runtime.update_context(context)
         
         # Process Python logic first
         psx_str = process_python_logic(psx_str, context)
@@ -113,7 +138,201 @@ class PSXParser:
         return TextNode(content=psx_str)
     
     def _parse_element(self, psx_str: str, context: Dict[str, Any]) -> Optional[ElementNode]:
-        """Parse PSX string to ElementNode"""
+        """Robust recursive element parser for minified JSX"""
+        # Strip leading whitespace for better matching
+        psx_str_stripped = psx_str.strip()
+        
+        if not psx_str_stripped.startswith('<'):
+            return None
+        
+        try:
+            element_node, final_index = self._parse_element_recursive(psx_str_stripped, 0, context)
+            return element_node
+        except Exception as e:
+            # Fallback to original method if recursive parsing fails
+            return self._parse_element_fallback(psx_str_stripped, context)
+    
+    def _parse_element_recursive(self, code: str, index: int, context: Dict[str, Any]):
+        """Recursive descent parser for JSX elements"""
+        from .ast_nodes import ElementNode
+        
+        # Skip opening '<'
+        index += 1
+        
+        # Read tag name
+        tag_name, index = self._read_tag_name(code, index)
+        
+        # Read attributes until closing '>' or '/>'
+        attributes, events, spread_props, index = self._read_attributes(code, index, context)
+        
+        # Check if self-closing
+        if index < len(code) and code[index-2:index] == '/>':
+            return ElementNode(
+                tag=tag_name,
+                attributes=attributes,
+                events=events,
+                children=[],
+                self_closing=True,
+                spread_props=spread_props
+            ), index
+        
+        # Parse children recursively
+        children = []
+        while index < len(code) and not code.startswith(f"</{tag_name}>", index):
+            # Process Python logic for the current segment of code before parsing nodes
+            # This ensures nested control flow is handled correctly
+            remaining_code = code[index:]
+            # Find next tag or expression to limit processing scope if possible, 
+            # but for now, we process the logic which is safe as it uses brace matching.
+            
+            child, index = self._parse_node(code, index, context)
+            if child:
+                if isinstance(child, TextNode):
+                    # Re-process text nodes for any missed logic
+                    child.content = process_python_logic(child.content, context)
+                children.append(child)
+        
+        # Skip closing tag
+        if index < len(code) and code.startswith(f"</{tag_name}>", index):
+            index += len(f"</{tag_name}>")
+        
+        return ElementNode(
+            tag=tag_name,
+            attributes=attributes,
+            events=events,
+            children=children,
+            spread_props=spread_props
+        ), index
+    
+    def _read_tag_name(self, code: str, index: int):
+        """Read tag name from code"""
+        start = index
+        while index < len(code) and (code[index].isalnum() or code[index] == '-'):
+            index += 1
+        return code[start:index], index
+    
+    def _read_attributes(self, code: str, index: int, context: Dict[str, Any]):
+        """Read attributes from opening tag"""
+        attributes = {}
+        events = {}
+        spread_props = []
+        
+        while index < len(code) and code[index] not in ['>', '/']:
+            # Skip whitespace
+            while index < len(code) and code[index].isspace():
+                index += 1
+            
+            if index >= len(code) or code[index] in ['>', '/']:
+                break
+            
+            # Read attribute name
+            key_start = index
+            while index < len(code) and (code[index].isalnum() or code[index] in '-_'):
+                index += 1
+            key = code[key_start:index]
+            
+            # Skip whitespace
+            while index < len(code) and code[index].isspace():
+                index += 1
+            
+            # Check if attribute has value
+            if index < len(code) and code[index] == '=':
+                index += 1  # Skip '='
+                
+                # Skip whitespace
+                while index < len(code) and code[index].isspace():
+                    index += 1
+                
+                # Read value
+                if index < len(code) and code[index] in ['"', "'"]:
+                    # String value
+                    quote = code[index]
+                    index += 1
+                    value_start = index
+                    while index < len(code) and code[index] != quote:
+                        index += 1
+                    value = code[value_start:index]
+                    index += 1  # Skip closing quote
+                elif index < len(code) and code[index] == '{':
+                    # Expression value
+                    value_start = index
+                    brace_count = 1
+                    index += 1
+                    while index < len(code) and brace_count > 0:
+                        if code[index] == '{':
+                            brace_count += 1
+                        elif code[index] == '}':
+                            brace_count -= 1
+                        index += 1
+                    value = code[value_start:index]
+                else:
+                    # Unquoted value (boolean or simple)
+                    value_start = index
+                    while index < len(code) and not code[index].isspace() and code[index] not in ['>', '/']:
+                        index += 1
+                    value = code[value_start:index]
+                
+                # Categorize attribute
+                if key.startswith('on'):
+                    events[key] = value
+                elif key.startswith('...'):
+                    spread_props.append(key[3:])
+                else:
+                    attributes[key] = value
+            else:
+                # Boolean attribute
+                attributes[key] = True
+        
+        return attributes, events, spread_props, index
+    
+    def _parse_node(self, code: str, index: int, context: Dict[str, Any]):
+        """Parse node (element, text, or expression)"""
+        # Skip whitespace
+        while index < len(code) and code[index].isspace():
+            index += 1
+        
+        if index >= len(code):
+            return None, index
+        
+        if code[index] == '<':
+            # Element node
+            if code.startswith('<!--', index):
+                # Comment - skip it
+                end_comment = code.find('-->', index)
+                if end_comment != -1:
+                    return None, end_comment + 3
+                return None, len(code)
+            elif code.startswith('</', index):
+                # Closing tag - stop parsing
+                return None, index
+            else:
+                # Opening tag
+                return self._parse_element_recursive(code, index, context)
+        elif code[index] == '{':
+            # Expression node
+            from .ast_nodes import ExpressionNode
+            expr_start = index
+            brace_count = 1
+            index += 1
+            while index < len(code) and brace_count > 0:
+                if code[index] == '{':
+                    brace_count += 1
+                elif code[index] == '}':
+                    brace_count -= 1
+                index += 1
+            expr_content = code[expr_start + 1:index - 1]  # Remove braces
+            return ExpressionNode(expression=expr_content), index
+        else:
+            # Text node
+            from .ast_nodes import TextNode
+            text_start = index
+            while index < len(code) and code[index] not in ['<', '{']:
+                index += 1
+            text_content = code[text_start:index]
+            return TextNode(content=text_content), index
+    
+    def _parse_element_fallback(self, psx_str: str, context: Dict[str, Any]) -> Optional[ElementNode]:
+        """Fallback to original parsing method"""
         # Check for self-closing tags first
         self_closing_match = self.self_closing_pattern.match(psx_str)
         if self_closing_match:
@@ -130,18 +349,39 @@ class PSXParser:
                 spread_props=props['spread_props']
             )
         
-        # Check for regular tags
-        tag_match = self.psx_pattern.match(psx_str)
-        if tag_match:
-            tag = tag_match.group(1)
-            props_str = tag_match.group(2).strip()
-            children_str = tag_match.group(3)
+        # For regular tags, use the robust approach
+        if psx_str.startswith('<'):
+            # Find the end of the opening tag
+            tag_end = psx_str.find('>')
+            if tag_end == -1:
+                return None
             
+            opening_tag = psx_str[:tag_end + 1]
+            tag_content = opening_tag[1:-1].strip()
+            
+            # Extract tag name and props
+            tag_parts = tag_content.split()
+            if not tag_parts:
+                return None
+            
+            tag_name = tag_parts[0]
+            props_str = ' '.join(tag_parts[1:]) if len(tag_parts) > 1 else ''
             props = self._parse_props(props_str, context)
-            children = self._parse_children(children_str, context)
+            
+            # Find the matching closing tag
+            closing_tag = f'</{tag_name}>'
+            closing_pos = self._find_matching_tag(psx_str, tag_name, tag_end + 1)
+            
+            if closing_pos == -1:
+                # No matching closing tag
+                return None
+            
+            # Extract children content
+            children_content = psx_str[tag_end + 1:closing_pos]
+            children = self._parse_children(children_content, context)
             
             return ElementNode(
-                tag=tag,
+                tag=tag_name,
                 attributes=props['attributes'],
                 events=props['events'],
                 children=children,
@@ -237,28 +477,127 @@ class PSXParser:
         """Parse children string into AST nodes"""
         children = []
         
-        # Split by PSX tags and text
-        parts = re.split(r'(<[^>]+>)', children_str)
+        # Use a more sophisticated parsing approach
+        i = 0
+        n = len(children_str)
         
-        for part in parts:
-            part = part.strip()
-            if not part:
-                continue
+        while i < n:
+            # Skip whitespace
+            while i < n and children_str[i].isspace():
+                i += 1
             
-            # Try to parse as PSX element/component
-            ast_node = self.parse_psx(part, context)
-            if ast_node and not isinstance(ast_node, TextNode):
-                children.append(ast_node)
-            else:
-                # Handle expressions in text
-                if '{' in part and '}' in part:
-                    # Parse expressions
-                    text_parts = self._parse_text_with_expressions(part)
-                    children.extend(text_parts)
+            if i >= n:
+                break
+            
+            # Check for HTML tag
+            if children_str[i] == '<':
+                # Find the end of the tag
+                tag_end = children_str.find('>', i)
+                if tag_end == -1:
+                    # Malformed tag, treat as text
+                    children.append(TextNode(content=children_str[i:]))
+                    break
+                
+                tag_content = children_str[i:tag_end + 1]
+                
+                # Check if it's a self-closing tag
+                if tag_content.endswith('/>'):
+                    # Self-closing tag
+                    tag_node = self.parse_psx(tag_content, context)
+                    if tag_node and not isinstance(tag_node, TextNode):
+                        children.append(tag_node)
+                        i = tag_end + 1
+                    else:
+                        children.append(TextNode(content=tag_content))
+                        i = tag_end + 1
                 else:
-                    children.append(TextNode(content=part))
+                    # Opening tag - find matching closing tag
+                    tag_name = tag_content[1:-1].split()[0]  # Extract tag name
+                    closing_tag = f'</{tag_name}>'
+                    closing_pos = self._find_matching_tag(children_str, tag_name, tag_end + 1)
+                    
+                    if closing_pos == -1:
+                        # No matching closing tag, treat as text
+                        children.append(TextNode(content=tag_content))
+                        i = tag_end + 1
+                    else:
+                        # Parse the complete element
+                        element_str = children_str[i:closing_pos + len(closing_tag)]
+                        element_node = self.parse_psx(element_str, context)
+                        if element_node and not isinstance(element_node, TextNode):
+                            children.append(element_node)
+                            i = closing_pos + len(closing_tag)
+                        else:
+                            children.append(TextNode(content=element_str))
+                            i = closing_pos + len(closing_tag)
+            else:
+                # Text content - find next tag or expression
+                next_tag = children_str.find('<', i)
+                next_expr = children_str.find('{', i)
+                
+                if next_tag == -1 and next_expr == -1:
+                    # Plain text to end
+                    text_content = children_str[i:].strip()
+                    if text_content:
+                        text_parts = self._parse_text_with_expressions(text_content)
+                        children.extend(text_parts)
+                    break
+                elif next_tag == -1 or (next_expr != -1 and next_expr < next_tag):
+                    # Expression comes first
+                    text_content = children_str[i:next_expr].strip()
+                    if text_content:
+                        children.append(TextNode(content=text_content))
+                    
+                    # Parse expression
+                    expr_end = children_str.find('}', next_expr)
+                    if expr_end == -1:
+                        # Malformed expression
+                        children.append(TextNode(content=children_str[next_expr:]))
+                        break
+                    
+                    expr_content = children_str[next_expr:expr_end + 1]
+                    text_parts = self._parse_text_with_expressions(expr_content)
+                    children.extend(text_parts)
+                    i = expr_end + 1
+                else:
+                    # Tag comes first
+                    text_content = children_str[i:next_tag].strip()
+                    if text_content:
+                        text_parts = self._parse_text_with_expressions(text_content)
+                        children.extend(text_parts)
+                    i = next_tag
         
         return children
+    
+    def _find_matching_tag(self, text: str, tag_name: str, start_pos: int) -> int:
+        """Find the position of the matching closing tag"""
+        depth = 1
+        i = start_pos
+        n = len(text)
+        
+        while i < n and depth > 0:
+            # Look for opening tag
+            open_tag = f'<{tag_name}'
+            close_tag = f'</{tag_name}>'
+            
+            next_open = text.find(open_tag, i)
+            next_close = text.find(close_tag, i)
+            
+            if next_close == -1:
+                return -1  # No matching closing tag
+            
+            if next_open == -1 or next_close < next_open:
+                # Found closing tag
+                depth -= 1
+                if depth == 0:
+                    return next_close
+                i = next_close + len(close_tag)
+            else:
+                # Found opening tag
+                depth += 1
+                i = next_open + len(open_tag)
+        
+        return -1  # No match found
     
     def _parse_text_with_expressions(self, text: str) -> List[PSXNodeUnion]:
         """Parse text containing expressions"""
@@ -294,21 +633,22 @@ def psx(psx_str: str, context: Dict[str, Any] = None) -> PSXElement:
     """
     import inspect
     
-    # Capture variables from caller's frame
+    # Only capture locals if no context is provided (not called from component)
     captured_locals = {}
-    try:
-        frame = inspect.currentframe().f_back
-        if frame:
-            # Filter out internal variables
-            frame_locals = frame.f_locals
-            captured_locals = {
-                k: v for k, v in frame_locals.items()
-                if not k.startswith('_') and 
-                   not callable(v) and
-                   not hasattr(v, '__call__')
-            }
-    except Exception:
-        pass
+    if context is None:
+        try:
+            frame = inspect.currentframe().f_back
+            if frame:
+                # Filter out internal variables
+                frame_locals = frame.f_locals
+                captured_locals = {
+                    k: v for k, v in frame_locals.items()
+                    if not k.startswith('_') and 
+                       not callable(v) and
+                       not hasattr(v, '__call__')
+                }
+        except Exception:
+            pass
     
     # Merge provided context with captured locals
     merged_context = captured_locals.copy()
@@ -318,21 +658,28 @@ def psx(psx_str: str, context: Dict[str, Any] = None) -> PSXElement:
     # Parse with production-grade parser
     ast_node = _parser.parse_psx(psx_str, merged_context)
     
-    # Convert to legacy PSXElement for backwards compatibility
+    # Store the context and AST node in the PSXElement for rendering
     if isinstance(ast_node, ElementNode):
-        return PSXElement(
+        element = PSXElement(
             tag=ast_node.tag,
             props=ast_node.attributes,
             children=[],
             key=ast_node.key
         )
+        # Store the AST node and context for proper rendering
+        element._ast_node = ast_node
+        element._psx_context = merged_context
+        return element
     else:
         # For non-elements, wrap in div
-        return PSXElement(
+        element = PSXElement(
             tag='div',
             props={},
             children=[str(ast_node)]
         )
+        element._ast_node = ast_node
+        element._psx_context = merged_context
+        return element
 
 
 def render_psx(element, context: Dict[str, Any] = None) -> str:

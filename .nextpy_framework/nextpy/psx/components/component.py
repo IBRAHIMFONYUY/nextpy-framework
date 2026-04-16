@@ -91,48 +91,77 @@ def component(func):
         component_state.props = props
         
         # Execute the component function and capture local variables
+        # Use a more reliable method to capture locals
         
-        # Create a locals dictionary that will be populated by the function
-        component_locals = {}
+        # Create a modified globals dict that includes our function
+        original_globals = func.__globals__.copy()
         
-        # Create a modified function that captures its locals
-        def execute_with_locals():
-            # Create a new frame for the component function
-            frame = inspect.currentframe()
-            if frame:
-                # Get the locals dict from the component function's frame
-                locals_dict = frame.f_back.f_locals
-                component_locals.update(locals_dict)
-        
-        # Execute the component function directly and capture locals
+        # Execute the function and capture its locals
         result = func(props)
         
-        # Try to get locals from the call stack
-        frame = inspect.currentframe()
-        if frame and frame.f_back and frame.f_back.f_back:
-            # This should be the component function's frame
-            component_frame = frame.f_back.f_back
-            component_locals.update(component_frame.f_locals)
+        # Get the most recent frame from the call stack that belongs to our component function
+        frame = None
+        current_frame = inspect.currentframe()
         
+        # Walk up the call stack to find the component function frame
+        while current_frame:
+            if current_frame.f_code is func.__code__:
+                frame = current_frame
+                break
+            current_frame = current_frame.f_back
+        
+        component_locals = {}
+        if frame:
+            component_locals = frame.f_locals.copy()
         
         # Create context with props and local variables (excluding internal ones)
         context = props.copy()
         for key, value in component_locals.items():
-            if not key.startswith('_') and key not in ['func', 'props', 'result', 'execution_result', 'execute_component', 'wrapper', 'execute_with_locals', 'component_locals', 'component_frame', 'frame']:
+            if not key.startswith('_') and key not in ['func', 'props', 'result', 'execution_result', 'execute_component', 'wrapper', 'execute_with_locals', 'component_locals', 'component_frame', 'frame', 'current_frame', 'original_globals']:
                 context[key] = value
-        
         
         # Store context in component state for expression evaluation
         component_state.state.update(context)
         
         # Handle different return types
         if isinstance(result, PSXElement):
+            # Store context in the PSXElement for rendering
+            if not hasattr(result, '_psx_context') or not result._psx_context:
+                result._psx_context = context
+            else:
+                # Merge with existing context (component context takes precedence)
+                result._psx_context.update(context)
             return result
         elif hasattr(result, 'to_html'):
             return result
         elif isinstance(result, str):
             # Parse as PSX with the captured context
             return psx(result, context)
+        elif isinstance(result, tuple):
+            # Handle JSX tuple - convert to string and parse as PSX
+            jsx_string = ''
+            for item in result:
+                if callable(item):
+                    # It's a function call (like psx(...)), execute it
+                    try:
+                        item_result = item()
+                        if hasattr(item_result, 'to_html'):
+                            jsx_string += item_result.to_html()
+                        else:
+                            jsx_string += str(item_result)
+                    except Exception as e:
+                        # If execution fails, convert to string
+                        jsx_string += str(item)
+                elif hasattr(item, '__jsx__'):
+                    # It's a JSX element, convert to string
+                    jsx_string += str(item)
+                else:
+                    jsx_string += str(item)
+            
+            if jsx_string.strip():
+                return psx(jsx_string, context)
+            else:
+                return PSXElement(tag='div', props={}, children=[])
         else:
             # Convert to PSX element
             return psx(str(result), context)
