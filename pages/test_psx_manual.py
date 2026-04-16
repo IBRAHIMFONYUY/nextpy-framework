@@ -1,15 +1,13 @@
-"""
-Test page with exact PSX syntax as requested
-"""
-
-from nextpy.psx import PSXComponent
-
-
-@PSXComponent
+from nextpy.psx import useState
+@component
 def Home(props=None):
     props = props or {}
     title = props.get("title", "Welcome to NextPy")
     message = props.get("message", "Your Python-powered web framework with True JSX")
+    [count, setCount]=useState(0)
+    def handle_increment():
+        setCount(count+1)
+   
     
     return (
         <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
@@ -19,10 +17,11 @@ def Home(props=None):
                 <a href="/about" class="inline-block px-6 py-3 mt-8 font-semibold text-blue-600 transition-all duration-300 transform bg-white rounded-lg shadow-lg hover:bg-gray-100 hover:text-blue-700 hover:scale-105">
                     Learn More
                 </a>
+                <button onClick={handle_increment}>count here</button>
             </div>
+            
         </div>
     )
-
 
 def getServerSideProps(context):
     return {
@@ -31,6 +30,5 @@ def getServerSideProps(context):
             "message": "Your Python-powered web framework with True JSX"
         }
     }
-
 
 default = Home

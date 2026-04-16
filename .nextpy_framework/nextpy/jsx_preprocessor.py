@@ -71,9 +71,48 @@ class JSXPreprocessor:
         escaped_jsx = jsx_str.replace('"', '\\"').replace('\n', '\\n')
         return f'jsx("{escaped_jsx}")'
     
+    def transform_jsx_to_psx_call(self, jsx_str: str) -> str:
+        """Transform JSX string to PSX function call with proper context handling"""
+        # For PSX, we need to handle expressions properly
+        # Don't escape the expressions, keep them as-is for PSX processing
+        return f'psx("""{jsx_str}""")'
+    
     def preprocess_content(self, content: str, file_path: str = None) -> str:
         """Preprocess content containing JSX with enhanced error handling and plugin support"""
         try:
+            # Add import statement if not present
+            # Check if this is a PSX component
+            is_psx_component = '@component' in content or 'from nextpy.psx import' in content
+            
+            # Auto-import PSX components if needed (do this first!)
+            if is_psx_component:
+                lines = content.split('\n')
+                import_index = 0
+                
+                # Find where to insert imports
+                for i, line in enumerate(lines):
+                    if line.strip().startswith('import ') or line.strip().startswith('from '):
+                        import_index = i + 1
+                    elif line.strip() and not line.startswith('#'):
+                        break
+                
+                # Check what imports are needed
+                imports_to_add = []
+                
+                # Add component decorator if used but not imported
+                if '@component' in content and 'from nextpy.psx import component' not in content and 'import component' not in content:
+                    imports_to_add.append('component')
+                
+                # Add psx function if JSX syntax is detected
+                if '<' in content and '>' in content and 'from nextpy.psx import psx' not in content and 'import psx' not in content:
+                    imports_to_add.append('psx')
+                
+                # Add the imports
+                if imports_to_add:
+                    import_statement = f"from nextpy.psx import {', '.join(imports_to_add)}"
+                    lines.insert(import_index, import_statement)
+                    content = '\n'.join(lines)
+            
             # Apply plugins if available
             if PLUGINS_AVAILABLE and plugin_manager:
                 plugin_context = PluginContext(
@@ -98,7 +137,38 @@ class JSXPreprocessor:
                     print(f"Plugin warning: {warning}")
             
             # Add import statement if not present
-            if 'from nextpy.true_jsx import jsx' not in content and 'import jsx' not in content:
+            # Check if this is a PSX component
+            is_psx_component = '@component' in content or 'from nextpy.psx import' in content
+            
+            if is_psx_component:
+                # Auto-import PSX components if needed
+                lines = content.split('\n')
+                import_index = 0
+                
+                # Find where to insert imports
+                for i, line in enumerate(lines):
+                    if line.strip().startswith('import ') or line.strip().startswith('from '):
+                        import_index = i + 1
+                    elif line.strip() and not line.startswith('#'):
+                        break
+                
+                # Check what imports are needed
+                imports_to_add = []
+                
+                # Add component decorator if used but not imported
+                if '@component' in content and 'from nextpy.psx import component' not in content and 'import component' not in content:
+                    imports_to_add.append('component')
+                
+                # Add psx function if JSX syntax is detected
+                if '<' in content and '>' in content and 'from nextpy.psx import psx' not in content and 'import psx' not in content:
+                    imports_to_add.append('psx')
+                
+                # Add the imports
+                if imports_to_add:
+                    import_statement = f"from nextpy.psx import {', '.join(imports_to_add)}"
+                    lines.insert(import_index, import_statement)
+                    content = '\n'.join(lines)
+            elif 'from nextpy.true_jsx import jsx' not in content and 'import jsx' not in content:
                 # Find the first import line or add at the top
                 lines = content.split('\n')
                 import_index = 0
@@ -119,10 +189,13 @@ class JSXPreprocessor:
             for start, end, jsx_content in reversed(jsx_blocks):
                 try:
                     # Validate individual JSX block
-                    self._validate_jsx_block(jsx_content, content, start, file_path)
+                    self._validate_jsx_block(jsx_content, content, start, file_path, is_psx=is_psx_component)
                     
                     # Replace JSX with function call
-                    function_call = self.transform_jsx_to_function_call(jsx_content)
+                    if is_psx_component:
+                        function_call = self.transform_jsx_to_psx_call(jsx_content)
+                    else:
+                        function_call = self.transform_jsx_to_function_call(jsx_content)
                     
                     # Replace the original return statement
                     original_return = content[start:end]
@@ -233,8 +306,12 @@ class JSXPreprocessor:
                         file_path=file_path
                     )
     
-    def _validate_jsx_block(self, jsx_content: str, full_content: str, position: int, file_path: str = None):
+    def _validate_jsx_block(self, jsx_content: str, full_content: str, position: int, file_path: str = None, is_psx: bool = False):
         """Validate individual JSX block for syntax errors"""
+        # Skip validation for PSX components - PSX handles its own parsing
+        if is_psx:
+            return
+            
         # Remove surrounding whitespace
         jsx_content = jsx_content.strip()
         

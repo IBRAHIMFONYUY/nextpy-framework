@@ -6,11 +6,12 @@
 import time
 import threading
 import uuid
+import inspect
 from typing import Any, Dict, List, Optional, Callable, Union
 from dataclasses import dataclass, field
 from functools import wraps
-from .virtual_dom import VNode, create_element, render, update, get_vdom_metrics
-from .parser import PSXElement, psx, render_psx
+from ..vdom.vnode import VNode, create_element, render, update
+from ..core.parser import PSXElement, psx, render_psx
 
 
 @dataclass
@@ -74,7 +75,7 @@ class PSXComponent:
 def component(func):
     """
     Decorator to create a PSX component from a function
-    Supports all the component styles you showed
+    Captures local variables for expression evaluation
     """
     def wrapper(*args, **kwargs):
         # Set up component state
@@ -89,22 +90,81 @@ def component(func):
         
         component_state.props = props
         
-        # Execute the component function
+        # Execute the component function and capture local variables
+        # Use a more reliable method to capture locals
+        
+        # Create a modified globals dict that includes our function
+        original_globals = func.__globals__.copy()
+        
+        # Execute the function and capture its locals
         result = func(props)
+        
+        # Get the most recent frame from the call stack that belongs to our component function
+        frame = None
+        current_frame = inspect.currentframe()
+        
+        # Walk up the call stack to find the component function frame
+        while current_frame:
+            if current_frame.f_code is func.__code__:
+                frame = current_frame
+                break
+            current_frame = current_frame.f_back
+        
+        component_locals = {}
+        if frame:
+            component_locals = frame.f_locals.copy()
+        
+        # Create context with props and local variables (excluding internal ones)
+        context = props.copy()
+        for key, value in component_locals.items():
+            if not key.startswith('_') and key not in ['func', 'props', 'result', 'execution_result', 'execute_component', 'wrapper', 'execute_with_locals', 'component_locals', 'component_frame', 'frame', 'current_frame', 'original_globals']:
+                context[key] = value
+        
+        # Store context in component state for expression evaluation
+        component_state.state.update(context)
         
         # Handle different return types
         if isinstance(result, PSXElement):
+            # Store context in the PSXElement for rendering
+            if not hasattr(result, '_psx_context') or not result._psx_context:
+                result._psx_context = context
+            else:
+                # Merge with existing context (component context takes precedence)
+                result._psx_context.update(context)
             return result
         elif hasattr(result, 'to_html'):
             return result
-        elif isinstance(result, str) and result.strip().startswith('<'):
-            return psx(result)
+        elif isinstance(result, str):
+            # Parse as PSX with the captured context
+            return psx(result, context)
+        elif isinstance(result, tuple):
+            # Handle JSX tuple - convert to string and parse as PSX
+            jsx_string = ''
+            for item in result:
+                if callable(item):
+                    # It's a function call (like psx(...)), execute it
+                    try:
+                        item_result = item()
+                        if hasattr(item_result, 'to_html'):
+                            jsx_string += item_result.to_html()
+                        else:
+                            jsx_string += str(item_result)
+                    except Exception as e:
+                        # If execution fails, convert to string
+                        jsx_string += str(item)
+                elif hasattr(item, '__jsx__'):
+                    # It's a JSX element, convert to string
+                    jsx_string += str(item)
+                else:
+                    jsx_string += str(item)
+            
+            if jsx_string.strip():
+                return psx(jsx_string, context)
+            else:
+                return PSXElement(tag='div', props={}, children=[])
         else:
-            return result
-    
-    # Add component metadata
-    wrapper._is_psx_component = True
-    wrapper._component_func = func
+            # Convert to PSX element
+            return psx(str(result), context)
     
     return wrapper
 
@@ -2141,6 +2201,46 @@ def create_onfullscreenchange(handler_func: Callable) -> str:
 def create_onfullscreenerror(handler_func: Callable) -> str:
     """Create onfullscreenerror handler"""
     return EventHandlers.create_onfullscreenerror(handler_func)
+
+def create_onbeforeprint(handler_func: Callable) -> str:
+    """Create onbeforeprint handler"""
+    func_name = getattr(handler_func, '__name__', 'handler')
+    return f"python_beforeprint_{func_name}"
+
+def create_onafterprint(handler_func: Callable) -> str:
+    """Create onafterprint handler"""
+    func_name = getattr(handler_func, '__name__', 'handler')
+    return f"python_afterprint_{func_name}"
+
+def create_onstorage(handler_func: Callable) -> str:
+    """Create onstorage handler"""
+    func_name = getattr(handler_func, '__name__', 'handler')
+    return f"python_storage_{func_name}"
+
+def create_onopen(handler_func: Callable) -> str:
+    """Create onopen handler"""
+    func_name = getattr(handler_func, '__name__', 'handler')
+    return f"python_open_{func_name}"
+
+def create_onmessage(handler_func: Callable) -> str:
+    """Create onmessage handler"""
+    func_name = getattr(handler_func, '__name__', 'handler')
+    return f"python_message_{func_name}"
+
+def create_onclose(handler_func: Callable) -> str:
+    """Create onclose handler"""
+    func_name = getattr(handler_func, '__name__', 'handler')
+    return f"python_close_{func_name}"
+
+def create_oninstall(handler_func: Callable) -> str:
+    """Create oninstall handler"""
+    func_name = getattr(handler_func, '__name__', 'handler')
+    return f"python_install_{func_name}"
+
+def create_onactivate(handler_func: Callable) -> str:
+    """Create onactivate handler"""
+    func_name = getattr(handler_func, '__name__', 'handler')
+    return f"python_activate_{func_name}"
 class ComponentRegistry:
     """Registry for PSX components"""
     
@@ -2197,5 +2297,33 @@ __all__ = [
     'map_list', 'conditional', 'and_condition', 'or_condition',
     'EventHandlers', 'ComponentRegistry', 'component_registry',
     'register_component', 'ChildrenComponent',
-    'get_current_component', 'reset_component_state'
+    'get_current_component', 'reset_component_state', 'clsx'
 ]
+
+
+def clsx(*classes):
+    """
+    Utility function for conditionally joining class names
+    Similar to the popular 'clsx' library in JavaScript
+    """
+    class_names = []
+    
+    for item in classes:
+        if isinstance(item, str):
+            # Direct string class name
+            class_names.append(item)
+        elif isinstance(item, (list, tuple)):
+            # Array of class names
+            nested_classes = clsx(*item)
+            if nested_classes:
+                class_names.append(nested_classes)
+        elif isinstance(item, dict):
+            # Object with conditional classes {class: boolean}
+            for class_name, condition in item.items():
+                if condition:
+                    class_names.append(class_name)
+        elif item:
+            # Truthy values (numbers, etc.)
+            class_names.append(str(item))
+    
+    return ' '.join(filter(None, class_names))

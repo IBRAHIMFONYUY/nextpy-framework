@@ -1,0 +1,28 @@
+from nextpy.psx import component, psx, useState
+
+# Create a simple test component
+@component
+def TestComponent(props=None):
+    name = props.get('name', 'World') if props else 'World'
+    return (
+        <div className="test-component">
+            <h1>Hello {name}!</h1>
+            <p>This is a test component</p>
+        </div>
+    )
+
+# Create a component that uses another component
+@component
+def ParentComponent(props=None):
+    return (
+        <div className="parent-component">
+            <h2>Parent Component</h2>
+            <TestComponent name="Child" />
+            <TestComponent name="Nested">
+                <span>Child content from parent</span>
+            </TestComponent>
+        </div>
+    )
+
+# Export for testing
+default = ParentComponent

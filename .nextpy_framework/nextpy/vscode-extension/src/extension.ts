@@ -203,7 +203,7 @@ def Page(props):
     
     return psx(
         "<div className=\"page\">",
-        "    <h1>${name.replace('-', ' ').title()}</h1>",
+        "    <h1>${name.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</h1>",
         "    <p>Welcome to the ${name} page!</p>",
         "</div>"
     )

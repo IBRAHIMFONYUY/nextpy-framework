@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from nextpy.psx import (
     compile_psx, render_psx, psx, PSXElement, PSXParser,
     component, useState, useEffect, process_python_logic,
-    VNode, create_element, vdom_render, vdom_update, get_vdom_metrics
+    VNode, create_element, render, update, get_vdom_metrics
 )
 
 from nextpy.components.head import Head
@@ -73,8 +73,8 @@ class Renderer:
             
             # Virtual DOM Functions
             'create_element': create_element,
-            'vdom_render': vdom_render,
-            'vdom_update': vdom_update,
+            'render': render,
+            'update': update,
             'get_vdom_metrics': get_vdom_metrics,
             
             # PSX Utilities
@@ -256,17 +256,31 @@ class Renderer:
                 # Plain HTML string
                 return result
             elif isinstance(result, PSXElement):
-                # PSX Element - render with PSX renderer
-                return render_psx(result)
+                # PSX Element - render with PSX renderer using component state context
+                from .psx.components import get_current_component
+                try:
+                    component_state = get_current_component()
+                    context = {**props, **component_state.state}
+                    return render_psx(result, context)
+                except:
+                    # Fallback to props if component state not available
+                    return render_psx(result)
             elif isinstance(result, VNode):
                 # Virtual DOM node - render with VDOM renderer
-                return vdom_render(result)
+                return render(result)
             elif hasattr(result, '__html__'):
                 # Object with __html__ method
                 return result.__html__()
             elif hasattr(result, 'to_html'):
-                # PSX Element with to_html method
-                return result.to_html(props)
+                # PSX Element with to_html method - use component state as context
+                from .psx.components import get_current_component
+                try:
+                    component_state = get_current_component()
+                    context = {**props, **component_state.state}
+                    return result.to_html(context)
+                except:
+                    # Fallback to props if component state not available
+                    return result.to_html(props)
             elif callable(result):
                 # Function component - call it
                 return self.render_component(result, props)
@@ -297,19 +311,68 @@ class Renderer:
         context = context or {}
         
         try:
-            # Compile PSX code
-            compiled = compile_psx(psx_code)
-            
-            # Execute with context
-            result = compiled(**context)
-            
-            # Render result
-            if isinstance(result, PSXElement):
-                return render_psx(result)
-            elif isinstance(result, VNode):
-                return vdom_render(result)
+            # DEBUG: Check if this is an interactive component
+            has_decorator = '@interactive_component' in psx_code
+            if has_decorator:
+                # For interactive components, we need to execute the code and get the component function
+                # Create a temporary module to execute the PSX code
+                import types
+                import tempfile
+                import os
+                
+                # Create temporary file
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+                    f.write(psx_code)
+                    temp_file = f.name
+                
+                try:
+                    # Import the temporary module
+                    import importlib.util
+                    spec = importlib.util.spec_from_file_location("temp_psx", temp_file)
+                    temp_module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(temp_module)
+                    
+                    # Get the component function (usually 'default' or the first function)
+                    component_func = getattr(temp_module, 'default', None)
+                    if not component_func:
+                        # Find the first callable that might be the component
+                        for attr_name in dir(temp_module):
+                            attr = getattr(temp_module, attr_name)
+                            if callable(attr) and hasattr(attr, '__wrapped__'):
+                                component_func = attr
+                                break
+                    
+                    if component_func:
+                        # Call the interactive component
+                        result = component_func(context.get('props', {}))
+                        
+                        # The result should be an InteractiveComponentResult
+                        if hasattr(result, 'to_html'):
+                            return result.to_html()
+                        else:
+                            return f"<div class='psx-error'>Component function returned: {type(result)} - {str(result)[:200]}</div>"
+                    else:
+                        return f"<div class='psx-error'>No component function found in interactive PSX. Available attributes: {[attr for attr in dir(temp_module) if not attr.startswith('_')]}</div>"
+                        
+                except Exception as e:
+                    return f"<div class='psx-error'>Error executing interactive PSX: {str(e)}</div>"
+                finally:
+                    # Clean up temp file
+                    os.unlink(temp_file)
             else:
-                return str(result)
+                # Regular PSX component - compile and render
+                compiled = compile_psx(psx_code)
+                
+                # Execute with context
+                result = compiled(**context)
+                
+                # Render result
+                if isinstance(result, PSXElement):
+                    return render_psx(result)
+                elif isinstance(result, VNode):
+                    return render(result)
+                else:
+                    return str(result)
                 
         except Exception as e:
             return f"<div class='psx-error'>PSX Rendering Error: {str(e)}</div>"
@@ -348,7 +411,7 @@ class Renderer:
                 if isinstance(result, PSXElement):
                     return render_psx(result)
                 elif isinstance(result, VNode):
-                    return vdom_render(result)
+                    return render(result)
                 else:
                     return result
             

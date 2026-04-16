@@ -401,7 +401,7 @@ def start(port: int, host: str):
 
 @cli.command()
 @click.argument("name")
-@click.option("--psx", is_flag=True, default=True, help="Create with PSX (True JSX) support")
+@click.option("--psx/--no-psx", default=True, help="Create with PSX (True JSX) support")
 @click.option("--template", default="default", help="Project template to use")
 def create(name: str, psx: bool, template: str):
     """Create a new NextPy project with True PSX support"""
@@ -440,10 +440,15 @@ def create(name: str, psx: bool, template: str):
         
         if psx:
             click.echo(f"\n  🎨 PSX Development:")
+            click.echo(f"    • All PSX utilities, hooks & components auto-imported")
+            click.echo(f"    • Use: from nextpy import component, useState, useEffect")
+            click.echo(f"    • Full auto-completion & IntelliSense support")
             click.echo(f"    • Edit pages/index.py to see PSX in action")
             click.echo(f"    • Use @component decorator for JSX syntax")
             click.echo(f"    • Try: {{for item in items:<div>{{item}}</div>}}")
+            click.echo(f"    • PSX devtools copied to .nextpy/devtools/")
             click.echo(f"    • Install VS Code extension: nextpy-psx")
+            click.echo(f"    • Language server: .nextpy/devtools/psx-language-server")
         
         click.echo()
         
@@ -456,6 +461,7 @@ def create(name: str, psx: bool, template: str):
         if project_dir.exists():
             import shutil
             shutil.rmtree(project_dir, ignore_errors=True)
+            
         click.echo(click.style(f"  🧹 Cleaned up partial files", fg="yellow"))
 
 
@@ -551,7 +557,7 @@ def version():
     click.echo(click.style("\n  📋 NextPy Framework Info", fg="cyan", bold=True))
     click.echo(click.style("  ===================\n", fg="cyan"))
     
-    click.echo(f"  🏷️  Version: 2.4.8 ")
+    click.echo(f"  🏷️  Version: 3.5.0 ")
     click.echo(f"  🐍 Python: {sys.version.split()[0]}")
     click.echo(f"  ⚡ Framework: NextPy")
     click.echo(f"  🎨 Architecture: True JSX")
@@ -562,11 +568,11 @@ def version():
     click.echo(f"  📄 Page Routes: Available")
     click.echo(f"  🧩 Component Routes: Available")
     click.echo(f"  📚 Component Library: Available")
-    click.echo(f"  👨‍💻 Developer: Ibrahim Fonyuy")
+    click.echo(f"  👨‍💻 Developer: RAHIMSTUDIOS")
     click.echo(f"  📜 License: MIT")
-    click.echo(f"  🐙 GitHub: https://github.com/IBRAHIMFONYUY/nextpy-framework")
+    click.echo(f"  🐙 GitHub: https://github.com/IRAHIMSTUDIOS/nextpy-framework")
     click.echo(f"  📖 Documentation: https://nextpy.org/docs")
-    click.echo(f"  🆘 Support: https://github.com/IBRAHIMFONYUY/nextpy-framework/issues")
+    click.echo(f"  🆘 Support: https://github.com/RAHIMSTUDIOS/nextpy-framework/issues")
     
     click.echo()
 
@@ -871,7 +877,7 @@ def _create_project_structure(project_dir: Path, psx: bool = True, template: str
     """Create a complete NextPy project structure with PSX support"""
     dirs = [
         "pages",
-        "pages/blog",
+        "pages/blog", 
         "pages/api",
         "pages/api/users",
         "components",
@@ -881,10 +887,13 @@ def _create_project_structure(project_dir: Path, psx: bool = True, template: str
         "public",
         "public/images",
         "public/fonts",
+        "public/css",
+        "public/js",
         "templates",
         ".nextpy",
         ".nextpy/plugins",
-        ".vscode"
+        ".vscode",
+        "static"
     ]
     
     for dir_path in dirs:
@@ -898,7 +907,7 @@ def _create_project_structure(project_dir: Path, psx: bool = True, template: str
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title | "NextPy App"}</title>
-    <link rel="stylesheet" href="/tailwind.css">
+    <link rel="stylesheet" href="./public/tailwind.css">
     {% block head %}{% endblock %}
 </head>
 <body class="bg-gray-50">
@@ -930,41 +939,60 @@ def _create_project_structure(project_dir: Path, psx: bool = True, template: str
     click.echo("  Created: templates/_404.html")
     
     # Create styles.css with Tailwind directives
-    (project_dir / "styles" / "global.css").write_text('''/* NextPy Global Styles */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+    (project_dir / "styles" / "styles.css").write_text('''/* NextPy Global Styles */
+@import "tailwindcss";
 
-/* Custom animations */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+@source "../templates/**/*.html";
+@source "../pages/**/*.{py,jsx,html}";
+@source "../components/**/*.{py,jsx,html}";
+@source "../../../templates/**/*.html";
+@source "../../../pages/**/*.{py,jsx,html}";
+@source "../../../components/**/*.{py,jsx,html}";
 
-.fade-in {
-    animation: fadeIn 0.5s ease-out;
-}
+.from-blue-100 { --tw-gradient-from: rgb(219 234 254); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(255 255 255 / 0)); }
+.from-blue-200 { --tw-gradient-from: rgb(191 219 254); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(255 255 255 / 0)); }
+.from-blue-300 { --tw-gradient-from: rgb(147 197 253); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(255 255 255 / 0)); }
+.from-blue-400 { --tw-gradient-from: rgb(96 165 250); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(255 255 255 / 0)); }
+.from-blue-500 { --tw-gradient-from: rgb(59 130 246); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(255 255 255 / 0)); }
+.from-blue-600 { --tw-gradient-from: rgb(37 99 235); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(255 255 255 / 0)); }
+.from-blue-700 { --tw-gradient-from: rgb(29 78 216); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(255 255 255 / 0)); }
 
-/* PSX-specific styles */
-.psx-component {
-    transition: all 0.3s ease;
-}
+.via-indigo-50 { --tw-gradient-via: rgb(248 250 252); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to, rgb(255 255 255 / 0)); }
+.via-indigo-100 { --tw-gradient-via: rgb(241 245 249); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to, rgb(255 255 255 / 0)); }
+.via-indigo-200 { --tw-gradient-via: rgb(226 232 240); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to, rgb(255 255 255 / 0)); }
+.via-indigo-300 { --tw-gradient-via: rgb(203 213 225); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to, rgb(255 255 255 / 0)); }
+.via-indigo-400 { --tw-gradient-via: rgb(148 163 184); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to, rgb(255 255 255 / 0)); }
+.via-indigo-500 { --tw-gradient-via: rgb(100 116 139); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to, rgb(255 255 255 / 0)); }
+.via-indigo-600 { --tw-gradient-via: rgb(71 85 105); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to, rgb(255 255 255 / 0)); }
+.via-indigo-700 { --tw-gradient-via: rgb(51 65 85); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to, rgb(255 255 255 / 0)); }
 
-.psx-component:hover {
-    transform: scale(1.05);
-}
+.to-purple-50 { --tw-gradient-to: rgb(250 245 255); }
+.to-purple-100 { --tw-gradient-to: rgb(243 232 255); }
+.to-purple-200 { --tw-gradient-to: rgb(233 213 255); }
+.to-purple-300 { --tw-gradient-to: rgb(216 180 254); }
+.to-purple-400 { --tw-gradient-to: rgb(196 181 253); }
+.to-purple-500 { --tw-gradient-to: rgb(168 85 247); }
+.to-purple-600 { --tw-gradient-to: rgb(147 51 234); }
+.to-purple-700 { --tw-gradient-to: rgb(126 34 206); }
 ''')
-    click.echo("  Created: styles/global.css")
+    click.echo("  Created: styles/styles.css")
     
     # Create tailwind.config.js with PSX support
-    (project_dir / "tailwind.config.js").write_text('''/** @type {import('tailwindcss').Config} */
+    (project_dir / "tailwind.config.js").write_text(''' /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    './pages/**/*.{js,ts,jsx,tsx,mdx,py,psx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx,py,psx}',
-    './templates/**/*.html',
+    // Framework templates and components
+    "./pages/**/*.{py,jsx,html}",
+    "./components/**/*.{py,jsx,html}",
+    "./templates/**/*.{html,htm}",
+    "./public/**/*.html",
+
+    // Also scan from project root (two level up)
+    "../../templates/**/*.{html,htm}",
+    "../../pages/**/*.{py,jsx,html}",
+    "../../components/**/*.{py,jsx,html}",
   ],
-  // Force include common Tailwind classes for dynamic content
+  // Force include common Tailwind classes
   safelist: [
     // Background colors
     'bg-blue-50', 'bg-blue-100', 'bg-blue-200', 'bg-blue-300', 'bg-blue-400', 'bg-blue-500', 'bg-blue-600', 'bg-blue-700',
@@ -1029,50 +1057,40 @@ module.exports = {
     // Positioning
     'relative', 'absolute', 'fixed', 'sticky', 'top-0', 'bottom-0', 'left-0', 'right-0'
   ],
-  theme: {
-    extend: {
-      colors: {
-        primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
-          950: '#172554',
-        },
-      },
-      animation: {
-        'fade-in': 'fadeIn 0.5s ease-out',
-      },
-    },
-  },
   plugins: [],
-}''')
+}; ''')
     click.echo("  Created: tailwind.config.js")
     
     # Create package.json with dependencies
-    (project_dir / "package.json").write_text('''{
-  "name": "nextpy-app",
+    (project_dir / "package.json").write_text(''' {
+  "name": "nextpy-framework",
   "version": "1.0.0",
-  "description": "NextPy app with PSX (True JSX) support",
-  "scripts": {
-    "dev": "nextpy dev",
-    "build": "nextpy build",
-    "start": "nextpy start",
-    "css:build": "tailwindcss -i styles/global.css -o public/tailwind.css --watch",
-    "css:prod": "tailwindcss -i styles/global.css -o public/tailwind.css --minify"
+  "description": "A Python web framework inspired by Next.js. Build modern web applications with file-based routing, server-side rendering (SSR), static site generation (SSG), and more.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
   },
+  "scripts": {
+    "test": "pytest -q",
+    "build:tailwind": "npx tailwindcss -i ./styles/styles.css -o ./public/tailwind.css --minify",
+    "ci:tailwind": "npm ci && npm run build:tailwind"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "devDependencies": {
-    "tailwindcss": "^4.2.1",
-    "autoprefixer": "^10.4.14",
-    "postcss": "^8.4.24"
+    "@tailwindcss/cli": "^4.2.1",
+    "autoprefixer": "^10.4.22",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.2.1"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.2.1",
+    "postcss-cli": "^11.0.1"
   }
-}''')
+}
+ ''')
     click.echo("  Created: package.json")
     
     # Create PostCSS configuration
@@ -1084,6 +1102,10 @@ module.exports = {
 }''')
     click.echo("  Created: postcss.config.js")
     
+    # Copy PSX devtools if PSX is enabled
+    if psx:
+        _copy_psx_devtools(project_dir)
+    
     # Create PSX homepage if enabled
     if psx:
         _create_psx_homepage(project_dir)
@@ -1094,12 +1116,25 @@ module.exports = {
         _create_traditional_homepage(project_dir)
     
     # Create requirements.txt
-    (project_dir / "requirements.txt").write_text('''nextpy-framework>=1.0.0
+    (project_dir / "requirements.txt").write_text('''# NextPy Framework with PSX Support
+nextpy-framework>=2.5.0
 uvicorn[standard]>=0.24.0
-pydantic>=1.10.0
+fastapi>=0.104.0
+pydantic>=2.0.0
 jinja2>=3.1.0
 watchdog>=2.3.0
 click>=8.1.0
+python-multipart>=0.0.6
+aiofiles>=23.0.0
+
+# PSX Language Server Dependencies (optional)
+pygls>=0.12.0
+lsprotocol>=2023.0.0
+
+# Development Dependencies
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
 ''')
     click.echo("  Created: requirements.txt")
     
@@ -1107,6 +1142,23 @@ click>=8.1.0
     (project_dir / "README.md").write_text('''# NextPy App
 
 A modern Python web framework with True JSX support.
+
+## 🚀 Auto-Imported PSX Features
+
+All PSX utilities, hooks, and components are automatically available:
+
+```python
+from nextpy import component, psx, useState, useEffect, clsx
+# No need for: from nextpy.psx import ...
+```
+
+### Available Imports:
+- **Core**: `component`, `psx`, `render_psx`, `fragment`
+- **React Hooks**: `useState`, `useEffect`, `useContext`, `useReducer`, `useRef`, `useMemo`, `useCallback`
+- **Custom Hooks**: `useCounter`, `useToggle`, `useLocalStorage`, `useFetch`, `useDebounce`
+- **Event Handlers**: `create_onclick`, `create_onchange`, `create_onsubmit`, etc.
+- **Utilities**: `clsx`, `VNode`, `create_element`, `compile_psx`
+- **And 40+ more features!**
 
 ## Getting Started
 
@@ -1166,6 +1218,14 @@ def Button(props=None):
     
     # Create main.py
     (project_dir / "main.py").write_text('''"""NextPy Application Entry Point"""
+
+import sys
+from pathlib import Path
+
+# Add the project root to Python path for imports
+project_root = Path(__file__).parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 from nextpy.server.app import NextPyApp
 
@@ -1248,18 +1308,46 @@ Thumbs.db
     click.echo("  Created: .gitignore")
 
 
+def _copy_psx_devtools(project_dir: Path):
+    """Copy PSX devtools folder to the new project"""
+    import shutil
+    
+    # Get the path to the devtools source
+    current_file = Path(__file__).resolve()
+    devtools_source = current_file.parent / "psx" / "devtools"
+    devtools_dest = project_dir / ".nextpy" / "devtools"
+    
+    if devtools_source.exists():
+        try:
+            # Copy the entire devtools folder
+            shutil.copytree(devtools_source, devtools_dest, dirs_exist_ok=True)
+            click.echo("  Created: .nextpy/devtools/ (PSX Language Server & VS Code Extension)")
+            
+            # Make the language server executable
+            language_server = devtools_dest / "psx-language-server"
+            if language_server.exists():
+                import stat
+                current_permissions = language_server.stat().st_mode
+                language_server.chmod(current_permissions | stat.S_IEXEC)
+                click.echo("    Made psx-language-server executable")
+                
+        except Exception as e:
+            click.echo(f"  ⚠️  Warning: Could not copy PSX devtools: {str(e)}")
+    else:
+        click.echo("  ⚠️  Warning: PSX devtools not found in framework")
+
+
 def _create_psx_homepage(project_dir: Path):
     """Create PSX homepage with True JSX syntax"""
     (project_dir / "pages" / "index.py").write_text('''"""
 NextPy PSX Homepage - True JSX in Python
-Demonstrates the revolutionary PSX system with exact JSX syntax
+All PSX utilities, hooks, and components are auto-imported
 """
 
-from nextpy.psx import component, psx
+from nextpy import component, psx
 
 @component
 def Home(props=None):
-    """Homepage component with True JSX syntax"""
     props = props or {}
     title = props.get("title", "Welcome to NextPy")
     message = props.get("message", "Your Python-powered web framework with True JSX")
@@ -1268,35 +1356,15 @@ def Home(props=None):
         <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
             <div class="text-center text-white">
                 <h1 class="mb-4 text-5xl font-bold">{title}</h1>
-                <p class="text-xl mb-8">{message}</p>
-                
-                <div class="grid grid-cols-3 gap-4 mb-8">
-                    {for feature in [
-                        {"title": "True JSX", "desc": "Write exact JSX syntax in Python"},
-                        {"title": "Python Logic", "desc": "Real Python for loops in JSX"},
-                        {"title": "Virtual DOM", "desc": "Optimized rendering"}
-                    ]:
-                        <div class="p-4 bg-white bg-opacity-20 rounded-lg">
-                            <h3 class="font-semibold">{feature["title"]}</h3>
-                            <p class="text-sm mt-1">{feature["desc"]}</p>
-                        </div>
-                    }
-                </div>
-                
-                <div class="space-x-4">
-                    <a href="/about" class="inline-block px-6 py-3 font-semibold text-blue-600 bg-white rounded-lg shadow-lg hover:bg-gray-100 transition-colors">
-                        Learn More
-                    </a>
-                    <a href="/examples" class="inline-block px-6 py-3 font-semibold text-white bg-purple-600 rounded-lg shadow-lg hover:bg-purple-700 transition-colors">
-                        View Examples
-                    </a>
-                </div>
+                <p class="text-xl">{message}</p>
+                <a href="/about" class="inline-block px-6 py-3 mt-8 font-semibold text-blue-600 transition-all duration-300 transform bg-white rounded-lg shadow-lg hover:bg-gray-100 hover:text-blue-700 hover:scale-105">
+                    Learn More
+                </a>
             </div>
         </div>
     )
 
 def getServerSideProps(context):
-    """Server-side props for homepage"""
     return {
         "props": {
             "title": "Welcome to NextPy",
@@ -1304,7 +1372,6 @@ def getServerSideProps(context):
         }
     }
 
-# Default export for NextPy routing
 default = Home
 ''')
     click.echo("  Created: pages/index.py (PSX homepage)")
@@ -1312,9 +1379,10 @@ default = Home
     # Create sample components
     (project_dir / "components" / "Button.py").write_text('''"""
 Button Component - Reusable PSX button component
+All PSX utilities, hooks, and components are auto-imported
 """
 
-from nextpy.psx import component
+from nextpy import component, clsx
 
 @component
 def Button(props=None):
@@ -1379,9 +1447,10 @@ def _create_psx_about_page(project_dir: Path):
     """Create PSX about page"""
     (project_dir / "pages" / "about.py").write_text('''"""
 NextPy PSX About Page - Demonstrating advanced PSX features
+All PSX utilities, hooks, and components are auto-imported
 """
 
-from nextpy.psx import component, psx
+from nextpy import component, psx, clsx
 
 @component
 def About(props=None):
@@ -1460,9 +1529,10 @@ def _create_psx_examples(project_dir: Path):
     """Create PSX examples page"""
     (project_dir / "pages" / "examples.py").write_text('''"""
 NextPy PSX Examples - Showcasing all PSX features
+All PSX utilities, hooks, and components are auto-imported
 """
 
-from nextpy.psx import component, psx, useState, useEffect
+from nextpy import component, psx, useState, useEffect
 
 @component
 def Examples(props=None):
@@ -1552,9 +1622,23 @@ def _create_vscode_settings(project_dir: Path):
   "editor.insertSpaces": true,
   "python.defaultInterpreterPath": "./venv/bin/python",
   "python.linting.enabled": true,
-  "python.formatting.provider": "black"
+  "python.formatting.provider": "black",
+  "psx.languageServer.enabled": true,
+  "psx.languageServer.path": "./.nextpy/devtools/psx-language-server",
+  "psx.formatting.enabled": true,
+  "psx.validation.enabled": true,
+  "psx.autocomplete.enabled": true,
+  "psx.autoImport.enabled": true,
+  "psx.suggestions.enabled": true,
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.autoCompleteBrackets": true,
+  "python.analysis.typeCheckingMode": "basic",
+  "editor.suggestSelection": "first",
+  "editor.wordBasedSuggestions": true,
+  "editor.parameterHints.enabled": true,
+  "editor.snippetSuggestions": "inline"
 }''')
-    click.echo("  Created: .vscode/settings.json (PSX support)")
+    click.echo("  Created: .vscode/settings.json (PSX support + Language Server)")
     
     # Create VS Code extensions recommendation
     (project_dir / ".vscode" / "extensions.json").write_text('''{
@@ -1566,6 +1650,23 @@ def _create_vscode_settings(project_dir: Path):
   ]
 }''')
     click.echo("  Created: .vscode/extensions.json")
+    
+    # Create launch configuration for debugging PSX language server
+    (project_dir / ".vscode" / "launch.json").write_text('''{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug PSX Language Server",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/.nextpy/devtools/psx-language-server",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "args": ["--stdio"]
+    }
+  ]
+}''')
+    click.echo("  Created: .vscode/launch.json (Language Server Debugging)")
     
     # Create NextPy configuration
     (project_dir / ".nextpy" / "config.js").write_text('''/** NextPy Configuration */

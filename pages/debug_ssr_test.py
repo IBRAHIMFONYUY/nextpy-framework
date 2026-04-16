@@ -1,18 +1,12 @@
-def Home(props=None):
-    props = props or {}
-    title = props.get("title", "Welcome to NextPy!")
-    message = props.get("message", "Build amazing web apps with Python and True JSX")
-
-    return (
-        <div className="p-4">
-            <h1>{title}</h1>
-            <p>{message}</p>
-        </div>
-    )
+def get_template():
+    """Return the template to render"""
+    return "debug_ssr_test.html"
 
 
 def getServerSideProps(context):
-    return {"props": {"title": "Welcome from SSR", "message": "Rendered on the server"}}
-
-
-default = Home
+    """SSR data fetching function"""
+    return {
+        "props": {
+            "title": "SSR Test - NextPy Framework"
+        }
+    }

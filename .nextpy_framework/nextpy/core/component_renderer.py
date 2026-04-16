@@ -7,6 +7,8 @@ import importlib.util
 import sys
 import time
 import os
+import inspect
+import html
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 from ..true_jsx import JSXElement, render_jsx, JSXComponent
@@ -99,8 +101,8 @@ class ComponentRenderer:
         self.cache_stats['misses'] += 1
         
         try:
-            # Check if file contains JSX syntax
-            if is_jsx_file(file_path):
+            # Check if file contains JSX syntax or is a .psx file
+            if is_jsx_file(file_path) or file_path.suffix == '.psx':
                 # Load with JSX transformer
                 module = load_jsx_module(file_path)
             else:
@@ -208,10 +210,25 @@ class ComponentRenderer:
             if component is None:
                 raise ValueError(f"No component found in {file_path}")
             
+            # Check if the original file has an interactive component decorator
+            has_interactive_decorator = False
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    original_content = f.read()
+                has_interactive_decorator = '@interactive_component' in original_content
+            except:
+                pass
+            
             # Render the component with props
             if callable(component):
-                # Check if it's a decorated component
-                if hasattr(component, 'is_component'):
+                # Check if it's an interactive component (has __wrapped__ attribute from decorator)
+                is_interactive = hasattr(component, '__wrapped__')
+                is_component = hasattr(component, 'is_component')
+                
+                if is_interactive:
+                    # This is an interactive component, call it through the decorator
+                    rendered = component(page_props)
+                elif is_component:
                     rendered = component(page_props)
                 else:
                     rendered = component(page_props)
@@ -219,8 +236,56 @@ class ComponentRenderer:
                 # It's already a JSX element
                 rendered = component
             
-            # Convert to HTML, passing page props as context for {expressions}
-            html = render_jsx(rendered, page_props)
+            # Check if this is an InteractiveComponentResult
+            if hasattr(rendered, 'is_interactive') and hasattr(rendered, 'to_html'):
+                # This is an interactive component result
+                html = rendered.to_html()
+            elif has_interactive_decorator and not hasattr(component, '__wrapped__'):
+                # The original file had @interactive_component but the decorator wasn't applied
+                # This means we need to apply the decorator to the rendered HTML
+                html = self._apply_interactive_component_to_rendered_html(rendered, original_content, page_props)
+            else:
+                # Convert to HTML, passing page props as context for {expressions}
+                # Check if this is a PSX component and handle Server/Client components
+                if hasattr(component, '_is_psx_component') or 'psx' in str(type(rendered)):
+                    # Import server/client component system
+                    try:
+                        from ..psx.server_client_components import render_component
+                        result = render_component(component, page_props)
+                        
+                        # Handle client component return format
+                        if isinstance(result, dict) and result.get('is_client'):
+                            # Client component - extract HTML and prepare for hydration
+                            html = result['html']
+                            
+                            # Add client component hydration script
+                            hydration_script = f"""
+                            <script>
+                            window.__NEXTPY_CLIENT_COMPONENTS__ = window.__NEXTPY_CLIENT_COMPONENTS__ || [];
+                            window.__NEXTPY_CLIENT_COMPONENTS__.push({{
+                                id: '{result['component_id']}',
+                                props: {repr(result['props'])},
+                                hasInteractivity: {result['has_interactivity']}
+                            }});
+                            </script>
+                            """
+                            
+                            # Append hydration script to HTML
+                            if '</body>' in html:
+                                html = html.replace('</body>', f'{hydration_script}</body>')
+                            else:
+                                html += hydration_script
+                                
+                        else:
+                            # Server component - just use the HTML
+                            html = result
+                            
+                    except ImportError:
+                        # Fallback to regular PSX rendering
+                        from ..psx.core.parser import render_psx
+                        html = render_psx(rendered, page_props)
+                else:
+                    html = render_jsx(rendered, page_props)
             
             # Inject debug icon in development mode
             if AUTO_DEBUG_AVAILABLE and should_show_debug():
@@ -244,57 +309,515 @@ class ComponentRenderer:
         except Exception as e:
             return self._render_error_page(str(e), file_path)
     
+
     def _wrap_in_html(self, content: str, props: Dict[str, Any]) -> str:
-        """Wrap content in basic HTML structure"""
-        title = props.get('title', 'NextPy App')
-        description = props.get('description', 'NextPy Application')
-        
-        # Include local Tailwind stylesheet by default for created apps
+        """Wrap content in full NextPy HTML document (Dev + Prod ready)"""
+
+        title = html.escape(props.get('title', 'NextPy App'))
+        description = html.escape(props.get('description', 'NextPy Application'))
+
+        dev_mode = props.get("dev", True)
+
+        # 🔥 Inject Dev Tools (only in dev mode)
+        dev_scripts = ""
+        if dev_mode:
+            dev_scripts = """
+    <script>
+    /* ===============================
+    NextPy Live Error Overlay
+    ================================ */
+
+    const socket = new WebSocket("ws://localhost:5000");
+
+    let lastError = null;
+
+    // Handle WebSocket connection errors gracefully
+    socket.onerror = (error) => {
+        console.log("NextPy Live Error Overlay: WebSocket connection failed - development tool not available");
+    };
+    
+    socket.onclose = (event) => {
+        if (event.code !== 1000) {
+            console.log("NextPy Live Error Overlay: WebSocket connection closed");
+        }
+    };
+
+    socket.onmessage = (event) => {
+        const err = JSON.parse(event.data);
+        lastError = err;
+        showErrorOverlay(err);
+    };
+
+    function showErrorOverlay(err) {
+        let overlay = document.getElementById("nextpy-error-overlay");
+
+        if (!overlay) {
+            overlay = document.createElement("div");
+            overlay.id = "nextpy-error-overlay";
+            document.body.appendChild(overlay);
+        }
+
+        overlay.innerHTML = `
+        <div style="
+            position:fixed;
+            inset:0;
+            
+            color:white;
+            z-index:9999;
+            padding:20px;
+            font-family:monospace;
+        ">
+            <h2 style="color:#ff5555;">🚨 NextPy Runtime Error</h2>
+            <p><b>${err.message}</b></p>
+
+            <p>
+                📄 <span onclick="openFile('${err.file}', ${err.line})"
+                style="color:#4ade80;cursor:pointer;">
+                    ${err.file}:${err.line}
+                </span>
+            </p>
+
+            <pre style="margin-top:10px;">${err.code || ''}</pre>
+
+            <div style="margin-top:15px;display:flex;gap:10px;">
+                <button onclick="closeOverlay()">Close</button>
+                <button onclick="highlightError()">Highlight</button>
+                <button onclick="copyError()">Copy</button>
+                <button onclick="explainError()">🤖 Explain</button>
+            </div>
+        </div>
+        `;
+    }
+
+    function closeOverlay() {
+        document.getElementById("nextpy-error-overlay")?.remove();
+    }
+
+    function highlightError() {
+        document.body.style.outline = "3px solid red";
+    }
+
+    function copyError() {
+        navigator.clipboard.writeText(JSON.stringify(lastError, null, 2));
+        alert("Copied error!");
+    }
+
+    function openFile(file, line) {
+        fetch(`/__nextpy/open?file=${file}&line=${line}`);
+    }
+
+    function explainError() {
+        if (!lastError) return;
+
+        let suggestions = [];
+
+        if (lastError.message.includes("NoneType")) {
+            suggestions.push("Check for null/None before usage.");
+        }
+        if (lastError.message.includes("not defined")) {
+            suggestions.push("Variable might not be declared or imported.");
+        }
+        if (lastError.message.includes("unexpected indent")) {
+            suggestions.push("Fix indentation in your code.");
+        }
+
+        alert("🧠 Suggestions:\\n\\n" + suggestions.join("\\n"));
+    }
+    </script>
+    """
+
         return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
+    <html lang="en">
+    <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <title>{title}</title>
     <meta name="description" content="{description}">
-    <link rel="stylesheet" href="/tailwind.css">
+
+    <link rel="stylesheet" href="./public/tailwind.css">
+
     <style>
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }}
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+
+    body {{
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      
+    }}
     </style>
-</head>
-<body>
+
+    </head>
+
+    <body>
+
+    <div id="__nextpy_root">
     {content}
-</body>
-</html>"""
-    
+    </div>
+
+    {dev_scripts}
+
+    </body>
+    </html>
+    """
+        
+   
+
     def _render_error_page(self, error: str, file_path: Path) -> str:
-        """Render an error page"""
-        return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
+        """Render a professional NextPy error page (production-grade UI)"""
+
+        safe_error = html.escape(error)
+        safe_path = html.escape(str(file_path))
+
+        return f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Error - NextPy</title>
+
+    <title>NextPy Error</title>
+
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; 
-                padding: 2rem; background: #fef2f2; }}
-        .error {{ background: white; padding: 2rem; border-radius: 8px; 
-                 border-left: 4px solid #ef4444; max-width: 800px; }}
-        h1 {{ color: #dc2626; margin-bottom: 1rem; }}
-        pre {{ background: #f3f4f6; padding: 1rem; border-radius: 4px; 
-              overflow-x: auto; margin-top: 1rem; }}
+    :root {{
+        --bg: #0b1220;
+        --card: #0f172a;
+        --border: #1e293b;
+        --accent: #ef4444;
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --button: #1f2937;
+        --button-hover: #334155;
+    }}
+
+    * {{
+        box-sizing: border-box;
+    }}
+
+    body {{
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: radial-gradient(circle at top, #1e293b, #020617);
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+    }}
+
+    .container {{
+        width: 92%;
+        max-width: 950px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: 0 25px 80px rgba(0,0,0,0.6);
+        overflow: hidden;
+        animation: fadeIn 0.3s ease;
+    }}
+
+    .header {{
+        padding: 1.2rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }}
+
+    .header svg {{
+        width: 20px;
+        height: 20px;
+        color: var(--accent);
+    }}
+
+    .header h1 {{
+        font-size: 1rem;
+        font-weight: 600;
+    }}
+
+    .subtitle {{
+        padding: 0 1.5rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+        margin-top: 4px;
+    }}
+
+    .section {{
+        padding: 1.2rem 1.5rem;
+    }}
+
+    .file {{
+        font-family: monospace;
+        background: #020617;
+        border: 1px solid var(--border);
+        padding: 0.6rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+    }}
+
+    .toggle {{
+        margin-top: 12px;
+        color: #38bdf8;
+        cursor: pointer;
+        font-size: 0.85rem;
+    }}
+
+    pre {{
+        margin-top: 12px;
+        background: #020617;
+        border: 1px solid var(--border);
+        padding: 1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+        max-height: 350px;
+        display: none;
+        font-size: 0.8rem;
+        line-height: 1.4;
+    }}
+
+    .actions {{
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }}
+
+    button {{
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--button);
+        color: var(--text);
+        border: 1px solid var(--border);
+        padding: 0.5rem 0.9rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+    }}
+
+    button:hover {{
+        background: var(--button-hover);
+    }}
+
+    button svg {{
+        width: 14px;
+        height: 14px;
+    }}
+
+    .footer {{
+        padding: 0.8rem 1.5rem;
+        font-size: 0.75rem;
+        color: var(--muted);
+        border-top: 1px solid var(--border);
+    }}
+
+    @keyframes fadeIn {{
+        from {{ opacity: 0; transform: translateY(6px); }}
+        to {{ opacity: 1; transform: translateY(0); }}
+    }}
     </style>
-</head>
-<body>
-    <div class="error">
-        <h1>Component Rendering Error</h1>
-        <p>Failed to render component from: <code>{file_path}</code></p>
-        <pre>{error}</pre>
+    </head>
+
+    <body>
+
+    <div class="container">
+
+        <div class="header">
+            <!-- Warning Icon -->
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M12 9v4m0 4h.01M10.29 3.86l-8 14A1 1 0 003 20h18a1 1 0 00.87-1.5l-8-14a1 1 0 00-1.74 0z"/>
+            </svg>
+            <h1>Rendering Error</h1>
+        </div>
+
+        <div class="subtitle">
+            An error occurred while rendering a component.
+        </div>
+
+        <div class="section">
+            <div class="file">{safe_path}</div>
+
+            <div class="toggle" onclick="toggleError()">Show details</div>
+
+            <pre id="errorBox">{safe_error}</pre>
+        </div>
+
+        <div class="actions">
+
+            <button onclick="retry()">
+                <!-- Refresh Icon -->
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M4 4v6h6M20 20v-6h-6M5.6 19A9 9 0 1019 5.6"/>
+                </svg>
+                Retry
+            </button>
+
+            <button onclick="goHome()">
+                <!-- Home Icon -->
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M3 12l9-9 9 9M9 21V9h6v12"/>
+                </svg>
+                Home
+            </button>
+
+            <button onclick="copyError()">
+                <!-- Copy Icon -->
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <rect x="9" y="9" width="13" height="13" rx="2"/>
+                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                </svg>
+                Copy
+            </button>
+
+            <button onclick="explainError()">
+                <!-- Brain/AI Icon -->
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M9 3a3 3 0 00-3 3v1a3 3 0 000 6v1a3 3 0 003 3"/>
+                    <path d="M15 3a3 3 0 013 3v1a3 3 0 010 6v1a3 3 0 01-3 3"/>
+                </svg>
+                Explain
+            </button>
+
+        </div>
+
+        <div class="footer">
+            NextPy Development Mode
+        </div>
+
     </div>
-</body>
-</html>"""
-    
+
+    <script>
+    function toggleError() {{
+        const box = document.getElementById("errorBox");
+        const toggle = document.querySelector(".toggle");
+
+        if (box.style.display === "none" || box.style.display === "") {{
+            box.style.display = "block";
+            toggle.innerText = "Hide details";
+        }} else {{
+            box.style.display = "none";
+            toggle.innerText = "Show details";
+        }}
+    }}
+
+    function retry() {{
+        location.reload();
+    }}
+
+    function goHome() {{
+        window.location.href = "/";
+    }}
+
+    function copyError() {{
+        const text = document.getElementById("errorBox").innerText;
+        navigator.clipboard.writeText(text);
+    }}
+
+    function explainError() {{
+        alert("AI debugging module will analyze this error in future versions.");
+    }}
+    </script>
+
+    </body>
+    </html>
+    """
+
+    def _apply_interactive_component_to_rendered_html(self, rendered_html: str, original_content: str, page_props: Dict[str, Any]) -> str:
+        """
+        Apply interactive component decorator to already-rendered HTML
+        This method bridges the gap between PSX rendering and hydration system
+        """
+        try:
+            # Import the interactive component decorator
+            from ..psx.hydration.decorators import (
+                extract_handler_functions, 
+                convert_handler_attributes_in_html,
+                generate_handler_registration_script,
+                python_code_to_js
+            )
+            from ..psx.hydration.engine import get_hydration_engine
+            from ..psx.hydration.integration import get_component_hydrator
+            
+            # Extract handlers from the original content
+            handlers = extract_handler_functions(lambda: None)  # We'll parse the content directly
+            
+            # Parse the original content to find handler functions
+            import re
+            handler_pattern = r'def\s+(\w+)\s*\([^)]*\)\s*:'
+            handler_matches = re.findall(handler_pattern, original_content)
+            
+            # Create a temporary function to extract handlers
+            def temp_func():
+                pass
+            
+            # Manually extract handler code from original content
+            handlers = {}
+            lines = original_content.split('\n')
+            current_handler = None
+            handler_lines = []
+            
+            for line in lines:
+                if re.match(r'\s*def\s+(\w+)\s*\(', line):
+                    if current_handler:
+                        handlers[current_handler] = '\n'.join(handler_lines)
+                    current_handler = re.match(r'\s*def\s+(\w+)\s*\(', line).group(1)
+                    handler_lines = [line]
+                elif current_handler and line.strip():
+                    # Check if we're still in the function (based on indentation)
+                    if line.startswith('    ') or line.startswith('\t'):
+                        handler_lines.append(line)
+                    else:
+                        # Function ended
+                        handlers[current_handler] = '\n'.join(handler_lines)
+                        current_handler = None
+                        handler_lines = []
+            
+            # Add the last handler if there is one
+            if current_handler:
+                handlers[current_handler] = '\n'.join(handler_lines)
+            
+            # Extract state keys
+            state_pattern = r'\[(\w+),\s*set\w+\]\s*=\s*useState'
+            state_keys = re.findall(state_pattern, original_content)
+            
+            # Convert handler attributes in HTML
+            html_with_handlers = convert_handler_attributes_in_html(rendered_html, handlers, state_keys)
+            
+            # Get hydration engine and generate component ID
+            engine = get_hydration_engine()
+            component_id = engine.generate_component_id()
+            
+            # Register component
+            component_data = {
+                'name': file_path.stem,
+                'state': {key: page_props.get(key, '') for key in state_keys},
+                'handlers': list(handlers.keys()),
+                'effects': [],
+                'props': page_props,
+            }
+            engine.register_component(component_data)
+            
+            # Wrap HTML with hydration data
+            state = {key: page_props.get(key, '') for key in state_keys}
+            hydrated_html = engine.generate_html_wrapper(component_id, html_with_handlers, state)
+            
+            # Generate scripts
+            full_script = engine.generate_hydration_script()
+            handler_script = generate_handler_registration_script(handlers, component_id, state_keys=state_keys)
+            hydrator = get_component_hydrator()
+            hydration_script = hydrator.generate_hydration_script()
+            
+            # Combine all scripts in correct order
+            complete_script = f"{full_script}\n\n{hydration_script}\n\n{handler_script}"
+            
+            # Return HTML with embedded scripts
+            return f"{hydrated_html}\n<script type='text/javascript'>\n{complete_script}\n</script>"
+            
+        except Exception as e:
+            # Fallback: return original HTML with error comment
+            return f"<!-- Interactive component error: {str(e)} -->\n{rendered_html}"
+
     def render_api_route(self, file_path: Path, request_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Render API route (Next.js API routes style)

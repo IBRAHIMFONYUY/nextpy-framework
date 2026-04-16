@@ -196,7 +196,7 @@ class SecurityManager:
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: https:",
             "font-src 'self' data:",
-            "connect-src 'self'",
+            "connect-src 'self' ws://localhost:* ws://127.0.0.1:*",
             "frame-src 'self'",
             "object-src 'none'",
             "base-uri 'self'",
