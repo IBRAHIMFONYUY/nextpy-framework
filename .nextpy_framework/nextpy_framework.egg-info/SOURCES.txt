@@ -67,6 +67,10 @@ pyproject.toml
 .nextpy_framework/nextpy/psx/devtools/psx_formatter.py
 .nextpy_framework/nextpy/psx/devtools/server_client_components.py
 .nextpy_framework/nextpy/psx/devtools/setup.py
+.nextpy_framework/nextpy/psx/hydration/__init__.py
+.nextpy_framework/nextpy/psx/hydration/decorators.py
+.nextpy_framework/nextpy/psx/hydration/engine.py
+.nextpy_framework/nextpy/psx/hydration/integration.py
 .nextpy_framework/nextpy/psx/renderer/renderer.py
 .nextpy_framework/nextpy/psx/tests/test_full_integration.py
 .nextpy_framework/nextpy/psx/utils/helpers.py
