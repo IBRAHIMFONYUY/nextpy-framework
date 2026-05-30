@@ -10,8 +10,8 @@
 
 ![PyPI](https://img.shields.io/pypi/v/nextpy-framework)
 ![Python](https://img.shields.io/pypi/pyversions/nextpy-framework)
-![License](https://img.shields.io/github/license/RahimStudios/nextpy)
-![Stars](https://img.shields.io/github/stars/RahimStudios/nextpy)
+![License](https://img.shields.io/github/license/RahimStudios/nextpy-framework)
+![Stars](https://img.shields.io/github/stars/RahimStudios/nextpy-framework)
 
 
 
