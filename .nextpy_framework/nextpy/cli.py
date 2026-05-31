@@ -628,11 +628,7 @@ def create(name: str, psx: bool, template: str):
             )
         )
         # Clean up partial creation
-
-        # Clean up partial creation
         if project_dir.exists():
-            import shutil
-
             shutil.rmtree(project_dir, ignore_errors=True)
 
         click.echo(click.style(f"  🧹 Cleaned up partial files", fg="yellow"))
@@ -1104,17 +1100,23 @@ def _create_project_structure(
         "components",
         "components/ui",
         "components/layout",
+        "docs",
+        "hooks",
         "styles",
         "public",
         "public/images",
         "public/fonts",
         "public/css",
         "public/js",
+        "middleware",
         "templates",
+        "tests",
+        "utils",
         ".nextpy",
         ".nextpy/plugins",
         ".vscode",
         "static",
+        "models"
     ]
 
     for dir_path in dirs:
