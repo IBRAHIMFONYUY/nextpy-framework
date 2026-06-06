@@ -86,7 +86,30 @@ class HydrationEngine:
         set(key, value) {{
             const oldValue = this.state[key];
             this.state[key] = value;
+            console.log('StateManager.set:', key, '=', value, '(old:', oldValue, ')');
             this.notifySubscribers(key, value, oldValue);
+            
+            // CRITICAL: trigger full re-render on state change
+            if (this.component && this.component.rerender) {{
+                console.log('StateManager.set: Calling component.rerender()');
+                this.component.rerender();
+            }}
+            
+            // CRITICAL: update all data bindings in DOM
+            if (this.component && this.component.updateBindings) {{
+                console.log('StateManager.set: Calling component.updateBindings()');
+                this.component.updateBindings();
+            }}
+        }}
+        
+        updateUI() {{
+            // Update all data bindings with current state
+            const bindings = this.component.bindings;
+            bindings.forEach((binding, elementId) => {{
+                const {{ property, stateKey, element }} = binding;
+                const value = this.get(stateKey);
+                this.component.updateBinding(elementId, property, value);
+            }});
         }}
         
         subscribe(callback) {{
@@ -116,6 +139,7 @@ class HydrationEngine:
             this.id = id;
             this.element = document.getElementById(id);
             this.stateManager = new StateManager(initialState);
+            this.stateManager.component = this;  // CRITICAL: Set component reference
             this.unsubscribers = [];
             this.bindings = new Map();
             
@@ -234,6 +258,53 @@ class HydrationEngine:
             console.log('Effects setup for component:', this.id);
         }}
         
+        rerender() {{
+            // Re-render the component with current state
+            if (!this.element) return;
+            
+            console.log('Rerendering component:', this.id, 'with state:', this.stateManager.state);
+            
+            // Update all data bindings with current state
+            this.updateUI();
+        }}
+        
+        updateBindings() {{
+            // Update all DOM elements with data-bind attributes
+            if (!this.element) {{
+                console.error('updateBindings: No element found for component:', this.id);
+                return;
+            }}
+            
+            console.log('updateBindings: Starting for component:', this.id, 'with state:', this.stateManager.state);
+            
+            const boundElements = this.element.querySelectorAll('[data-bind]');
+            console.log('updateBindings: Found', boundElements.length, 'elements with data-bind');
+            
+            boundElements.forEach(el => {{
+                const binding = el.getAttribute('data-bind');
+                if (!binding) return;
+                
+                const [property, stateKey] = binding.split(':');
+                const value = this.stateManager.get(stateKey);
+                
+                console.log('updateBindings: Updating element with binding:', binding, 'value:', value);
+                
+                try {{
+                    if (property === 'textContent') {{
+                        el.textContent = String(value);
+                    }} else if (property === 'innerHTML') {{
+                        el.innerHTML = String(value);
+                    }} else if (property in el) {{
+                        el[property] = value;
+                    }}
+                }} catch (error) {{
+                    console.error('Binding update error:', error);
+                }}
+            }});
+            
+            console.log('Updated', boundElements.length, 'data bindings');
+        }}
+        
         destroy() {{
             // Cleanup all subscriptions
             this.unsubscribers.forEach(unsub => {{
@@ -327,7 +398,7 @@ class HydrationEngine:
         hydration_script = self.generate_hydration_script(component_id)
         
         return f"""
-<div id="{component_id}" class="nextpy-component">
+<div id="{component_id}" data-component-id="{component_id}" class="nextpy-component">
     {html_content}
 </div>
 <script>

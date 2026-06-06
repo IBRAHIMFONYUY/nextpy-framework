@@ -7,6 +7,7 @@ import ast
 import inspect
 from typing import Dict, List, Any, Optional, Tuple, Callable
 from .actions import compile_handler_to_actions, ActionType
+import re
 
 
 class HandlerCompiler(ast.NodeVisitor):
@@ -174,16 +175,24 @@ class HandlerCompiler(ast.NodeVisitor):
             func_content = '\n'.join(func_lines)
             
             # Extract create_onclick handlers using regex
-            create_pattern = r'(\w+)\s*=\s*create_onclick\(\s*lambda\s+[^:]+:\s*([^)]+)\)'
+            # Pattern to match: handleClick = create_onclick(lambda e: setName(name.upper()))
+            # Need to handle nested parentheses in lambda body using greedy match
+            create_pattern = r'(\w+)\s*=\s*create_onclick\(\s*lambda\s+[^:]+:\s*(.+\))'
             matches = re.findall(create_pattern, func_content)
+            print(f"DEBUG: Regex pattern: {create_pattern}")
+            print(f"DEBUG: Regex matches: {matches}")
             
             for handler_name, lambda_code in matches:
                 try:
-                    # Clean up the lambda code
-                    clean_code = lambda_code.strip()
+                    # Clean up the lambda code - remove only one trailing ) and whitespace
+                    clean_code = lambda_code.rstrip()
+                    if clean_code.endswith(')'):
+                        clean_code = clean_code[:-1]
+                    print(f"DEBUG: Compiling handler {handler_name} with code: {clean_code}")
                     
                     # Compile to actions
                     actions = compile_handler_to_actions(clean_code, handler_name)
+                    print(f"DEBUG: Compiled actions for {handler_name}: {actions}")
                     if actions:
                         handlers[handler_name] = actions
                 except Exception as e:
@@ -374,16 +383,24 @@ class EnhancedHandlerExtractor:
             func_content = '\n'.join(func_lines)
             
             # Extract create_onclick handlers using regex
-            create_pattern = r'(\w+)\s*=\s*create_onclick\(\s*lambda\s+[^:]+:\s*([^)]+)\)'
+            # Pattern to match: handleClick = create_onclick(lambda e: setName(name.upper()))
+            # Need to handle nested parentheses in lambda body using greedy match
+            create_pattern = r'(\w+)\s*=\s*create_onclick\(\s*lambda\s+[^:]+:\s*(.+\))'
             matches = re.findall(create_pattern, func_content)
+            print(f"DEBUG: Regex pattern: {create_pattern}")
+            print(f"DEBUG: Regex matches: {matches}")
             
             for handler_name, lambda_code in matches:
                 try:
-                    # Clean up the lambda code
-                    clean_code = lambda_code.strip()
+                    # Clean up the lambda code - remove only one trailing ) and whitespace
+                    clean_code = lambda_code.rstrip()
+                    if clean_code.endswith(')'):
+                        clean_code = clean_code[:-1]
+                    print(f"DEBUG: Compiling handler {handler_name} with code: {clean_code}")
                     
                     # Compile to actions
                     actions = compile_handler_to_actions(clean_code, handler_name)
+                    print(f"DEBUG: Compiled actions for {handler_name}: {actions}")
                     if actions:
                         handlers[handler_name] = actions
                 except Exception as e:

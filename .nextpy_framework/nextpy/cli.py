@@ -243,7 +243,7 @@ def cli():
 
 
 @cli.command()
-@click.option("--port", "-p", default=5000, help="Port to run the server on")
+@click.option("--port", "-p", default=8000, help="Port to run the server on")
 @click.option("--host", "-h", default="0.0.0.0", help="Host to bind to")
 @click.option("--reload/--no-reload", default=True, help="Enable hot reload")
 @click.option("--debug/--no-debug", default=True, help="Enable debug mode")
@@ -322,6 +322,7 @@ def dev(port: int, host: str, reload: bool, debug: bool):
         # Enhanced reload patterns for JSX files
         reload_includes = [
             "*.py",
+            "*.psx",
             "*.py.jsx",
             "*.jsx",
             "*.html",

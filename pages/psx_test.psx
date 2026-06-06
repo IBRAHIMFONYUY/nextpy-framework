@@ -16,6 +16,7 @@ def Home(props=None):
     # Event handlers with create utilities
     handleClick = create_onclick(lambda e: setName(name.upper()))
     handleIncrement = create_onclick(lambda e: setCount(count + 1))
+    handletext = create_onclick(lambda e: print('hello world'))
     
     # Client-side data fetching
     def fetch_data():
@@ -41,20 +42,18 @@ def Home(props=None):
                             Increment: {count}
                         </button>
                         
-                        <button onclick={handleClick} className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg font-medium">
-                            Uppercase Name
+                        <button create_onclick={handleClick} className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg font-medium">
+                            Uppercase Name {name}
                         </button>
                         
-                        <button onclick={lambda e: setCount(0)} className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-medium">
-                            Reset
-                        </button>
+                       
                     </div>
                 </div>
                 
                 {/* Component Nesting Demo */}
                 <div className="mb-8 bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-6">
                     <h2 className="text-2xl font-bold mb-4">Component Nesting</h2>
-                    <button onclick={lambda e: print("Nested button clicked!")} className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium">
+                    <button create_onclick={handletext} className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium">
                         Nested Button Component
                     </button>
                 </div>

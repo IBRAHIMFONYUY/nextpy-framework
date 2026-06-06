@@ -36,29 +36,31 @@ class NextPyActionRuntime {
                 case 'GET_STATE':
                     return this._executeGetState(data, componentId);
                 case 'CALL_FUNCTION':
-                    return this._executeCallFunction(data);
+                    return this._executeCallFunction(data, componentId);
+                case 'CALL_METHOD':
+                    return this._executeCallMethod(data, componentId);
                 case 'BINARY_OP':
-                    return this._executeBinaryOp(data);
+                    return this._executeBinaryOp(data, componentId);
                 case 'UNARY_OP':
-                    return this._executeUnaryOp(data);
+                    return this._executeUnaryOp(data, componentId);
                 case 'COMPARE_OP':
-                    return this._executeCompareOp(data);
+                    return this._executeCompareOp(data, componentId);
                 case 'BOOLEAN_OP':
-                    return this._executeBooleanOp(data);
+                    return this._executeBooleanOp(data, componentId);
                 case 'PRINT':
-                    return this._executePrint(data);
+                    return this._executePrint(data, componentId);
                 case 'CONSTANT':
                     return this._executeConstant(data);
                 case 'VARIABLE':
                     return this._executeVariable(data, componentId);
                 case 'LIST':
-                    return this._executeList(data);
+                    return this._executeList(data, componentId);
                 case 'DICT':
-                    return this._executeDict(data);
+                    return this._executeDict(data, componentId);
                 case 'INDEX':
-                    return this._executeIndex(data);
+                    return this._executeIndex(data, componentId);
                 case 'ATTRIBUTE':
-                    return this._executeAttribute(data);
+                    return this._executeAttribute(data, componentId);
                 default:
                     console.warn(`Unknown action type: ${type}`);
                     return null;
@@ -70,17 +72,20 @@ class NextPyActionRuntime {
     }
 
     executeActions(actions, componentId = null) {
+        console.log('DEBUG executeNextPyActions: Executing actions:', JSON.stringify(actions, null, 2));
+        console.log('DEBUG executeNextPyActions: componentId:', componentId);
         const results = [];
         for (const action of actions) {
             const result = this.executeAction(action, componentId);
             results.push(result);
         }
+        console.log('DEBUG executeNextPyActions: Results:', results);
         return results;
     }
 
     _executeSetState(data, componentId) {
         const { key, value } = data;
-        const evaluatedValue = this._evaluateExpression(value);
+        const evaluatedValue = this._evaluateExpression(value, componentId);
         
         if (componentId && this.components.has(componentId)) {
             const component = this.components.get(componentId);
@@ -104,13 +109,13 @@ class NextPyActionRuntime {
         }
     }
 
-    _executeCallFunction(data) {
+    _executeCallFunction(data, componentId) {
         const { function: funcName, args = [], kwargs = {} } = data;
-        const evaluatedArgs = args.map(arg => this._evaluateExpression(arg));
+        const evaluatedArgs = args.map(arg => this._evaluateExpression(arg, componentId));
         const evaluatedKwargs = {};
         
         for (const [key, value] of Object.entries(kwargs)) {
-            evaluatedKwargs[key] = this._evaluateExpression(value);
+            evaluatedKwargs[key] = this._evaluateExpression(value, componentId);
         }
         
         if (this.functions.has(funcName)) {
@@ -123,10 +128,45 @@ class NextPyActionRuntime {
         }
     }
 
-    _executeBinaryOp(data) {
+    _executeCallMethod(data, componentId) {
+        const { object, method, args = [], kwargs = {} } = data;
+        const evaluatedArgs = args.map(arg => this._evaluateExpression(arg, componentId));
+        const evaluatedKwargs = {};
+        
+        for (const [key, value] of Object.entries(kwargs)) {
+            evaluatedKwargs[key] = this._evaluateExpression(value, componentId);
+        }
+        
+        // Get the object - retrieve from component state
+        let obj;
+        if (componentId && this.components.has(componentId)) {
+            const component = this.components.get(componentId);
+            console.log(`DEBUG _executeCallMethod: All component state:`, component.state);
+            console.log(`DEBUG _executeCallMethod: Looking for object '${object}' in state`);
+            obj = component.state[object];
+        } else {
+            obj = this.globalState[object];
+        }
+        
+        console.log(`DEBUG _executeCallMethod: Object value:`, obj);
+        
+        if (obj === undefined || obj === null) {
+            throw new Error(`Object '${object}' is undefined or null`);
+        }
+        
+        // Call the method on the object
+        if (typeof obj[method] === 'function') {
+            return obj[method](...evaluatedArgs);
+        } else {
+            throw new Error(`Method '${method}' not found on object '${object}'`);
+        }
+    }
+
+
+    _executeBinaryOp(data, componentId) {
         const { left, op, right } = data;
-        const leftValue = this._evaluateExpression(left);
-        const rightValue = this._evaluateExpression(right);
+        const leftValue = this._evaluateExpression(left, componentId);
+        const rightValue = this._evaluateExpression(right, componentId);
         
         switch (op) {
             case '+': return leftValue + rightValue;
@@ -146,9 +186,9 @@ class NextPyActionRuntime {
         }
     }
 
-    _executeUnaryOp(data) {
+    _executeUnaryOp(data, componentId) {
         const { op, operand } = data;
-        const operandValue = this._evaluateExpression(operand);
+        const operandValue = this._evaluateExpression(operand, componentId);
         
         switch (op) {
             case '+': return +operandValue;
@@ -160,10 +200,10 @@ class NextPyActionRuntime {
         }
     }
 
-    _executeCompareOp(data) {
+    _executeCompareOp(data, componentId) {
         const { left, ops, comparators } = data;
-        const leftValue = this._evaluateExpression(left);
-        const comparatorValues = comparators.map(c => this._evaluateExpression(c));
+        const leftValue = this._evaluateExpression(left, componentId);
+        const comparatorValues = comparators.map(c => this._evaluateExpression(c, componentId));
         
         let result = true;
         for (let i = 0; i < ops.length && i < comparatorValues.length; i++) {
@@ -202,9 +242,9 @@ class NextPyActionRuntime {
         return result;
     }
 
-    _executeBooleanOp(data) {
+    _executeBooleanOp(data, componentId) {
         const { op, values } = data;
-        const evaluatedValues = values.map(v => this._evaluateExpression(v));
+        const evaluatedValues = values.map(v => this._evaluateExpression(v, componentId));
         
         switch (op) {
             case 'and': return evaluatedValues.every(v => v);
@@ -214,9 +254,9 @@ class NextPyActionRuntime {
         }
     }
 
-    _executePrint(data) {
+    _executePrint(data, componentId) {
         const { args = [] } = data;
-        const evaluatedArgs = args.map(arg => this._evaluateExpression(arg));
+        const evaluatedArgs = args.map(arg => this._evaluateExpression(arg, componentId));
         console.log(...evaluatedArgs);
     }
 
@@ -248,44 +288,44 @@ class NextPyActionRuntime {
         throw new Error(`Unknown variable: ${name}`);
     }
 
-    _executeList(data) {
+    _executeList(data, componentId) {
         const { elements } = data;
-        return elements.map(el => this._evaluateExpression(el));
+        return elements.map(el => this._evaluateExpression(el, componentId));
     }
 
-    _executeDict(data) {
+    _executeDict(data, componentId) {
         const { keys, values } = data;
         const result = {};
         
         for (let i = 0; i < keys.length && i < values.length; i++) {
-            const key = this._evaluateExpression(keys[i]);
-            const value = this._evaluateExpression(values[i]);
+            const key = this._evaluateExpression(keys[i], componentId);
+            const value = this._evaluateExpression(values[i], componentId);
             result[key] = value;
         }
         
         return result;
     }
 
-    _executeIndex(data) {
+    _executeIndex(data, componentId) {
         const { value, slice } = data;
-        const valueObj = this._evaluateExpression(value);
-        const sliceValue = this._evaluateExpression(slice);
+        const valueObj = this._evaluateExpression(value, componentId);
+        const sliceValue = this._evaluateExpression(slice, componentId);
         
         return valueObj[sliceValue];
     }
 
-    _executeAttribute(data) {
+    _executeAttribute(data, componentId) {
         const { object, attr } = data;
-        const obj = this._evaluateExpression(object);
+        const obj = this._evaluateExpression(object, componentId);
         
         return obj[attr];
     }
 
-    _evaluateExpression(expr) {
+    _evaluateExpression(expr, componentId = null) {
         if (expr === null || expr === undefined) {
             return null;
         } else if (typeof expr === 'object' && expr.type) {
-            return this.executeAction(expr);
+            return this.executeAction(expr, componentId);
         } else {
             return expr;
         }

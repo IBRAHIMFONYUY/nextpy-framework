@@ -1461,16 +1461,18 @@ def dict_to_query_string(params: Dict[str, Any]) -> str:
 
 def _create_python_call_placeholder(handler_func: Callable, prefix: str = 'python_call') -> str:
     func_name = getattr(handler_func, '__name__', 'handler')
+    
     if func_name == '<lambda>':
-        try:
-            source = inspect.getsource(handler_func)
-            match = re.search(r'lambda\b.*', source)
-            lambda_text = match.group(0).strip() if match else source.strip()
-            normalized = re.sub(r'\s+', ' ', lambda_text)
-            digest = hashlib.sha256(normalized.encode('utf-8')).hexdigest()[:16]
-            return f"{prefix}_lambda_{digest}"
-        except (OSError, TypeError):
-            return f"{prefix}_lambda_{id(handler_func)}"
+        # Use UUID for unique identification instead of id()
+        # This ensures each lambda gets a unique placeholder even if they have similar code
+        # or if id() returns the same value due to object reuse
+        import uuid
+        handler_id = uuid.uuid4().hex[:16]
+        print(f"DEBUG _create_python_call_placeholder: func_name={func_name}, handler_id={handler_id}")
+        return f"{prefix}_lambda_{handler_id}"
+    
+    handler_id = abs(id(handler_func))
+    print(f"DEBUG _create_python_call_placeholder: func_name={func_name}, handler_id={handler_id}")
     return f"{prefix}_{func_name}"
 
 

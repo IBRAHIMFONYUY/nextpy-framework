@@ -14,6 +14,7 @@ class ActionType(Enum):
     SET_STATE = "SET_STATE"
     GET_STATE = "GET_STATE"
     CALL_FUNCTION = "CALL_FUNCTION"
+    CALL_METHOD = "CALL_METHOD"
     BINARY_OP = "BINARY_OP"
     UNARY_OP = "UNARY_OP"
     COMPARE_OP = "COMPARE_OP"
@@ -181,6 +182,42 @@ class ActionCompiler:
                 type=ActionType.PRINT,
                 data={
                     "args": args
+                }
+            )
+        elif '.' in func_name:
+            # This is a method call (e.g., name.upper)
+            # Generate CALL_METHOD action instead of CALL_FUNCTION
+            parts = func_name.split('.')
+            object_name = '.'.join(parts[:-1])  # Everything except the last part
+            method_name = parts[-1]  # The last part is the method name
+            
+            # Convert Python method names to JavaScript equivalents
+            python_to_js_methods = {
+                'upper': 'toUpperCase',
+                'lower': 'toLowerCase',
+                'strip': 'trim',
+                'lstrip': 'trimStart',
+                'rstrip': 'trimEnd',
+                'split': 'split',
+                'join': 'join',
+                'replace': 'replace',
+                'find': 'indexOf',
+                'rfind': 'lastIndexOf',
+                'startswith': 'startsWith',
+                'endswith': 'endsWith',
+            }
+            
+            # Convert method name if it's in the mapping
+            if method_name in python_to_js_methods:
+                method_name = python_to_js_methods[method_name]
+            
+            return Action(
+                type=ActionType.CALL_METHOD,
+                data={
+                    "object": object_name,
+                    "method": method_name,
+                    "args": args,
+                    "kwargs": kwargs
                 }
             )
         else:
