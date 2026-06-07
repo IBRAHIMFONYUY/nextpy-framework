@@ -5,9 +5,20 @@ Replacing regex-based handler extraction with proper AST parsing
 
 import ast
 import inspect
+import hashlib
+import re
 from typing import Dict, List, Any, Optional, Tuple, Callable
 from .actions import compile_handler_to_actions, ActionType
-import re
+
+
+def _get_python_call_placeholder_from_lambda_code(lambda_code: str) -> str:
+    """Generate a python_call_lambda_* placeholder from lambda code"""
+    try:
+        normalized = re.sub(r'\s+', ' ', lambda_code)
+        digest = hashlib.sha256(normalized.encode('utf-8')).hexdigest()[:16]
+        return f"python_call_lambda_{digest}"
+    except Exception:
+        return f"python_call_lambda_{hashlib.sha256(lambda_code.encode()).hexdigest()[:16]}"
 
 
 class HandlerCompiler(ast.NodeVisitor):
@@ -77,9 +88,10 @@ class HandlerCompiler(ast.NodeVisitor):
         elif isinstance(value, ast.Lambda):
             # Lambda handlers
             lambda_code = ast.unparse(value)
+            placeholder = _get_python_call_placeholder_from_lambda_code(lambda_code)
             actions = compile_handler_to_actions(lambda_code, target_name)
             if actions:
-                self.handlers[target_name] = actions
+                self.handlers[placeholder] = actions
     
     def _visit_expression(self, node: ast.Call) -> None:
         """Visit expression to extract direct function calls"""
@@ -100,10 +112,13 @@ class HandlerCompiler(ast.NodeVisitor):
                             lambda_node = node.args[0]
                             lambda_code = ast.unparse(lambda_node.body)
                             
+                            # Generate placeholder key
+                            placeholder = _get_python_call_placeholder_from_lambda_code(lambda_code)
+                            
                             # Compile to actions
                             actions = compile_handler_to_actions(lambda_code, handler_name)
                             if actions:
-                                self.handlers[handler_name] = actions
+                                self.handlers[placeholder] = actions
                             break
             except Exception as e:
                 print(f"Handler compilation error for {handler_name}: {e}")
@@ -190,11 +205,14 @@ class HandlerCompiler(ast.NodeVisitor):
                         clean_code = clean_code[:-1]
                     print(f"DEBUG: Compiling handler {handler_name} with code: {clean_code}")
                     
+                    # Generate placeholder key
+                    placeholder = _get_python_call_placeholder_from_lambda_code(clean_code)
+                    
                     # Compile to actions
                     actions = compile_handler_to_actions(clean_code, handler_name)
                     print(f"DEBUG: Compiled actions for {handler_name}: {actions}")
                     if actions:
-                        handlers[handler_name] = actions
+                        handlers[placeholder] = actions
                 except Exception as e:
                     print(f"Handler compilation error for {handler_name}: {e}")
             
@@ -285,10 +303,13 @@ class EnhancedHandlerExtractor:
                                     lambda_node = value.args[0]
                                     lambda_code = ast.unparse(lambda_node.body)
                                     
+                                    # Generate placeholder key
+                                    placeholder = _get_python_call_placeholder_from_lambda_code(lambda_code)
+                                    
                                     # Compile to actions
                                     actions = compile_handler_to_actions(lambda_code, target_name)
                                     if actions:
-                                        handlers[target_name] = actions
+                                        handlers[placeholder] = actions
         except Exception as e:
             print(f"Create handler extraction error: {e}")
             # Try direct file-based extraction
@@ -398,11 +419,14 @@ class EnhancedHandlerExtractor:
                         clean_code = clean_code[:-1]
                     print(f"DEBUG: Compiling handler {handler_name} with code: {clean_code}")
                     
+                    # Generate placeholder key
+                    placeholder = _get_python_call_placeholder_from_lambda_code(clean_code)
+                    
                     # Compile to actions
                     actions = compile_handler_to_actions(clean_code, handler_name)
                     print(f"DEBUG: Compiled actions for {handler_name}: {actions}")
                     if actions:
-                        handlers[handler_name] = actions
+                        handlers[placeholder] = actions
                 except Exception as e:
                     print(f"Handler compilation error for {handler_name}: {e}")
             

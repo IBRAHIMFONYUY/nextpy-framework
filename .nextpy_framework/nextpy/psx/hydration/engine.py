@@ -87,30 +87,11 @@ class HydrationEngine:
             const oldValue = this.state[key];
             this.state[key] = value;
             console.log('StateManager.set:', key, '=', value, '(old:', oldValue, ')');
+            
+            // CRITICAL: ONLY ONE UPDATE PATH - notify subscribers which triggers updateBindings
             this.notifySubscribers(key, value, oldValue);
-            
-            // CRITICAL: trigger full re-render on state change
-            if (this.component && this.component.rerender) {{
-                console.log('StateManager.set: Calling component.rerender()');
-                this.component.rerender();
-            }}
-            
-            // CRITICAL: update all data bindings in DOM
-            if (this.component && this.component.updateBindings) {{
-                console.log('StateManager.set: Calling component.updateBindings()');
-                this.component.updateBindings();
-            }}
         }}
-        
-        updateUI() {{
-            // Update all data bindings with current state
-            const bindings = this.component.bindings;
-            bindings.forEach((binding, elementId) => {{
-                const {{ property, stateKey, element }} = binding;
-                const value = this.get(stateKey);
-                this.component.updateBinding(elementId, property, value);
-            }});
-        }}
+
         
         subscribe(callback) {{
             this.subscribers.push(callback);
@@ -123,6 +104,7 @@ class HydrationEngine:
         }}
         
         notifySubscribers(key, newValue, oldValue) {{
+            // Notify all subscribers of state change
             this.subscribers.forEach(callback => {{
                 try {{
                     callback(key, newValue, oldValue);
@@ -130,6 +112,11 @@ class HydrationEngine:
                     console.error('State subscriber error:', error);
                 }}
             }});
+            
+            // CRITICAL: Auto-trigger component binding updates after state changes
+            if (this.component && this.component.updateBindings) {{
+                this.component.updateBindings();
+            }}
         }}
     }}
     
@@ -263,21 +250,6 @@ class HydrationEngine:
             console.log('Effects setup for component:', this.id);
         }}
         
-        rerender() {{
-            // Re-render the component with current state
-            if (!this.element) return;
-            
-            console.log('Rerendering component:', this.id, 'with state:', this.stateManager.state);
-            
-            // Update all data bindings with current state
-            this.updateBindings();
-        }}
-        
-        updateUI() {{
-            // Update all data bindings with current state
-            this.updateBindings();
-        }}
-        
         updateBindings() {{
             // Update all DOM elements with data-bind attributes
             if (!this.element) {{
@@ -296,14 +268,19 @@ class HydrationEngine:
                 
                 const [property, stateKey] = binding.split(':');
                 const value = this.stateManager.get(stateKey);
-                
+
                 console.log('updateBindings: Updating element with binding:', binding, 'value:', value);
-                
+
                 try {{
                     if (property === 'textContent') {{
                         el.textContent = String(value);
                     }} else if (property === 'innerHTML') {{
-                        el.innerHTML = String(value);
+                        // For innerHTML, convert arrays/objects to JSON for proper display
+                        if (Array.isArray(value) || typeof value === 'object') {{
+                            el.innerHTML = JSON.stringify(value);
+                        }} else {{
+                            el.innerHTML = String(value);
+                        }}
                     }} else if (property in el) {{
                         el[property] = value;
                     }}

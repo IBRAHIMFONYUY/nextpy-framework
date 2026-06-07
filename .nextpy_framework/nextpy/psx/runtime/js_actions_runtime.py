@@ -31,17 +31,19 @@ class NextPyActionRuntime {
         if (!this.components.has(componentId)) return;
         const state = this.components.get(componentId).state;
         for (const key of Object.keys(state)) {
-            state[key] ??= "";
+            if (!(key in state)) state[key] = null;
         }
     }
 
     executeAction(action, componentId = null) {
         const { type, data } = action;
-        
+
         try {
             switch (type) {
                 case 'SET_STATE':
                     return this._executeSetState(data, componentId);
+                case 'SET_STATE_BATCH':
+                    return this._executeSetStateBatch(data, componentId);
                 case 'GET_STATE':
                     return this._executeGetState(data, componentId);
                 case 'CALL_FUNCTION':
@@ -70,12 +72,29 @@ class NextPyActionRuntime {
                     return this._executeIndex(data, componentId);
                 case 'ATTRIBUTE':
                     return this._executeAttribute(data, componentId);
+                case 'FOR_LOOP':
+                    return this._executeForLoop(data, componentId);
+                case 'WHILE_LOOP':
+                    return this._executeWhileLoop(data, componentId);
+                case 'BREAK':
+                    return this._executeBreak();
+                case 'CONTINUE':
+                    return this._executeContinue();
+                case 'TRY':
+                    return this._executeTry(data, componentId);
+                case 'RETURN':
+                    return this._executeReturn(data);
+                case 'LAMBDA':
+                    return this._executeLambda(data);
+                case 'JSX_UPDATE':
+                    return this._executeJsxUpdate(data, componentId);
                 default:
                     console.warn(`Unknown action type: ${type}`);
                     return null;
             }
         } catch (error) {
             console.error(`Action execution error:`, error);
+            if (window.NEXTPY_DEBUG) throw error;
             return null;
         }
     }
@@ -95,16 +114,37 @@ class NextPyActionRuntime {
     _executeSetState(data, componentId) {
         const { key, value } = data;
         const evaluatedValue = this._evaluateExpression(value, componentId);
-        
+
         if (componentId && this.components.has(componentId)) {
             const component = this.components.get(componentId);
             const oldValue = component.state[key];
             component.state[key] = evaluatedValue;
-            
+
             // Trigger re-render if DOM element exists
             this._triggerComponentUpdate(componentId, key, evaluatedValue, oldValue);
         } else {
             this.globalState[key] = evaluatedValue;
+        }
+    }
+
+    _executeSetStateBatch(data, componentId) {
+        const { updates } = data;
+
+        if (componentId && this.components.has(componentId)) {
+            const component = this.components.get(componentId);
+            for (const update of updates) {
+                const { key, value } = update;
+                const evaluatedValue = this._evaluateExpression(value, componentId);
+                const oldValue = component.state[key];
+                component.state[key] = evaluatedValue;
+                this._triggerComponentUpdate(componentId, key, evaluatedValue, oldValue);
+            }
+        } else {
+            for (const update of updates) {
+                const { key, value } = update;
+                const evaluatedValue = this._evaluateExpression(value, componentId);
+                this.globalState[key] = evaluatedValue;
+            }
         }
     }
 
@@ -122,14 +162,14 @@ class NextPyActionRuntime {
         const { function: funcName, args = [], kwargs = {} } = data;
         const evaluatedArgs = args.map(arg => this._evaluateExpression(arg, componentId));
         const evaluatedKwargs = {};
-        
+
         for (const [key, value] of Object.entries(kwargs)) {
             evaluatedKwargs[key] = this._evaluateExpression(value, componentId);
         }
-        
+
         if (this.functions.has(funcName)) {
             const func = this.functions.get(funcName);
-            return func(...evaluatedArgs, evaluatedKwargs);
+            return func(...evaluatedArgs, evaluatedKwargs || {});
         } else if (typeof window[funcName] === 'function') {
             return window[funcName](...evaluatedArgs);
         } else {
@@ -141,11 +181,11 @@ class NextPyActionRuntime {
         const { object, method, args = [], kwargs = {} } = data;
         const evaluatedArgs = args.map(arg => this._evaluateExpression(arg, componentId));
         const evaluatedKwargs = {};
-        
+
         for (const [key, value] of Object.entries(kwargs)) {
             evaluatedKwargs[key] = this._evaluateExpression(value, componentId);
         }
-        
+
         // Get the object - retrieve from component state
         let obj;
         if (componentId && this.components.has(componentId)) {
@@ -156,27 +196,44 @@ class NextPyActionRuntime {
         } else {
             obj = this.globalState[object];
         }
-        
+
         console.log(`DEBUG _executeCallMethod: Object value:`, obj);
-        
+        console.log(`DEBUG _executeCallMethod: Object type:`, typeof obj);
+
         if (obj === undefined || obj === null) {
             console.warn(`Object '${object}' is undefined or null, returning empty string`);
             return "";
         }
-        
-        // Call the method on the object
-        if (typeof obj[method] === 'function') {
+
+        // Safety check: ensure method exists and is callable
+        // Allow methods on strings, arrays, and objects
+        if (obj && typeof obj[method] === 'function') {
             return obj[method](...evaluatedArgs);
         } else {
-            throw new Error(`Method '${method}' not found on object '${object}'`);
+            throw new Error(`Method '${method}' not found on object '${object}' (type: ${typeof obj})`);
         }
     }
 
 
     _executeBinaryOp(data, componentId) {
+
         const { left, op, right } = data;
         const leftValue = this._evaluateExpression(left, componentId);
         const rightValue = this._evaluateExpression(right, componentId);
+
+        if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
+            return [...leftValue, ...rightValue];
+        }
+
+        if (Array.isArray(leftValue)) {
+            return [...leftValue, rightValue];
+        }
+
+        if (Array.isArray(rightValue)) {
+            return [leftValue, ...rightValue];
+        }
+
+        return leftValue + rightValue;
         
         switch (op) {
             case '+': return leftValue + rightValue;
@@ -214,12 +271,12 @@ class NextPyActionRuntime {
         const { left, ops, comparators } = data;
         const leftValue = this._evaluateExpression(left, componentId);
         const comparatorValues = comparators.map(c => this._evaluateExpression(c, componentId));
-        
+
         let result = true;
         for (let i = 0; i < ops.length && i < comparatorValues.length; i++) {
             const op = ops[i];
             const comparator = comparatorValues[i];
-            
+
             if (i === 0) {
                 switch (op) {
                     case '==': result = leftValue == comparator; break;
@@ -230,8 +287,16 @@ class NextPyActionRuntime {
                     case '>=': result = leftValue >= comparator; break;
                     case 'is': result = leftValue === comparator; break;
                     case 'is not': result = leftValue !== comparator; break;
-                    case 'in': result = leftValue in comparator; break;
-                    case 'not in': result = !(leftValue in comparator); break;
+                    case 'in':
+                        result = Array.isArray(comparator)
+                            ? comparator.includes(leftValue)
+                            : leftValue in comparator;
+                        break;
+                    case 'not in':
+                        result = Array.isArray(comparator)
+                            ? !comparator.includes(leftValue)
+                            : !(leftValue in comparator);
+                        break;
                     default:
                         throw new Error(`Unknown comparison operator: ${op}`);
                 }
@@ -248,7 +313,7 @@ class NextPyActionRuntime {
                 }
             }
         }
-        
+
         return result;
     }
 
@@ -374,7 +439,7 @@ class NextPyActionRuntime {
             if (typeof obj === 'string') return obj.length;
             return 0;
         });
-        
+
         this.functions.set('str', (obj) => String(obj));
         this.functions.set('int', (obj) => parseInt(obj));
         this.functions.set('float', (obj) => parseFloat(obj));
@@ -388,10 +453,67 @@ class NextPyActionRuntime {
         this.functions.set('any', (arr) => arr.some(Boolean));
         this.functions.set('all', (arr) => arr.every(Boolean));
         this.functions.set('round', Math.round);
-        
+
         // Console functions
         this.functions.set('console_log', console.log);
         this.functions.set('alert', (msg) => alert(msg));
+    }
+
+    _executeForLoop(data, componentId) {
+        // Placeholder implementation
+        // For loops require more complex execution context
+        console.warn('FOR_LOOP not yet implemented in JS runtime');
+    }
+
+    _executeWhileLoop(data, componentId) {
+        // Placeholder implementation
+        // While loops require more complex execution context
+        console.warn('WHILE_LOOP not yet implemented in JS runtime');
+    }
+
+    _executeBreak() {
+        // Placeholder implementation
+        // Break requires loop context
+        throw new Error('BREAK not yet implemented');
+    }
+
+    _executeContinue() {
+        // Placeholder implementation
+        // Continue requires loop context
+        throw new Error('CONTINUE not yet implemented');
+    }
+
+    _executeTry(data, componentId) {
+        // Placeholder implementation
+        // Try/except requires exception handling context
+        console.warn('TRY not yet implemented in JS runtime');
+    }
+
+    _executeReturn(data) {
+        // Placeholder implementation
+        // Return requires function context
+        const value = this._evaluateExpression(data.value);
+        throw { type: 'RETURN', value };
+    }
+
+    _executeLambda(data) {
+        // Placeholder implementation
+        // Lambdas require function creation context
+        const { args, body } = data;
+        return (...lambdaArgs) => {
+            // Create a scope for lambda arguments
+            const scope = {};
+            args.forEach((arg, i) => {
+                scope[arg] = lambdaArgs[i];
+            });
+            return this._evaluateExpression(body);
+        };
+    }
+
+    _executeJsxUpdate(data, componentId) {
+        // Placeholder implementation
+        // JSX updates require DOM manipulation context
+        console.warn('JSX_UPDATE not yet implemented in JS runtime');
     }
 }
 

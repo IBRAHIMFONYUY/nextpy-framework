@@ -468,7 +468,7 @@ def process_python_logic(psx_str: str, context: Dict[str, Any]) -> str:
                 # Parse for loop
                 parts = content[3:].strip().split(' in ', 1)
                 var_decl = parts[0].strip()
-                iterable_expr = parts[1].strip()
+                iterable_expr = parts[1].strip().rstrip(':')
                 
                 # Find the loop body (content until {/for})
                 full_match = match.group(0)
@@ -732,7 +732,7 @@ def process_python_logic(psx_str: str, context: Dict[str, Any]) -> str:
                 
                 var_parts = loop_decl.split(' in ', 1)
                 var_name = var_parts[0].strip()
-                iterable_expr = var_parts[1].strip()
+                iterable_expr = var_parts[1].strip().rstrip(':')
                 
                 # Execute for loop
                 engine = SafeExpressionEngine(enhanced_context)
