@@ -29,11 +29,14 @@ class HandlerCompiler(ast.NodeVisitor):
         self.current_function: Optional[str] = None
         self.handler_assignments: Dict[str, str] = {}
         self.component_context: Optional[str] = None
+        # FIX: Track useState assignments to map setters to state variables
+        self.state_setter_map: Dict[str, str] = {}  # {setter_name: state_var_name}
     
     def extract_handlers_from_function(self, func: Callable, component_name: Optional[str] = None) -> Dict[str, List[Dict[str, Any]]]:
         """Extract and compile handlers from a component function"""
         self.handlers.clear()
         self.handler_assignments.clear()
+        self.state_setter_map.clear()  # FIX: Clear state setter map
         self.component_context = component_name
         
         try:
@@ -49,6 +52,7 @@ class HandlerCompiler(ast.NodeVisitor):
             # Compile handler assignments (create_onclick, etc.)
             self._compile_handler_assignments()
             
+            print(f"DEBUG: Final state_setter_map: {self.state_setter_map}")
             return self.handlers
             
         except (OSError, SyntaxError, TypeError) as e:
@@ -70,7 +74,28 @@ class HandlerCompiler(ast.NodeVisitor):
         self.current_function = None
     
     def _visit_assignment(self, node: ast.Assign) -> None:
-        """Visit assignment to extract handler assignments"""
+        """Visit assignment to extract handler assignments and useState assignments"""
+        # FIX: Handle tuple unpacking assignments like [show, change] = useState(False)
+        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple):
+            # This is a tuple unpacking assignment
+            targets = node.targets[0].elts
+            value = node.value
+            
+            # Check if this is a useState call
+            if isinstance(value, ast.Call) and isinstance(value.func, ast.Name):
+                func_name = value.func.id
+                if func_name == 'useState':
+                    # This is a useState assignment
+                    # Pattern: [state_var, setter_func] = useState(initial_value)
+                    if len(targets) == 2:
+                        state_var = targets[0]
+                        setter_func = targets[1]
+                        if isinstance(state_var, ast.Name) and isinstance(setter_func, ast.Name):
+                            # Map the setter function name to the state variable name
+                            self.state_setter_map[setter_func.id] = state_var.id
+                            print(f"DEBUG: Tracked useState assignment: {setter_func.id} -> {state_var.id}")
+            return
+        
         if len(node.targets) != 1 or not isinstance(node.targets[0], ast.Name):
             return
         
@@ -89,7 +114,8 @@ class HandlerCompiler(ast.NodeVisitor):
             # Lambda handlers
             lambda_code = ast.unparse(value)
             placeholder = _get_python_call_placeholder_from_lambda_code(lambda_code)
-            actions = compile_handler_to_actions(lambda_code, target_name)
+            # FIX: Pass state setter map to action compiler
+            actions = compile_handler_to_actions(lambda_code, target_name, self.state_setter_map)
             if actions:
                 self.handlers[placeholder] = actions
     
@@ -115,8 +141,8 @@ class HandlerCompiler(ast.NodeVisitor):
                             # Generate placeholder key
                             placeholder = _get_python_call_placeholder_from_lambda_code(lambda_code)
                             
-                            # Compile to actions
-                            actions = compile_handler_to_actions(lambda_code, handler_name)
+                            # FIX: Pass state setter map to action compiler
+                            actions = compile_handler_to_actions(lambda_code, handler_name, self.state_setter_map)
                             if actions:
                                 self.handlers[placeholder] = actions
                             break
@@ -189,6 +215,15 @@ class HandlerCompiler(ast.NodeVisitor):
             
             func_content = '\n'.join(func_lines)
             
+            # FIX: Extract useState assignments to build state_setter_map
+            # Pattern to match: [show, change] = useState(False) or (show, change) = useState(False)
+            usestate_pattern = r'[\[\(](\w+)\s*,\s*(\w+)[\]\)]\s*=\s*useState\s*\('
+            usestate_matches = re.findall(usestate_pattern, func_content)
+            state_setter_map = {}
+            for state_var, setter_func in usestate_matches:
+                state_setter_map[setter_func] = state_var
+                print(f"DEBUG: Tracked useState from regex: {setter_func} -> {state_var}")
+            
             # Extract create_onclick handlers using regex
             # Pattern to match: handleClick = create_onclick(lambda e: setName(name.upper()))
             # Need to handle nested parentheses in lambda body using greedy match
@@ -208,8 +243,8 @@ class HandlerCompiler(ast.NodeVisitor):
                     # Generate placeholder key
                     placeholder = _get_python_call_placeholder_from_lambda_code(clean_code)
                     
-                    # Compile to actions
-                    actions = compile_handler_to_actions(clean_code, handler_name)
+                    # FIX: Pass state_setter_map to compile_handler_to_actions
+                    actions = compile_handler_to_actions(clean_code, handler_name, state_setter_map)
                     print(f"DEBUG: Compiled actions for {handler_name}: {actions}")
                     if actions:
                         handlers[placeholder] = actions
@@ -403,6 +438,15 @@ class EnhancedHandlerExtractor:
             
             func_content = '\n'.join(func_lines)
             
+            # FIX: Extract useState assignments to build state_setter_map
+            # Pattern to match: [show, change] = useState(False) or (show, change) = useState(False)
+            usestate_pattern = r'[\[\(](\w+)\s*,\s*(\w+)[\]\)]\s*=\s*useState\s*\('
+            usestate_matches = re.findall(usestate_pattern, func_content)
+            state_setter_map = {}
+            for state_var, setter_func in usestate_matches:
+                state_setter_map[setter_func] = state_var
+                print(f"DEBUG: Tracked useState from regex: {setter_func} -> {state_var}")
+            
             # Extract create_onclick handlers using regex
             # Pattern to match: handleClick = create_onclick(lambda e: setName(name.upper()))
             # Need to handle nested parentheses in lambda body using greedy match
@@ -422,8 +466,8 @@ class EnhancedHandlerExtractor:
                     # Generate placeholder key
                     placeholder = _get_python_call_placeholder_from_lambda_code(clean_code)
                     
-                    # Compile to actions
-                    actions = compile_handler_to_actions(clean_code, handler_name)
+                    # FIX: Pass state_setter_map to compile_handler_to_actions
+                    actions = compile_handler_to_actions(clean_code, handler_name, state_setter_map)
                     print(f"DEBUG: Compiled actions for {handler_name}: {actions}")
                     if actions:
                         handlers[placeholder] = actions

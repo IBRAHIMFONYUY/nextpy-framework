@@ -114,8 +114,12 @@ class PSXRuntime:
         else:
             condition_result = self.evaluate_expression(node.condition)
         
+        # FIX: Render both branches for client-side conditional updates
+        then_result = self._render_node_list(node.then_body)
+        else_result = ""
+        
         if condition_result:
-            return self._render_node_list(node.then_body)
+            result = then_result
         else:
             # Check elif conditions
             for i, (elif_cond, elif_body) in enumerate(zip(node.elif_conditions, node.elif_bodies)):
@@ -126,13 +130,22 @@ class PSXRuntime:
                     elif_result = self.evaluate_expression(elif_cond)
                 
                 if elif_result:
-                    return self._render_node_list(elif_body)
+                    result = self._render_node_list(elif_body)
+                    return result
             
             # Execute else if present
             if node.else_body:
-                return self._render_node_list(node.else_body)
-            
-            return ""
+                else_result = self._render_node_list(node.else_body)
+                result = else_result
+            else:
+                result = ""
+        
+        # FIX: Wrap conditional content in a span with data attributes for client-side updates
+        escaped_condition = html.escape(node.condition)
+        escaped_then = html.escape(then_result)
+        escaped_else = html.escape(else_result)
+        
+        return f'<span data-if-condition="{escaped_condition}" data-if-true="{escaped_then}" data-if-false="{escaped_else}">{result}</span>'
     
     def _execute_for(self, node: ForNode) -> str:
         """Execute for loop logic block using AST with proper variable scoping"""
@@ -530,51 +543,50 @@ def process_python_logic(psx_str: str, context: Dict[str, Any]) -> str:
                 condition = content[3:].strip()
                 engine = SafeExpressionEngine(enhanced_context)
                 
+                # Find matching {/if}
+                full_match = match.group(0)
+                start_pos = psx_str.find(full_match)
+                end_pos = start_pos + len(full_match)
+                
+                # Find matching {/if}
+                brace_count = 0
+                if_pos = end_pos
+                while if_pos < len(psx_str):
+                    if psx_str[if_pos] == '{':
+                        brace_count += 1
+                    elif psx_str[if_pos] == '}':
+                        brace_count -= 1
+                        if brace_count == 0:
+                            break
+                    if_pos += 1
+                
+                # Extract if body (until next control flow or {/if})
+                if_body = psx_str[end_pos:if_pos]
+                if_body = re.sub(r'\{/(if|elif|else)\}', '', if_body).strip()
+                
+                # Check for else clause
+                else_body = ''
+                if '{else:' in if_body:
+                    if_part, else_part = if_body.split('{else:', 1)
+                    if_body = if_part.strip()
+                    else_body = else_part.strip()
+                
+                # Evaluate condition
                 if engine.evaluate(condition):
-                    # Find matching {/if} and return content
-                    full_match = match.group(0)
-                    start_pos = psx_str.find(full_match)
-                    end_pos = start_pos + len(full_match)
-                    
-                    # Find matching {/if}
-                    brace_count = 0
-                    if_pos = end_pos
-                    while if_pos < len(psx_str):
-                        if psx_str[if_pos] == '{':
-                            brace_count += 1
-                        elif psx_str[if_pos] == '}':
-                            brace_count -= 1
-                            if brace_count == 0:
-                                break
-                        if_pos += 1
-                    
-                    # Extract if body (until next control flow or {/if})
-                    if_body = psx_str[end_pos:if_pos]
-                    if_body = re.sub(r'\{/(if|elif|else)\}', '', if_body).strip()
-                    
-                    return process_python_logic(if_body, enhanced_context)
+                    result = process_python_logic(if_body, enhanced_context)
                 else:
-                    # Skip to next control flow or {/if}
-                    full_match = match.group(0)
-                    start_pos = psx_str.find(full_match)
-                    
-                    # Find next control flow or {/if}
-                    pos = start_pos + len(full_match)
-                    brace_count = 0
-                    
-                    while pos < len(psx_str):
-                        if psx_str[pos] == '{':
-                            brace_count += 1
-                        elif psx_str[pos] == '}':
-                            brace_count -= 1
-                            if brace_count == 0:
-                                # Check if next is control flow
-                                remaining = psx_str[pos+1:]
-                                if remaining.startswith('{elif ') or remaining.startswith('{else}') or remaining.startswith('{/if}'):
-                                    break
-                        pos += 1
-                    
-                    return ''
+                    result = process_python_logic(else_body, enhanced_context) if else_body else ''
+                
+                # FIX: Wrap conditional content in a span with data attributes for client-side updates
+                if_result = process_python_logic(if_body, enhanced_context)
+                else_result = process_python_logic(else_body, enhanced_context) if else_body else ''
+                
+                # Escape the condition for HTML attribute
+                escaped_condition = html.escape(condition)
+                escaped_if_true = html.escape(if_result)
+                escaped_if_false = html.escape(else_result)
+                
+                return f'<span data-if-condition="{escaped_condition}" data-if-true="{escaped_if_true}" data-if-false="{escaped_if_false}">{result}</span>'
                     
             except Exception as e:
                 return f'{{If error: {str(e)}}}'
@@ -701,17 +713,36 @@ def process_python_logic(psx_str: str, context: Dict[str, Any]) -> str:
                     # Evaluate condition
                     engine = SafeExpressionEngine(enhanced_context)
                     if engine.evaluate(condition):
-                        return process_python_logic(if_part, enhanced_context)
+                        result = process_python_logic(if_part, enhanced_context)
                     else:
-                        return process_python_logic(else_part, enhanced_context)
+                        result = process_python_logic(else_part, enhanced_context)
+                    
+                    # FIX: Wrap conditional content in a span with data attributes for client-side updates
+                    # This allows the JavaScript runtime to re-evaluate the condition when state changes
+                    if_result = process_python_logic(if_part, enhanced_context)
+                    else_result = process_python_logic(else_part, enhanced_context)
+                    
+                    # Escape the condition for HTML attribute
+                    escaped_condition = html.escape(condition)
+                    escaped_if_true = html.escape(if_result)
+                    escaped_if_false = html.escape(else_result)
+                    
+                    return f'<span data-if-condition="{escaped_condition}" data-if-true="{escaped_if_true}" data-if-false="{escaped_if_false}">{result}</span>'
                 else:
                     # Only if part
                     if_part = body_content.rstrip('{/if').strip()
                     engine = SafeExpressionEngine(enhanced_context)
                     if engine.evaluate(condition):
-                        return process_python_logic(if_part, enhanced_context)
+                        result = process_python_logic(if_part, enhanced_context)
                     else:
-                        return ''
+                        result = ''
+                    
+                    # FIX: Wrap conditional content in a span with data attributes for client-side updates
+                    if_result = process_python_logic(if_part, enhanced_context)
+                    escaped_condition = html.escape(condition)
+                    escaped_if_true = html.escape(if_result)
+                    
+                    return f'<span data-if-condition="{escaped_condition}" data-if-true="{escaped_if_true}" data-if-false="">{result}</span>'
                         
             except Exception as e:
                 return f'{{If error: {str(e)}}}'
@@ -947,17 +978,35 @@ def process_python_logic(psx_str: str, context: Dict[str, Any]) -> str:
         
         try:
             engine = SafeExpressionEngine(enhanced_context)
+            
+            # FIX: Render both branches for client-side conditional updates
+            if_result = process_python_logic(if_body, enhanced_context)
+            else_result = process_python_logic(else_body, enhanced_context) if else_body else ''
+            
             if engine.evaluate(condition):
-                processed_content = process_python_logic(if_body, enhanced_context)
+                processed_content = if_result
             else:
                 if else_body:
-                    processed_content = process_python_logic(else_body, enhanced_context)
+                    processed_content = else_result
                 else:
                     processed_content = ''
             
-            # Replace the if/else block with the processed content
-            result = result[:start_pos] + processed_content + result[end_pos:]
-            pos = start_pos + len(processed_content)
+            # FIX: Wrap conditional content in a span with data attributes for client-side updates
+            escaped_condition = html.escape(condition)
+            escaped_if_true = html.escape(if_result)
+            escaped_if_false = html.escape(else_result)
+            print('processed content', processed_content, escaped_condition, escaped_if_true, escaped_if_false)
+            
+            # FIX: Add data-component-id for dependency tracking
+            component_id = enhanced_context.get('_component_id', '')
+            print(f'DEBUG: enhanced_context keys: {list(enhanced_context.keys())}')
+            print(f'DEBUG: Adding data-component-id="{component_id}" to conditional element')
+            
+            wrapped_content = f'<span data-if-condition="{escaped_condition}" data-if-true="{escaped_if_true}" data-if-false="{escaped_if_false}" data-component-id="{component_id}">{processed_content}</span>'
+            
+            # Replace the if/else block with the wrapped content
+            result = result[:start_pos] + wrapped_content + result[end_pos:]
+            pos = start_pos + len(wrapped_content)
             
         except:
             # If processing fails, skip this if block

@@ -142,6 +142,10 @@ class HydrationEngine:
             // Register with global action runtime so _executeVariable resolves state
             if (window.NextPyActionRuntime) {{
                 window.NextPyActionRuntime.registerComponent(id, {{ ...initialState }});
+                // FIX: Rebuild dependency map after DOM is ready
+                setTimeout(() => {{
+                    window.NextPyActionRuntime.rebuildDependencyMap(id);
+                }}, 100);
             }}
         }}
         

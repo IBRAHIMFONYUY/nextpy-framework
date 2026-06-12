@@ -71,6 +71,7 @@ class PSXElement:
                 render_context = {}
             
             runtime = PSXRuntime(render_context)
+            print('runtime', runtime)
             return runtime._render_node(self._ast_node)
         else:
             # Fallback to legacy behavior

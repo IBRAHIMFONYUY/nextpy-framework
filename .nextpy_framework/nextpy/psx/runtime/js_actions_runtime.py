@@ -15,6 +15,7 @@ class NextPyActionRuntime {
         this.components = new Map();
         this.globalState = {};
         this.functions = new Map();
+        this.dependencyMap = new Map(); // FIX: Track state dependencies
         this._registerBuiltinFunctions();
     }
 
@@ -23,8 +24,37 @@ class NextPyActionRuntime {
             state: { ...initialState },
             listeners: []
         });
+        this.dependencyMap.set(componentId, {}); // FIX: Initialize dependency map for component
         this._ensureStateDefaults(componentId);
+        // FIX: Build dependency map for conditional elements (deferred to after DOM is ready)
+        setTimeout(() => this._buildDependencyMap(componentId), 100); // Delay to ensure DOM is ready
         return this.components.get(componentId);
+    }
+
+    _buildDependencyMap(componentId) {
+        // FIX: Scan DOM and build dependency map for conditional elements
+        const conditionalElements = document.querySelectorAll(`[data-if-condition]`);
+        console.log('DEBUG: Building dependency map for component', componentId, 'found', conditionalElements.length, 'conditional elements');
+        
+        // FIX: Initialize dependency map for component if not exists
+        if (!this.dependencyMap.has(componentId)) {
+            this.dependencyMap.set(componentId, {});
+            console.log('DEBUG: Initialized dependency map for component:', componentId);
+        }
+        
+        conditionalElements.forEach(element => {
+            if (element.dataset.componentId === componentId) {
+                console.log('DEBUG: Registering conditional element with componentId:', componentId);
+                this._registerConditionalElement(element, componentId);
+            }
+        });
+        console.log('DEBUG: Dependency map for component', componentId, ':', this.dependencyMap.get(componentId));
+    }
+
+    // FIX: Public method to rebuild dependency map after DOM is ready
+    rebuildDependencyMap(componentId) {
+        this.dependencyMap.set(componentId, {});
+        this._buildDependencyMap(componentId);
     }
 
     _ensureStateDefaults(componentId) {
@@ -424,11 +454,126 @@ class NextPyActionRuntime {
             }
         });
         
+        // FIX: Handle conditional rendering updates using dependency map
+        const componentDeps = this.dependencyMap.get(componentId);
+        console.log('DEBUG: State changed', key, '->', newValue, 'for component', componentId);
+        console.log('DEBUG: Component dependencies:', componentDeps);
+        if (componentDeps && componentDeps[key]) {
+            console.log('DEBUG: Found', componentDeps[key].length, 'conditional elements depending on', key);
+            componentDeps[key].forEach(element => {
+                const condition = element.dataset.ifCondition;
+                console.log('DEBUG: Updating conditional element with condition:', condition);
+                this._updateConditionalElement(element, componentId, condition);
+            });
+        } else {
+            console.log('DEBUG: No conditional elements depend on', key);
+        }
+        
         // Trigger custom event
         const event = new CustomEvent('nextpy:stateChange', {
             detail: { componentId, key, newValue, oldValue }
         });
         document.dispatchEvent(event);
+    }
+
+    _updateConditionalElement(element, componentId, condition) {
+        // Evaluate the condition with current state
+        const component = this.components.get(componentId);
+        if (!component) {
+            console.log('DEBUG: Component not found:', componentId);
+            return;
+        }
+        
+        try {
+            // FIX: Safe expression evaluation
+            console.log('DEBUG: Evaluating condition:', condition, 'with state:', component.state);
+            const result = this._evaluateCondition(condition, component.state);
+            console.log('DEBUG: Condition result:', result);
+            
+            // Get the true and false branches from data attributes
+            const trueContent = element.dataset.ifTrue || '';
+            const falseContent = element.dataset.ifFalse || '';
+            console.log('DEBUG: True content:', trueContent);
+            console.log('DEBUG: False content:', falseContent);
+            
+            // FIX: Unescape HTML content before setting as innerHTML
+            const unescapeHtml = (html) => {
+                const textArea = document.createElement('textarea');
+                textArea.innerHTML = html;
+                return textArea.value;
+            };
+            
+            // Update the element content based on condition result
+            if (result) {
+                element.innerHTML = unescapeHtml(trueContent);
+                console.log('DEBUG: Updated element with true content');
+            } else {
+                element.innerHTML = unescapeHtml(falseContent);
+                console.log('DEBUG: Updated element with false content');
+            }
+        } catch (error) {
+            console.error('Conditional update error:', error);
+        }
+    }
+
+    _evaluateCondition(expr, state) {
+        // FIX: Safe condition evaluation with proper variable substitution
+        // Replace state variable names with their values
+        let evalExpr = expr;
+        for (const [key, value] of Object.entries(state)) {
+            // Try exact match first, then word boundary regex
+            if (evalExpr === key) {
+                evalExpr = typeof value === 'string' ? `'${value}'` : JSON.stringify(value);
+            } else {
+                const regex = new RegExp(`\\b${key}\\b`, 'g');
+                evalExpr = evalExpr.replace(regex, typeof value === 'string' ? `'${value}'` : JSON.stringify(value));
+            }
+        }
+        
+        console.log('DEBUG: Evaluating condition:', expr, '->', evalExpr, 'with state:', state);
+        
+        // Safe evaluation of simple boolean expressions
+        try {
+            return Function(`"use strict"; return (${evalExpr})`)();
+        } catch (e) {
+            console.warn('Failed to evaluate condition:', expr, e);
+            return false;
+        }
+    }
+
+    _registerConditionalElement(element, componentId) {
+        // FIX: Register conditional element and build dependency map
+        const condition = element.dataset.ifCondition;
+        if (!condition) return;
+        
+        // FIX: Initialize dependency map for component if not exists
+        if (!this.dependencyMap.has(componentId)) {
+            this.dependencyMap.set(componentId, {});
+            console.log('DEBUG: Initialized dependency map for component:', componentId);
+        }
+        
+        const componentDeps = this.dependencyMap.get(componentId);
+        const component = this.components.get(componentId);
+        console.log('DEBUG: Condition:', condition, 'State keys:', Object.keys(component.state));
+        
+        // Extract state dependencies from condition using exact match or word boundary
+        for (const key of Object.keys(component.state)) {
+            // Try exact match first, then word boundary
+            const exactMatch = condition === key;
+            const regex = new RegExp(`\\b${key}\\b`);
+            const wordBoundaryMatch = regex.test(condition);
+            console.log('DEBUG: Testing key:', key, 'exact match:', exactMatch, 'word boundary match:', wordBoundaryMatch);
+            
+            if (exactMatch || wordBoundaryMatch) {
+                if (!componentDeps[key]) {
+                    componentDeps[key] = [];
+                }
+                if (!componentDeps[key].includes(element)) {
+                    componentDeps[key].push(element);
+                    console.log('DEBUG: Registered element for state key:', key);
+                }
+            }
+        }
     }
 
     _registerBuiltinFunctions() {
