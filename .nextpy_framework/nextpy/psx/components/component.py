@@ -8,6 +8,9 @@ import threading
 import uuid
 import inspect
 import re
+
+# FIX: Module-level variable to store component_id for current component execution
+_current_component_id = None
 import hashlib
 from typing import Any, Dict, List, Optional, Callable, Union
 from dataclasses import dataclass, field
@@ -90,6 +93,11 @@ def component(func):
         else:
             props = kwargs
         
+        print(f"DEBUG: Component wrapper received props: {list(props.keys())}")
+        print(f"DEBUG: Component wrapper _component_id in props: {'_component_id' in props}")
+        if '_component_id' in props:
+            print(f"DEBUG: Component wrapper _component_id value: {props['_component_id']}")
+        
         component_state.props = props
         
         # Execute the component function and capture local variables
@@ -118,34 +126,54 @@ def component(func):
         
         # Create context with props and local variables (excluding internal ones)
         context = props.copy()
+        print(f"DEBUG: Props before context creation: {list(props.keys())}")
         for key, value in component_locals.items():
             if not key.startswith('_') and key not in ['func', 'props', 'result', 'execution_result', 'execute_component', 'wrapper', 'execute_with_locals', 'component_locals', 'component_frame', 'frame', 'current_frame', 'original_globals']:
                 context[key] = value
+        print(f"DEBUG: Context after creation: {list(context.keys())}")
+        
+        # FIX: Add component_id to context if not present (fallback mechanism)
+        if '_component_id' not in context:
+            # Try to get from decorator via module-level variable
+            global _current_component_id
+            if _current_component_id:
+                context['_component_id'] = _current_component_id
+                print(f"DEBUG: Added component_id from module-level to context: {_current_component_id}")
+            else:
+                # Generate a fallback component_id
+                import uuid
+                context['_component_id'] = f"psx_component_{uuid.uuid4().hex[:8]}"
+                print(f"DEBUG: Generated fallback component_id: {context['_component_id']}")
         
         # CRITICAL FIX: Add useState hook values to context
         # This ensures variables like 'count' from useState are available in expressions
         if hasattr(component_state, 'hooks') and component_state.hooks:
             # Add useState hook values to context with common variable names
             # Since we can't extract actual variable names from destructuring easily,
-            # we'll add common useState variable names as fallbacks
-            common_state_names = ['count', 'name', 'value', 'data', 'items', 'index', 'loading', 'error', 'success', 'user', 'message', 'text', 'visible', 'active', 'selected']
+            # FIX: Extract actual state variable names from useState destructuring
+            # instead of using fallback common names
+            state_var_names = []
+            for var_name, var_value in component_locals.items():
+                if isinstance(var_value, tuple) and len(var_value) == 2:
+                    # This is likely a useState destructuring assignment
+                    # The first element is the state variable name
+                    state_var_names.append(var_name)
             
             for i, hook_data in enumerate(component_state.hooks):
                 if 'value' in hook_data:
                     # Add with generic name
                     context[f"_state_{i}"] = hook_data['value']
                     
-                    # Also add with common names if this is the first few hooks
-                    if i < len(common_state_names):
-                        context[common_state_names[i]] = hook_data['value']
-                    
-                    # Try to find actual variable names from component_locals
-                    for var_name, var_value in component_locals.items():
-                        if isinstance(var_value, tuple) and len(var_value) == 2:
-                            # This is likely a useState destructuring assignment
-                            # Use the actual variable name
-                            context[var_name] = hook_data['value']
-                            break
+                    # FIX: Use actual extracted state variable name if available
+                    if i < len(state_var_names):
+                        context[state_var_names[i]] = hook_data['value']
+                        print(f"DEBUG: Added state variable {state_var_names[i]} = {hook_data['value']}")
+                    else:
+                        # Fallback to common names only if actual names not found
+                        common_state_names = ['count', 'name', 'value', 'data', 'items', 'index', 'loading', 'error', 'success', 'user', 'message', 'text', 'visible', 'active', 'selected']
+                        if i < len(common_state_names):
+                            context[common_state_names[i]] = hook_data['value']
+                            print(f"DEBUG: Fallback to common name {common_state_names[i]} = {hook_data['value']}")
         
         # Store context in component state for expression evaluation
         component_state.state.update(context)

@@ -109,9 +109,13 @@ class ActionCompiler:
         self.current_scope = {}
         self.handler_context = {}
     
-    def compile_handler(self, handler_code: str, handler_name: str) -> List[Action]:
+    def compile_handler(self, handler_code: str, handler_name: str, state_setter_map: Dict[str, str] = None) -> List[Action]:
         """Compile handler code to structured actions"""
         import ast
+        
+        # FIX: Store state setter map for this compilation
+        self.state_setter_map = state_setter_map or {}
+        print(f"DEBUG compile_handler: state_setter_map = {self.state_setter_map}")
         
         try:
             # Handle lambda expressions by wrapping them
@@ -332,12 +336,33 @@ class ActionCompiler:
             func_name = node.func.id
 
             # Special handling for common functions
-            setter_match = re.match(r'^set([A-Z]\w*)$', func_name)
-            if setter_match:
-                state_key = (
-                    setter_match.group(1)[0].lower() +
-                    setter_match.group(1)[1:]
+            # FIX: Use state_setter_map to identify state setters regardless of naming
+            # This supports patterns like [show, change] = useState(False)
+            print(f"DEBUG _compile_call: func_name={func_name}, state_setter_map={self.state_setter_map}")
+            if func_name in self.state_setter_map:
+                # This function is a state setter
+                state_key = self.state_setter_map[func_name]
+                print(f"DEBUG _compile_call: Found state setter {func_name} -> {state_key}")
+                return Action(
+                    type=ActionType.SET_STATE,
+                    data={
+                        "key": state_key,
+                        "value": args[0] if args else {
+                            "type": "CONSTANT",
+                            "data": {"value": None}
+                        }
+                    }
                 )
+            # Fallback: Support setters starting with 'set' for backward compatibility
+            elif func_name.startswith('set'):
+                # Extract state key from setter name
+                # For setCount -> count, setName -> name, setchangemynam -> changemynam
+                state_key = func_name[3:]  # Remove 'set' prefix
+                if state_key:  # Make sure there's something after 'set'
+                    # If the first letter is uppercase, lowercase it (setCount -> count)
+                    # Otherwise keep as-is (setchangemynam -> changemynam)
+                    if state_key[0].isupper():
+                        state_key = state_key[0].lower() + state_key[1:]
                 return Action(
                     type=ActionType.SET_STATE,
                     data={
@@ -872,7 +897,7 @@ class ActionCompiler:
 action_compiler = ActionCompiler()
 
 
-def compile_handler_to_actions(handler_code: str, handler_name: str) -> List[Dict[str, Any]]:
+def compile_handler_to_actions(handler_code: str, handler_name: str, state_setter_map: Dict[str, str] = None) -> List[Dict[str, Any]]:
     """Compile handler code to structured actions (main entry point)"""
-    actions = action_compiler.compile_handler(handler_code, handler_name)
+    actions = action_compiler.compile_handler(handler_code, handler_name, state_setter_map)
     return [action.to_dict() for action in actions]

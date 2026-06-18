@@ -142,6 +142,10 @@ class HydrationEngine:
             // Register with global action runtime so _executeVariable resolves state
             if (window.NextPyActionRuntime) {{
                 window.NextPyActionRuntime.registerComponent(id, {{ ...initialState }});
+                // FIX: Rebuild dependency map after DOM is ready
+                setTimeout(() => {{
+                    window.NextPyActionRuntime.rebuildDependencyMap(id);
+                }}, 100);
             }}
         }}
         
@@ -377,6 +381,7 @@ class HydrationEngine:
             })
             # Update the component ID to match the registered one
             registered_id = list(self.contexts.keys())[-1]
+            print('this is is', registered_id)
             if registered_id != component_id:
                 # Move the context to the correct ID
                 self.contexts[component_id] = self.contexts.pop(registered_id)

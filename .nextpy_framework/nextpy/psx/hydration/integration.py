@@ -47,11 +47,13 @@ class ComponentHydrator:
                 source = inspect.getsource(component_func)
             
             # Use regex to find useState patterns
-            pattern = r'\[(\w+),\s*set\w+\]\s*=\s*useState\s*\(\s*([^)]*)\s*\)'
+            # FIX: Support any setter name, not just setXxxx pattern
+            # Matches: [show, change] = useState(False) or [show, setShow] = useState(False)
+            pattern = r'\[(\w+),\s*(\w+)\]\s*=\s*useState\s*\(\s*([^)]*)\s*\)'
             matches = re.findall(pattern, source)
             
             state = {}
-            for var_name, initial_value in matches:
+            for var_name, setter_name, initial_value in matches:
                 try:
                     # Safely evaluate the initial value
                     initial_value = initial_value.strip()
