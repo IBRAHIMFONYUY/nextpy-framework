@@ -93,10 +93,14 @@ def component(func):
         else:
             props = kwargs
         
-        print(f"DEBUG: Component wrapper received props: {list(props.keys())}")
-        print(f"DEBUG: Component wrapper _component_id in props: {'_component_id' in props}")
-        if '_component_id' in props:
-            print(f"DEBUG: Component wrapper _component_id value: {props['_component_id']}")
+        # Don't render children if they're PSXElement objects - keep them as-is for composition
+        # This allows layouts to compose with page element trees before rendering
+        if 'children' in props:
+            children = props['children']
+            if hasattr(children, 'children') and children.children:
+                # It's a PSXElement - keep it as-is for composition
+                # Don't render it yet, let the final render handle it
+                pass
         
         component_state.props = props
         
@@ -125,8 +129,9 @@ def component(func):
             component_locals = frame.f_locals.copy()
         
         # Create context with props and local variables (excluding internal ones)
-        context = props.copy()
-        print(f"DEBUG: Props before context creation: {list(props.keys())}")
+        # IMPORTANT: Don't reset context - props already contains the full context
+        context = props.copy() if props else {}
+        print(f"DEBUG: Props before context creation: {list(context.keys())}")
         for key, value in component_locals.items():
             if not key.startswith('_') and key not in ['func', 'props', 'result', 'execution_result', 'execute_component', 'wrapper', 'execute_with_locals', 'component_locals', 'component_frame', 'frame', 'current_frame', 'original_globals']:
                 context[key] = value
@@ -1613,50 +1618,42 @@ class EventHandlers:
     @staticmethod
     def create_onchange(handler_func: Callable) -> str:
         """Create onchange handler"""
-        func_name = getattr(handler_func, '__name__', 'handler')
-        return f"python_change_{func_name}"
+        return _create_python_call_placeholder(handler_func, 'python_call')
     
     @staticmethod
     def create_onsubmit(handler_func: Callable) -> str:
         """Create onsubmit handler"""
-        func_name = getattr(handler_func, '__name__', 'handler')
-        return f"python_submit_{func_name}"
+        return _create_python_call_placeholder(handler_func, 'python_call')
     
     @staticmethod
     def create_onreset(handler_func: Callable) -> str:
         """Create onreset handler"""
-        func_name = getattr(handler_func, '__name__', 'handler')
-        return f"python_reset_{func_name}"
+        return _create_python_call_placeholder(handler_func, 'python_call')
     
     @staticmethod
     def create_onfocus(handler_func: Callable) -> str:
         """Create onfocus handler"""
-        func_name = getattr(handler_func, '__name__', 'handler')
-        return f"python_focus_{func_name}"
+        return _create_python_call_placeholder(handler_func, 'python_call')
     
     @staticmethod
     def create_onblur(handler_func: Callable) -> str:
         """Create onblur handler"""
-        func_name = getattr(handler_func, '__name__', 'handler')
-        return f"python_blur_{func_name}"
+        return _create_python_call_placeholder(handler_func, 'python_call')
     
     @staticmethod
     def create_oninput(handler_func: Callable) -> str:
         """Create oninput handler"""
-        func_name = getattr(handler_func, '__name__', 'handler')
-        return f"python_input_{func_name}"
+        return _create_python_call_placeholder(handler_func, 'python_call')
     
     @staticmethod
     def create_oninvalid(handler_func: Callable) -> str:
         """Create oninvalid handler"""
-        func_name = getattr(handler_func, '__name__', 'handler')
-        return f"python_invalid_{func_name}"
+        return _create_python_call_placeholder(handler_func, 'python_call')
     
     @staticmethod
     def create_onselect(handler_func: Callable) -> str:
         """Create onselect handler"""
-        func_name = getattr(handler_func, '__name__', 'handler')
-        return f"python_select_{func_name}"
+        return _create_python_call_placeholder(handler_func, 'python_call')
     
     # Keyboard Events
     @staticmethod

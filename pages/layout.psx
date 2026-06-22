@@ -1,0 +1,17 @@
+# pages/layout.py
+from nextpy.psx import component
+
+@component
+def Layout(children, **props):
+    return (
+        <html>
+            <head>
+                <title>{props.get('title', 'My App')}</title>
+            </head>
+            <body>
+                <nav>Navigation</nav>
+                {children}
+                <footer>Footer</footer>
+            </body>
+        </html>
+    )

@@ -6,6 +6,9 @@ Supports full PSX capability with modern architecture
 import re
 import json
 from typing import Any, Dict, List, Union, Optional, Tuple
+
+
+
 from dataclasses import dataclass, field
 from .ast_nodes import (
     PSXNode, PSXNodeUnion, NodeType, LogicType,
@@ -15,6 +18,63 @@ from .ast_nodes import (
     PSXASTParser, PSXNodeValidator, PSXNodeOptimizer
 )
 from .runtime import PSXRuntime, process_python_logic
+
+
+def _convert_ast_node_to_psx_child(node: PSXNodeUnion, context: Dict[str, Any]) -> Union[str, 'PSXElement']:
+    """Helper to convert a single AST node to a PSXElement child format."""
+    if isinstance(node, TextNode):
+        return node.content
+    elif isinstance(node, ExpressionNode):
+        # Evaluate the expression if possible, otherwise return its string representation
+        try:
+            runtime_instance = PSXRuntime(context)
+            evaluated_result = runtime_instance.evaluate_ast_expression(node)
+            if hasattr(evaluated_result, 'to_html'):
+                return evaluated_result.to_html()
+            return str(evaluated_result)
+        except Exception:
+            return node.expression # Fallback to raw expression if evaluation fails
+    elif isinstance(node, ElementNode):
+        # Recursively convert ElementNode to PSXElement
+        children_converted = [_convert_ast_node_to_psx_child(child, context) for child in node.children]
+        element = PSXElement(
+            tag=node.tag,
+            props={**node.attributes, **({"key": node.key} if node.key else {})},
+            children=children_converted,
+        )
+        element._ast_node = node  # Keep reference to AST node
+        element._psx_context = context
+        return element
+    elif isinstance(node, ComponentNode):
+        # Recursively convert ComponentNode to PSXElement
+        children_converted = [_convert_ast_node_to_psx_child(child, context) for child in node.children]
+        # ComponentNode's props might be more complex, we just pass them through as dict
+        # The actual component rendering logic will be handled by runtime._render_component_node
+        element = PSXElement(
+            tag=node.name, # Use component name as tag for PSXElement (for legacy compat)
+            props={**node.props, **({"key": node.key} if node.key else {})},
+            children=children_converted,
+        )
+        element._ast_node = node # Keep reference to AST node
+        element._psx_context = context
+        return element
+    elif isinstance(node, FragmentNode):
+        # Fragments children are directly added to parent, so we return a list of converted children
+        return [_convert_ast_node_to_psx_child(child, context) for child in node.children]
+    else:
+        return str(node)
+
+def _convert_ast_children_to_psx_elements(ast_children: List[PSXNodeUnion], context: Dict[str, Any]) -> List[Union[str, 'PSXElement']]:
+    """Helper to recursively convert AST children nodes to a list of PSXElement children."""
+    converted_children = []
+    for child_node in ast_children:
+        converted = _convert_ast_node_to_psx_child(child_node, context)
+        if isinstance(converted, list):
+            # If it's a fragment, extend the list
+            converted_children.extend(converted)
+        else:
+            converted_children.append(converted)
+    return converted_children
 
 
 @dataclass
@@ -44,6 +104,8 @@ class PSXElement:
                 ast_children.append(TextNode(content=child))
             elif isinstance(child, PSXElement):
                 ast_children.append(child.to_ast())
+            elif isinstance(child, PSXNode):
+                ast_children.append(child)
         
         return ElementNode(
             tag=self.tag,
@@ -62,29 +124,29 @@ class PSXElement:
         """Convert PSX element to HTML string"""
         # Use stored AST node if available, otherwise use stored context
         if hasattr(self, '_ast_node') and self._ast_node:
-            # Use stored context if available, otherwise use provided context
+            # Merge stored context with provided context (provided context takes precedence)
+            render_context = {}
             if hasattr(self, '_psx_context') and self._psx_context:
-                render_context = self._psx_context
-            elif context:
-                render_context = context
-            else:
-                render_context = {}
+                render_context = self._psx_context.copy()
+            if context:
+                render_context.update(context)
             
             runtime = PSXRuntime(render_context)
             print('runtime', runtime)
             return runtime._render_node(self._ast_node)
         else:
             # Fallback to legacy behavior
-            # Use stored context if available, otherwise use provided context
+            # Merge stored context with provided context (provided context takes precedence)
             if hasattr(self, '_psx_context') and self._psx_context:
-                context = self._psx_context
+                render_context = self._psx_context.copy()
+                if context:
+                    render_context.update(context)
             elif context:
-                # Use provided context
-                pass
+                render_context = context
             else:
-                context = {}
+                render_context = {}
             
-            runtime = PSXRuntime(context)
+            runtime = PSXRuntime(render_context)
             
             # Convert to AST and render
             ast_node = self.to_ast()
@@ -135,13 +197,14 @@ class PSXParser:
         signal.alarm(5)
         
         try:
-            # Try to parse as fragment first, since fragments use special shorthand syntax
-            ast_node = self._parse_fragment(psx_str_stripped, context)
+            # Try to parse as component FIRST (before element parser)
+            ast_node = self._parse_component(psx_str_stripped, context)
             if ast_node:
+                print(f"DEBUG: Successfully parsed as component: {ast_node.name}")
                 return self.optimizer.optimize_node(ast_node)
 
-            # Try to parse as component next
-            ast_node = self._parse_component(psx_str_stripped, context)
+            # Try to parse as fragment next, since fragments use special shorthand syntax
+            ast_node = self._parse_fragment(psx_str_stripped, context)
             if ast_node:
                 return self.optimizer.optimize_node(ast_node)
 
@@ -189,7 +252,7 @@ class PSXParser:
         tag_name, index = self._read_tag_name(code, index)
         
         # Read attributes until closing '>' or '/>'
-        attributes, events, spread_props, index = self._read_attributes(code, index, context)
+        attributes, events, spread_props, index = self._read_attributes(code, index, context, tag_name)
         
         # Check if self-closing - look for '/>' before the closing '>'
         # Also check if tag name is in self-closing list
@@ -275,7 +338,7 @@ class PSXParser:
             index += 1
         return code[start:index], index
     
-    def _read_attributes(self, code: str, index: int, context: Dict[str, Any]):
+    def _read_attributes(self, code: str, index: int, context: Dict[str, Any], tag_name: str = None):
         """Read attributes from opening tag"""
         attributes = {}
         events = {}
@@ -303,7 +366,7 @@ class PSXParser:
             if index < len(code) and code[index] == '=':
                 index += 1  # Skip '='
                 
-                # Skip whitespace
+                # Skip whitespace (including newlines)
                 while index < len(code) and code[index].isspace():
                     index += 1
                 
@@ -337,7 +400,30 @@ class PSXParser:
                     value = code[value_start:index]
                 
                 # Categorize attribute
-                if key.startswith('on'):
+                if key == 'bind':
+                    # Convert bind attribute to data-bind for automatic state binding
+                    # bind={name} -> data-bind="value:name" or data-bind="checked:name"
+                    # IMPORTANT: bind is a compiler directive, not a normal prop
+                    # We extract the variable identifier WITHOUT evaluating the expression
+                    if value.startswith('{') and value.endswith('}'):
+                        # Extract the variable name from the expression
+                        state_var = value[1:-1].strip()
+                        # Store the raw variable name as a special attribute
+                        # This will be handled by the runtime to set up two-way binding
+                        attributes['_bind_target'] = state_var
+                        # Also store the bind type for the runtime
+                        bind_type = 'value'
+                        if tag_name == 'input' and attributes.get('type') == 'checkbox':
+                            bind_type = 'checked'
+                        attributes['_bind_type'] = bind_type
+                    else:
+                        # If bind value is not an expression, use it directly
+                        attributes['_bind_target'] = value
+                        bind_type = 'value'
+                        if tag_name == 'input' and attributes.get('type') == 'checkbox':
+                            bind_type = 'checked'
+                        attributes['_bind_type'] = bind_type
+                elif key.startswith('on'):
                     events[key] = value
                 elif key.startswith('...'):
                     spread_props.append(key[3:])
@@ -460,10 +546,14 @@ class PSXParser:
     
     def _parse_component(self, psx_str: str, context: Dict[str, Any]) -> Optional[ComponentNode]:
         """Parse PSX string to ComponentNode"""
-        # Component pattern (uppercase first letter)
+        # Component pattern (uppercase first letter) - handle both regular and self-closing tags
+        # Regular component: <ComponentName props>children</ComponentName>
         component_pattern = re.compile(r'<([A-Z][a-zA-Z0-9]*)\s*([^>]*)>(.*?)</\1>', re.DOTALL)
+        # Self-closing component: <ComponentName props />
+        self_closing_component_pattern = re.compile(r'<([A-Z][a-zA-Z0-9]*)\s*([^>]*)\s*/>', re.DOTALL)
         
-        match = component_pattern.match(psx_str)
+        # Try regular component first
+        match = component_pattern.search(psx_str)
         if match:
             name = match.group(1)
             props_str = match.group(2).strip()
@@ -477,6 +567,22 @@ class PSXParser:
                 props=props['attributes'],
                 events=props['events'],
                 children=children,
+                spread_props=props['spread_props']
+            )
+        
+        # Try self-closing component
+        match = self_closing_component_pattern.search(psx_str)
+        if match:
+            name = match.group(1)
+            props_str = match.group(2).strip()
+            
+            props = self._parse_props(props_str, context)
+            
+            return ComponentNode(
+                name=name,
+                props=props['attributes'],
+                events=props['events'],
+                children=[],
                 spread_props=props['spread_props']
             )
         
@@ -755,7 +861,7 @@ def psx(psx_str: str, context: Dict[str, Any] = None) -> PSXElement:
         element = PSXElement(
             tag=ast_node.tag,
             props=ast_node.attributes,
-            children=[],
+            children=_convert_ast_children_to_psx_elements(ast_node.children, merged_context),
             key=ast_node.key
         )
         # Store the AST node and context for proper rendering
@@ -763,13 +869,22 @@ def psx(psx_str: str, context: Dict[str, Any] = None) -> PSXElement:
         element._psx_context = merged_context
         return element
     else:
-        # For non-elements, wrap in div
+        # For non-elements (e.g., ComponentNode, TextNode, FragmentNode directly returned by parse_psx)
+        # We wrap them in a PSXElement as a single child if they are not already a list
+        if isinstance(ast_node, FragmentNode):
+            # If it's a fragment, its children become the PSXElement's children
+            element_children = _convert_ast_children_to_psx_elements(ast_node.children, merged_context)
+        else:
+            # For other nodes, wrap as a single child after conversion
+            element_children = [_convert_ast_node_to_psx_child(ast_node, merged_context)]
+
         element = PSXElement(
-            tag='div',
+            tag='div', # Default wrapper tag
             props={},
-            children=[str(ast_node)]
+            children=element_children,
+            key=getattr(ast_node, 'key', None) # Use key from ast_node if available
         )
-        element._ast_node = ast_node
+        element._ast_node = ast_node # Store the original AST node
         element._psx_context = merged_context
         return element
 

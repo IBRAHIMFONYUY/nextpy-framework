@@ -186,7 +186,11 @@ class SafeExpressionEngine:
         elif isinstance(node, ast.Name):
             # Only allow safe names from context or whitelist
             if node.id in self.context:
-                return self.context[node.id]
+                value = self.context[node.id]
+                # Check if value is a PSXElement and render it
+                if hasattr(value, 'to_html'):
+                    return value.to_html()
+                return value
             elif node.id in self.SAFE_FUNCTIONS:
                 return self.SAFE_FUNCTIONS[node.id]
             else:

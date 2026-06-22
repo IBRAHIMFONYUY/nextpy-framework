@@ -618,7 +618,6 @@ def convert_handler_attributes_in_html(html: str, handlers: Dict[str, str], stat
     print(f"DEBUG convert_handler_attributes_in_html: Input HTML length={len(html)}, handlers={list(handlers.keys())}, state_keys={state_keys}")
     
     # DEBUG: Show sample of HTML with create_on attributes
-    import re
     create_on_samples = re.findall(r'create_on\w+\s*=\s*[^>]+', html[:1000])
     print(f"DEBUG: Found create_on patterns in HTML: {create_on_samples}")
     
@@ -1042,7 +1041,6 @@ def interactive_component(func: Callable) -> Callable:
             html = str(base_component_result)
         
         # Extract state keys from the component for better conversion
-        import re
         try:
             # Try to get source from function first
             source = inspect.getsource(func)
