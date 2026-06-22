@@ -12,6 +12,8 @@ def Layout(children):
         <html>
             <head>
                 <title>{title}</title>
+                
+                <link href="/tailwind.css" rel="stylesheet">
             </head>
             <body class={theme}>
                 <nav class="bg-blue-600 text-white p-4">

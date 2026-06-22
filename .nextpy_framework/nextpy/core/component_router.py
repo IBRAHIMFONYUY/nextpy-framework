@@ -583,7 +583,9 @@ class ComponentRouter:
                                 # Wrap page element with layout - pass PSXElement as children
                                 # IMPORTANT: Pass the full context to the layout
                                 print(f"DEBUG: Calling layout with context keys: {list(context.keys())}")
-                                page_element = layout_func(children=children_element, **context)
+                                # Add props to context for layout components
+                                layout_context = {**context, 'props': context}
+                                page_element = layout_func(children=children_element, **layout_context)
                                 print(f"DEBUG: After layout, element type: {type(page_element)}")
                             except Exception as e:
                                 print(f"Warning: Failed to apply layout {layout_path}: {e}")

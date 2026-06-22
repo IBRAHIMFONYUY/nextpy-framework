@@ -1362,7 +1362,29 @@ module.exports = {
     else:
         _create_traditional_homepage(project_dir)
 
-    (project_dir / "pages" / "index.psx").write_text('''"""Interactive Homepage """
+    (project_dir / "pages" / "layout.psx").write_text('''
+from nextpy.psx import component
+"""App Layout"""
+@component
+def Layout(children, **props):
+    return (
+        <html>
+            <head>
+                <title>{{props.get('title', 'My App')</title>
+                
+                <link href="/tailwind.css" rel="stylesheet">
+            </head>
+            <body>
+                {children}  
+            </body>
+        </html>
+    )
+
+    ''')
+    click.echo("  Created: pages/layout.psx ")
+
+    (project_dir / "pages" / "index.psx").write_text('''
+"""Interactive Homepage """
 
 from nextpy.psx import interactive_component as component
 
@@ -1504,7 +1526,8 @@ default = Home
 
 
     (project_dir / "components" / "ui" / "Button.psx").write_text(
-        '''"""Button component"""
+        '''
+"""Button component"""
 from nextpy.psx import psx
 
 
@@ -1543,54 +1566,11 @@ default = Button
 '''
     )
     click.echo("  Created: components/ui/Button.psx(enhanced interactive)")
-
-    # Create a Layout component
-    (project_dir / "components" / "layout" / "Layout.psx").write_text(
-        '''"""Layout component"""
-
-from nextpy.psx import component
-
-@component
-def Layout(props = None):
-    """Layout component wrapper"""
-    props = props or {}
-    
-    title = props.get("title", "NextPy App")
-    children = props.get("children", "")
-    
-    return (
-        <div class="flex flex-col min-h-screen">
-            <header class="bg-white shadow-sm">
-                <div class="px-4 py-4 mx-auto max-w-7xl">
-                    <div class="flex items-center justify-between">
-                        <h1 class="text-2xl font-bold text-gray-900">{title}</h1>
-                        <nav class="flex space-x-4">
-                            <a href="/" class="text-gray-600 hover:text-gray-900">Home</a>
-                            <a href="/about" class="text-gray-600 hover:text-gray-900">About</a>
-                        </nav>
-                    </div>
-                </div>
-            </header>
-            <main class="flex-1">
-                {children}
-            </main>
-            <footer class="mt-auto bg-gray-100">
-                <div class="px-4 py-6 mx-auto text-center text-gray-600 max-w-7xl">
-                    <p>&copy; 2025 NextPy Framework. All rights reserved.</p>
-                </div>
-            </footer>
-        </div>
-    )
-
-default = Layout
-'''
-    )
-    click.echo("  Created: components/layout/Layout.psx")
-
     
     # Create comprehensive API examples
     (project_dir / "pages" / "api" / "hello.psx").write_text(
-        '''"""API example - Hello endpoint"""
+        '''
+"""API example - Hello endpoint"""
 
 from fastapi import Request
 
@@ -1634,7 +1614,8 @@ async def post(request: Request):
     click.echo("  Created: pages/api/users/index.py")
 
     (project_dir / "pages" / "api" / "users" / "[id].py").write_text(
-        '''"""API example - Dynamic user route"""
+        '''
+"""API example - Dynamic user route"""
 
 from fastapi import Request
 
@@ -1687,7 +1668,7 @@ class User(Base):
 
     # Blog listing page
     (project_dir / "pages" / "blog" / "index.py").write_text('''
-    """Blog listing page"""
+"""Blog listing page"""
 
 from nextpy.psx import component
 

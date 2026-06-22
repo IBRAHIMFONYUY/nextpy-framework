@@ -215,54 +215,56 @@ class NextPyActionRuntime {
         const { key, value } = data;
         const evaluatedValue = this._evaluateExpression(value, componentId);
 
-        if (componentId && this.components.has(componentId)) {
-            const component = this.components.get(componentId);
-            const oldValue = component.state[key];
-            component.state[key] = evaluatedValue;
-
-            // FIX: Call state listeners for this key
-            component.listeners.forEach(listener => {
-                if (listener.stateKey === key) {
-                    listener.callback(evaluatedValue);
-                }
-            });
-
-            // Trigger re-render if DOM element exists
-            this._triggerComponentUpdate(componentId, key, evaluatedValue, oldValue);
-        } else {
-            this.globalState[key] = evaluatedValue;
+        // FIX: Require componentId to prevent state contamination
+        if (!componentId || !this.components.has(componentId)) {
+            console.warn('SET_STATE: componentId required or component not found:', componentId);
+            return;
         }
+
+        const component = this.components.get(componentId);
+        const oldValue = component.state[key];
+        component.state[key] = evaluatedValue;
+
+        // FIX: Call state listeners for this key
+        component.listeners.forEach(listener => {
+            if (listener.stateKey === key) {
+                listener.callback(evaluatedValue);
+            }
+        });
+
+        // Trigger re-render if DOM element exists
+        this._triggerComponentUpdate(componentId, key, evaluatedValue, oldValue);
     }
 
     _executeSetStateBatch(data, componentId) {
         const { updates } = data;
 
-        if (componentId && this.components.has(componentId)) {
-            const component = this.components.get(componentId);
-            for (const update of updates) {
-                const { key, value } = update;
-                const evaluatedValue = this._evaluateExpression(value, componentId);
-                const oldValue = component.state[key];
-                component.state[key] = evaluatedValue;
-                this._triggerComponentUpdate(componentId, key, evaluatedValue, oldValue);
-            }
-        } else {
-            for (const update of updates) {
-                const { key, value } = update;
-                const evaluatedValue = this._evaluateExpression(value, componentId);
-                this.globalState[key] = evaluatedValue;
-            }
+        // FIX: Require componentId to prevent state contamination
+        if (!componentId || !this.components.has(componentId)) {
+            console.warn('SET_STATE_BATCH: componentId required or component not found:', componentId);
+            return;
+        }
+
+        const component = this.components.get(componentId);
+        for (const update of updates) {
+            const { key, value } = update;
+            const evaluatedValue = this._evaluateExpression(value, componentId);
+            const oldValue = component.state[key];
+            component.state[key] = evaluatedValue;
+            this._triggerComponentUpdate(componentId, key, evaluatedValue, oldValue);
         }
     }
 
     _executeGetState(data, componentId) {
         const { key } = data;
         
-        if (componentId && this.components.has(componentId)) {
-            return this.components.get(componentId).state[key];
-        } else {
-            return this.globalState[key];
+        // FIX: Require componentId to prevent state contamination
+        if (!componentId || !this.components.has(componentId)) {
+            console.warn('GET_STATE: componentId required or component not found:', componentId);
+            return undefined;
         }
+        
+        return this.components.get(componentId).state[key];
     }
 
     _executeCallFunction(data, componentId) {
@@ -293,16 +295,17 @@ class NextPyActionRuntime {
             evaluatedKwargs[key] = this._evaluateExpression(value, componentId);
         }
 
-        // Get the object - retrieve from component state
-        let obj;
-        if (componentId && this.components.has(componentId)) {
-            const component = this.components.get(componentId);
-            console.log(`DEBUG _executeCallMethod: All component state:`, component.state);
-            console.log(`DEBUG _executeCallMethod: Looking for object '${object}' in state`);
-            obj = component.state[object];
-        } else {
-            obj = this.globalState[object];
+        // FIX: Require componentId to prevent state contamination
+        if (!componentId || !this.components.has(componentId)) {
+            console.warn('CALL_METHOD: componentId required or component not found:', componentId);
+            throw new Error(`Cannot call method without component context`);
         }
+
+        // Get the object - retrieve from component state only
+        const component = this.components.get(componentId);
+        console.log(`DEBUG _executeCallMethod: All component state:`, component.state);
+        console.log(`DEBUG _executeCallMethod: Looking for object '${object}' in state`);
+        const obj = component.state[object];
 
         console.log(`DEBUG _executeCallMethod: Object value:`, obj);
         console.log(`DEBUG _executeCallMethod: Object type:`, typeof obj);
@@ -449,25 +452,23 @@ class NextPyActionRuntime {
     _executeVariable(data, componentId) {
         const { name } = data;
         
-        // Check component state first
-        if (componentId && this.components.has(componentId)) {
-            const component = this.components.get(componentId);
-            if (name in component.state) {
-                return component.state[name];
-            }
+        // FIX: Only check component state to prevent cross-component contamination
+        if (!componentId || !this.components.has(componentId)) {
+            console.warn('VARIABLE: componentId required or component not found:', componentId);
+            throw new Error(`Unknown variable: ${name} (no component context)`);
         }
         
-        // Check global state
-        if (name in this.globalState) {
-            return this.globalState[name];
+        const component = this.components.get(componentId);
+        if (name in component.state) {
+            return component.state[name];
         }
         
-        // Check window object
-        if (name in window) {
+        // Only allow window object access for built-in functions/constants
+        if (name in window && typeof window[name] !== 'undefined') {
             return window[name];
         }
         
-        throw new Error(`Unknown variable: ${name}`);
+        throw new Error(`Unknown variable: ${name} in component ${componentId}`);
     }
 
     _executeList(data, componentId) {
