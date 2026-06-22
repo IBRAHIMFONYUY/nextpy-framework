@@ -119,20 +119,25 @@ def component(func):
         # Execute the component function and capture local variables
         # Use a more reliable method to capture locals
         
-        # Filter props to only forward what the function signature accepts.
-        # If the function declares **kwargs it gets everything; otherwise only
-        # pass the explicitly named parameters so callers can safely spread the
-        # full request context without causing TypeErrors in page components.
+        # Backward-compatible invocation — three calling conventions are supported:
+        #
+        #   **kwargs style  def Component(**props):         → func(**props)
+        #   Props-dict style def Component(props=None):     → func(props)
+        #   Named-param style def Component(title, count):  → func(**filtered)
+        #
+        # This preserves the dominant `props=None` convention used throughout
+        # the codebase while also supporting the newer explicit-param style.
         if _has_var_keyword:
-            call_props = props
+            result = func(**props)
+        elif 'props' in _accepted_params:
+            # Old-style: pass the entire props dict under the 'props' parameter
+            result = func(props)
         else:
             call_props = {k: v for k, v in props.items() if k in _accepted_params}
+            result = func(**call_props)
 
         # Create a modified globals dict that includes our function
         original_globals = func.__globals__.copy()
-        
-        # Execute the function and capture its locals
-        result = func(**call_props)
         
         # Get the most recent frame from the call stack that belongs to our component function
         frame = None

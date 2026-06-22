@@ -561,9 +561,12 @@ class ComponentRouter:
                 page_element = route.renderer.get_page_element(route.file_path, context)
                 print(f"DEBUG: Page element type: {type(page_element)}, value: {page_element}")
                 
-                # Apply layout chain (inside-out order) - compose PSX elements
+                # Apply layout chain innermost-first so the root layout wraps everything.
+                # layout_chain is stored [root, ..., inner] (reversed from collection order).
+                # Iterating reversed() gives [inner, ..., root], so each iteration wraps
+                # the current page_element — final result is root(inner(...(page))).
                 if hasattr(route, 'layout_chain') and route.layout_chain:
-                    for layout_path in route.layout_chain:
+                    for layout_path in reversed(route.layout_chain):
                         layout_func = self._load_layout(layout_path)
                         print(f"DEBUG: Layout function: {layout_func}")
                         if layout_func:
