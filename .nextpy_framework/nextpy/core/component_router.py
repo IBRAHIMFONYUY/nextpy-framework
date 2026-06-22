@@ -550,6 +550,9 @@ class ComponentRouter:
             context = {}
             
         if isinstance(route, ComponentRoute) and route.use_components:
+            # Import render_psx here (before the try block) so it is available in
+            # both the success path and the except/error-boundary path.
+            from ..psx import render_psx
             try:
                 # Merge layout metadata into context
                 if hasattr(route, 'special_chains') and route.special_chains:
@@ -561,17 +564,21 @@ class ComponentRouter:
                 page_element = route.renderer.get_page_element(route.file_path, context)
                 print(f"DEBUG: Page element type: {type(page_element)}, value: {page_element}")
                 
-                # Apply layout chain (inside-out order) - compose PSX elements
+                # Apply layout chain innermost-first so the root layout wraps everything.
+                # layout_chain is stored [root, ..., inner] (reversed from collection order).
+                # Iterating reversed() gives [inner, ..., root], so each iteration wraps
+                # the current page_element — final result is root(inner(...(page))).
                 if hasattr(route, 'layout_chain') and route.layout_chain:
-                    for layout_path in route.layout_chain:
+                    for layout_path in reversed(route.layout_chain):
                         layout_func = self._load_layout(layout_path)
                         print(f"DEBUG: Layout function: {layout_func}")
                         if layout_func:
                             try:
-                                # Wrap the page element in a PSXElement for the layout
-                                # The layout expects children as a PSXElement, not raw AST nodes
-                                from ..psx.core.parser import PSXElement
-                                children_element = PSXElement(tag='div', props={}, children=page_element.children if hasattr(page_element, 'children') else [page_element])
+                                # Pass the page element directly as children so its _ast_node
+                                # reference is preserved and to_html() renders it correctly.
+                                # Wrapping in a new PSXElement loses the AST node references
+                                # that contain parsed expressions, logic blocks, etc.
+                                children_element = page_element
                                 
                                 # Wrap page element with layout - pass PSXElement as children
                                 # IMPORTANT: Pass the full context to the layout
@@ -584,7 +591,6 @@ class ComponentRouter:
                                 traceback.print_exc()
                 
                 # Now render the final composed element tree to HTML
-                from ..psx import render_psx
                 content = render_psx(page_element, context)
                 print(f"DEBUG: Rendered content length: {len(content)}")
                 
