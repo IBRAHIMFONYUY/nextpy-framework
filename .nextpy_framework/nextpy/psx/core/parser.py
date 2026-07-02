@@ -292,11 +292,11 @@ class PSXParser:
             return TextNode(content='')
 
         if src.startswith('<>'):
-            node, _ = self._parse_fragment_short(src, 0, ctx, dl)
+            node, _ = self._parse_fragment_short(src, 0, ctx, dl, False)
             return node
 
         if src.startswith('<'):
-            node, _ = self._dispatch(src, 0, ctx, dl)
+            node, _ = self._dispatch(src, 0, ctx, dl, False)
             return node
 
         return TextNode(content=src)
@@ -309,6 +309,7 @@ class PSXParser:
         index: int,
         ctx: Dict[str, Any],
         dl: float,
+        in_pre_tag: bool = False,
     ) -> Tuple[PSXNodeUnion, int]:
         """
         Peek at the tag name immediately after ``'<'`` and route to
@@ -330,14 +331,14 @@ class PSXParser:
             return TextNode(content='<'), index + 1
 
         if tag[0].isupper():
-            return self._parse_component(code, index, ctx, dl)
+            return self._parse_component(code, index, ctx, dl, in_pre_tag)
 
         if tag.lower() == 'fragment':
             # <fragment …> … </fragment> — reuse element parser, wrap result
-            el, new_i = self._parse_element(code, index, ctx, dl)
+            el, new_i = self._parse_element(code, index, ctx, dl, in_pre_tag)
             return FragmentNode(children=el.children, shorthand=False), new_i
 
-        return self._parse_element(code, index, ctx, dl)
+        return self._parse_element(code, index, ctx, dl, in_pre_tag)
 
     # ── Fragment ───────────────────────────────────────────────────────────────
 
@@ -347,10 +348,11 @@ class PSXParser:
         index: int,
         ctx: Dict[str, Any],
         dl: float,
+        in_pre_tag: bool = False,
     ) -> Tuple[FragmentNode, int]:
         """Parse ``<> … </>`` shorthand fragment."""
         index += 2   # consume '<>'
-        children, index = self._parse_children(code, index, '</>', ctx, dl)
+        children, index = self._parse_children(code, index, '</>', ctx, dl, in_pre_tag)
         if code.startswith('</>', index):
             index += 3
         return FragmentNode(children=children, shorthand=True), index
@@ -363,6 +365,7 @@ class PSXParser:
         index: int,
         ctx: Dict[str, Any],
         dl: float,
+        in_pre_tag: bool = False,
     ) -> Tuple[ElementNode, int]:
         """Parse a single lowercase HTML element recursively."""
         self._tick(dl)
@@ -379,6 +382,9 @@ class PSXParser:
         if not self_closing and tag.lower() in SELF_CLOSING_TAGS:
             self_closing = True
 
+        # Check if this is a <pre> tag
+        is_pre_tag = tag.lower() == 'pre'
+
         if self_closing:
             return ElementNode(
                 tag=tag,
@@ -390,7 +396,7 @@ class PSXParser:
             ), index
 
         closing = f'</{tag}>'
-        children, index = self._parse_children(code, index, closing, ctx, dl)
+        children, index = self._parse_children(code, index, closing, ctx, dl, is_pre_tag or in_pre_tag)
         if code.startswith(closing, index):
             index += len(closing)
 
@@ -410,6 +416,7 @@ class PSXParser:
         index: int,
         ctx: Dict[str, Any],
         dl: float,
+        in_pre_tag: bool = False,
     ) -> Tuple[ComponentNode, int]:
         """
         Parse a PSX component (UpperCase tag) using the same recursive
@@ -436,7 +443,7 @@ class PSXParser:
             ), index
 
         closing = f'</{name}>'
-        children, index = self._parse_children(code, index, closing, ctx, dl)
+        children, index = self._parse_children(code, index, closing, ctx, dl, in_pre_tag)
         if code.startswith(closing, index):
             index += len(closing)
 
@@ -457,6 +464,7 @@ class PSXParser:
         sentinel: str,
         ctx: Dict[str, Any],
         dl: float,
+        in_pre_tag: bool = False,
     ) -> Tuple[List[PSXNodeUnion], int]:
         """
         Parse child nodes until *sentinel* is found at the current depth.
@@ -464,6 +472,9 @@ class PSXParser:
         Stops on any ``</`` prefix (not just the exact sentinel) to prevent
         an unexpected closing tag from causing the stuck-parser fallback to
         corrupt the buffer position.
+
+        If *in_pre_tag* is True, all content is treated as literal text
+        without expression interpolation (for <pre> tags).
         """
         nodes: List[PSXNodeUnion] = []
         n     = len(code)
@@ -499,7 +510,7 @@ class PSXParser:
                 )
                 break
 
-            node, new_index = self._parse_child(code, index, ctx, dl)
+            node, new_index = self._parse_child(code, index, ctx, dl, in_pre_tag)
 
             if new_index <= index:
                 log.warning(
@@ -528,6 +539,7 @@ class PSXParser:
         index: int,
         ctx: Dict[str, Any],
         dl: float,
+        in_pre_tag: bool = False,
     ) -> Tuple[Optional[PSXNodeUnion], int]:
         """Parse exactly one child node: element, component, expression, or text."""
         n = len(code)
@@ -550,13 +562,13 @@ class PSXParser:
 
             # Fragment shorthand
             if code.startswith('<>', index):
-                return self._parse_fragment_short(code, index, ctx, dl)
+                return self._parse_fragment_short(code, index, ctx, dl, in_pre_tag)
 
             # Anything else (element or component)
-            return self._dispatch(code, index, ctx, dl)
+            return self._dispatch(code, index, ctx, dl, in_pre_tag)
 
         # ── Expression ─────────────────────────────────────────────────────
-        if ch == '{':
+        if ch == '{' and not in_pre_tag:
             end  = _match_brace(code, index)
             expr = code[index + 1 : end - 1].strip()
             pexpr = self.ast_parser.parse_expression(expr)
@@ -564,9 +576,16 @@ class PSXParser:
 
         # ── Text (may contain inline {expressions}) ─────────────────────────
         start = index
-        while index < n and code[index] not in ('<', '{'):
+        # When inside <pre> tag, don't stop at '{' - treat it as literal text
+        stop_chars = ('<',) if in_pre_tag else ('<', '{')
+        while index < n and code[index] not in stop_chars:
             index += 1
         raw = code[start:index]
+        
+        # If inside <pre> tag, treat everything as literal text
+        if in_pre_tag:
+            return TextNode(content=raw), index
+        
         parts = self._split_text_with_exprs(raw)
         if not parts:
             return None, index

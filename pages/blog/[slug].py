@@ -10,7 +10,7 @@ def BlogPost(props=None):
             <div class="flex items-center justify-center min-h-screen bg-gray-50">
                 <div class="text-center">
                     <h1 class="mb-4 text-4xl font-bold text-gray-900">Post Not Found</h1>
-                    <a href="/blog" class="text-blue-600 hover:underline">← Back to blog</a>
+                    <a href="/blog" class="text-blue-600 hover:underline">Back to blog</a>
                 </div>
             </div>
         )
@@ -24,7 +24,7 @@ def BlogPost(props=None):
                     </h1>
                     <div class="flex items-center mt-4 text-lg text-gray-500">
                         <span>{post["date"]}</span>
-                        <span class="mx-2">·</span>
+                        <span class="mx-2"></span>
                         <span>{post["author"]}</span>
                     </div>
                 </header>
@@ -33,7 +33,7 @@ def BlogPost(props=None):
                 </div>
                 <div class="pt-8 mt-12 border-t">
                     <a href="/blog" class="font-medium text-blue-600 transition-colors hover:text-blue-800">
-                        ← Back to all posts
+                        Back to all posts
                     </a>
                 </div>
             </article>
@@ -42,8 +42,7 @@ def BlogPost(props=None):
 
 def getServerSideProps(context):
     slug = context.get("params", {}).get("slug", "")
-    print("CONTEXT:", context)
-    print("SLUG:", slug)
+    
     posts = {
         "hello-world": {
             "slug": "hello-world",
@@ -62,6 +61,8 @@ def getServerSideProps(context):
     }
 
     post = posts.get(slug, {})
+    if not post:
+        return {"not_found": True}
     return {"props": {"post": post}}
 
 default = BlogPost
