@@ -122,7 +122,8 @@ Everything in one framework.
 from nextpy import interactive_component as component, useState, create_onclick
 
 @component
-def Home():
+def Home(props=None):
+    props=props or {}
     [count, setCount] = useState(0)
     handle_count=create_onclick(lambda e: setCount(count + 1))
 
