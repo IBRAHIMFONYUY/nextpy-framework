@@ -129,6 +129,11 @@ pytest
 
 ## Documentation
 
+- Go through this to know exactly what each file does https://github.com/RahimStudios/nextpy-framework/blob/main/.nextpy_framework/nextpy/docs/COMPLETE_FILE_DOCUMENTATION.md 
+
+- Go through this to see all what is implemented fully, partially and what is not, so it can guide you on anywhere to start 
+https://github.com/RahimStudios/nextpy-framework/blob/main/.nextpy_framework/nextpy/docs/FRAMEWORK_ANALYSIS.md
+
 - Update docs for new features in DOCUMENTATION.md
 - Add examples in pages/examples.py
 - Include docstrings in code

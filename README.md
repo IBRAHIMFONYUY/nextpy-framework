@@ -185,6 +185,11 @@ Before contributing, please read:
 * Contribution Guidelines
 * Code of Conduct
 
+- Go through this to know exactly what each file does https://github.com/RahimStudios/nextpy-framework/blob/main/.nextpy_framework/nextpy/docs/COMPLETE_FILE_DOCUMENTATION.md 
+
+- Go through this to see all what is implemented fully, partially and what is not, so it can guide you on anywhere to start 
+https://github.com/RahimStudios/nextpy-framework/blob/main/.nextpy_framework/nextpy/docs/FRAMEWORK_ANALYSIS.md
+
 Good first issues are available for new contributors looking to get involved.
 
 ---
