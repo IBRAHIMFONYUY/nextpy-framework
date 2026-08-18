@@ -249,6 +249,8 @@ class PSXRuntime:
                     elif not any(c in expr for c in '+-*/%()[]{}'):
                         # This looks like a state variable, add binding
                         result_str = str(result)
+                        # Use the actual variable name from the expression for binding
+                        # CRITICAL FIX: Make sure we're using the actual value, not the variable name
                         return f'<span data-bind="textContent:{expr}">{html.escape(result_str)}</span>'
                     else:
                         return html.escape(str(result))

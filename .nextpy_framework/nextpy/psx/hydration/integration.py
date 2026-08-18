@@ -75,7 +75,13 @@ class ComponentHydrator:
                     print(f"DEBUG _extract_state: {var_name} = {value} (type: {type(value).__name__})")
                 except Exception as e:
                     print(f"DEBUG _extract_state: Could not parse initial value for {var_name}: {initial_value}, error: {e}")
-                    state[var_name] = initial_value.strip()
+                    # Provide sensible fallbacks based on type
+                    if '0' in initial_value or initial_value.isdigit():
+                        state[var_name] = 0
+                    elif 'light' in initial_value.lower() or 'dark' in initial_value.lower():
+                        state[var_name] = initial_value.strip().strip('"\'')
+                    else:
+                        state[var_name] = initial_value.strip()
             
             print(f"DEBUG _extract_state: Final state dict: {state}")
             return state

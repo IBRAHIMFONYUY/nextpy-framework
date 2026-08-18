@@ -35,7 +35,7 @@ def Installation():
                 </h3>
 
                 <ul class="pl-5 mt-4 space-y-2 text-sm text-gray-300 list-disc">
-                    <li><span class="text-sky-400">Python 3.9+</span></li>
+                    <li><span class="text-sky-400">Python 3.11+</span></li>
                     <li>pip (Python package manager)</li>
                     <li>Node.js 16+ (for build tools)</li>
                     <li>Git (optional version control)</li>

@@ -100,12 +100,37 @@ def ClientOnly(props):
 
             <div class="p-6 border border-gray-700 rounded-2xl bg-gray-800">
                 <h3 class="font-semibold text-gray-100">Choosing a Strategy</h3>
-                <ul class="pl-5 mt-3 space-y-2 text-sm text-gray-400 list-disc">
-                    <li><strong>SSR:</strong> User-specific content, real-time data, authentication-required pages</li>
-                    <li><strong>SSG:</strong> Marketing pages, documentation, blog posts, product listings</li>
-                    <li><strong>ISR:</strong> Content that updates periodically (news, stats, analytics)</li>
-                    <li><strong>CSR:</strong> Highly interactive content, user preferences, real-time features</li>
-                </ul>
+                <table class="w-full mt-4 text-sm text-gray-400">
+                    <thead>
+                        <tr class="border-b border-gray-700">
+                            <th class="text-left py-2 text-gray-100">Strategy</th>
+                            <th class="text-left py-2 text-gray-100">Rendering</th>
+                            <th class="text-left py-2 text-gray-100">Best for</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b border-gray-700">
+                            <td class="py-2 font-medium text-orange-400">SSR</td>
+                            <td class="py-2">Every request</td>
+                            <td class="py-2">Personalized data, authentication, real-time content</td>
+                        </tr>
+                        <tr class="border-b border-gray-700">
+                            <td class="py-2 font-medium text-blue-400">SSG</td>
+                            <td class="py-2">Build time</td>
+                            <td class="py-2">Docs, marketing, blogs, product listings</td>
+                        </tr>
+                        <tr class="border-b border-gray-700">
+                            <td class="py-2 font-medium text-purple-400">ISR</td>
+                            <td class="py-2">Periodically regenerated</td>
+                            <td class="py-2">Blogs, content sites, periodic updates</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 font-medium text-green-400">CSR</td>
+                            <td class="py-2">Browser</td>
+                            <td class="py-2">Highly interactive UI, user preferences</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
             <div class="p-6 border border-gray-700 rounded-2xl bg-gray-800">

@@ -38,7 +38,10 @@ def PSXGuide(props):
             <div class="p-6 border border-gray-700 rounded-2xl bg-gray-800">
                 <h3 class="font-semibold text-blue-400">What is PSX?</h3>
                 <p class="mt-2 text-sm text-blue-300">
-                    PSX allows you to write JSX-like syntax directly in Python, combining the power of React-style components with Python's simplicity. It supports component composition, props, children, and state management.
+                    <strong class="text-white">PSX is NextPy's component syntax.</strong> It can be written directly inside Python files or as standalone .psx files, which NextPy parses into Python components. PSX combines the power of React-style components with Python's simplicity, supporting component composition, props, children, and state management.
+                </p>
+                <p class="mt-2 text-sm text-blue-300">
+                    When you write PSX in Python files, you use standard Python syntax with JSX-like template literals. When you use .psx files, NextPy compiles them to Python components automatically.
                 </p>
             </div>
 
@@ -109,9 +112,16 @@ def TodoList(props):
             <div class="p-6 border border-gray-700 rounded-2xl bg-gray-800">
                 <h3 class="font-semibold text-gray-100">PSX file format</h3>
                 <p class="mt-2 text-sm text-gray-400">
-                    You can also use .psx files for pure PSX components. These files are automatically parsed and converted to Python components.
+                    <strong class="text-white">You can write PSX in two ways:</strong>
                 </p>
-                <pre class="p-4 mt-4 overflow-x-auto text-sm bg-gray-950 rounded-lg text-emerald-400">// components/Button.psx
+                <ul class="pl-5 mt-2 space-y-2 text-sm text-gray-400 list-disc">
+                    <li><strong class="text-white">Python files (.py):</strong> Use the psx() function with template strings to write JSX-like syntax directly in Python</li>
+                    <li><strong class="text-white">PSX files (.psx):</strong> Write pure JSX-style syntax that NextPy automatically compiles to Python components</li>
+                </ul>
+                <p class="mt-3 text-sm text-gray-400">
+                    Both approaches result in the same Python components at runtime. The choice depends on your preference for pure Python vs. JSX-style syntax.
+                </p>
+                <pre class="p-4 mt-4 overflow-x-auto text-sm bg-gray-950 rounded-lg text-emerald-400">// components/Button.psx (Optional JSX-style syntax)
 export function Button(props) {
     const { children, onClick } = props
     return (
@@ -119,7 +129,7 @@ export function Button(props) {
             {children}
         </button>
     )
-</pre>
+}</pre>
             </div>
 
             <PSXDemo />

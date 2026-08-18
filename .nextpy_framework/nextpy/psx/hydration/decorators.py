@@ -282,9 +282,9 @@ def python_code_to_js(python_code: str, state_keys: Optional[List[str]] = None) 
     
     # Pattern 3: Enhanced logical operators (more precise patterns)
     logical_replacements = [
-        (r'(?<!\w)\s*and\s*(?!\w)', ' and '),        # and -> &&
-        (r'(?<!\w)\s*or\s*(?!\w)', ' or '),         # or -> ||
-        (r'(?<!\w)\s*not\s*(?!\w)', 'not'),            # not -> !
+        (r'(?<!\w)\s*and\s*(?!\w)', ' && '),        # and -> &&
+        (r'(?<!\w)\s*or\s*(?!\w)', ' || '),         # or -> ||
+        (r'(?<!\w)\s*not\s*(?!\w)', '!'),            # not -> !
         (r'\s+is\s+None\s*', ' === null '),          # is None -> === null
         (r'\s+is\s+not\s+None\s*', ' !== null '),    # is not None -> !== null
         (r'\s+in\s+', ' in '),                       # in operator (preserved)
