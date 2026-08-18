@@ -232,12 +232,26 @@ class PSXRuntime:
             else:
                 # Check if this is a simple variable reference that should be bound
                 expr = node.expression.strip()
-                # Simple heuristic: if expression is a single variable name in context
-                # wrap it in a span with data-bind attribute for reactive updates
-                if expr in self.context and not any(c in expr for c in '+-*/%()[]{}'):
-                    # This looks like a state variable, add binding
-                    result_str = str(result)
-                    return f'<span data-bind="textContent:{expr}">{html.escape(result_str)}</span>'
+                # Check if this is a code prop that should be rendered raw
+                # Look for _raw_code_marker in context or check if the value itself is marked
+                if expr in self.context:
+                    value = self.context[expr]
+                    # Check if this value is marked as raw (has _raw_code_marker attribute)
+                    if hasattr(value, '_raw_code_marker') or (isinstance(value, str) and value.startswith('_RAW_CODE:')):
+                        # Extract the actual code if it's marked
+                        if isinstance(value, str) and value.startswith('_RAW_CODE:'):
+                            actual_code = value[len('_RAW_CODE:'):]
+                        else:
+                            actual_code = str(value)
+                        return actual_code
+                    # Simple heuristic: if expression is a single variable name in context
+                    # wrap it in a span with data-bind attribute for reactive updates
+                    elif not any(c in expr for c in '+-*/%()[]{}'):
+                        # This looks like a state variable, add binding
+                        result_str = str(result)
+                        return f'<span data-bind="textContent:{expr}">{html.escape(result_str)}</span>'
+                    else:
+                        return html.escape(str(result))
                 else:
                     return html.escape(str(result))
         elif isinstance(node, LogicNode):
@@ -292,8 +306,8 @@ class PSXRuntime:
                         if initial_value:
                             attrs.append('checked')
                 continue
-            elif key == '_bind_type':
-                # Skip this attribute, it's already handled above
+            elif key == '_bind_type' or key == '_raw_code':
+                # Skip these attributes, they're already handled above
                 continue
             
             # JSX -> HTML attribute mapping
@@ -319,8 +333,11 @@ class PSXRuntime:
 
             # Handle different value types
             if isinstance(value, str):
+                # Special handling for 'code' attribute - render as raw text without escaping
+                if html_key == 'code' and node.attributes.get('_raw_code'):
+                    attrs.append(f'{html_key}="{value}"')
                 # Don't escape already HTML content
-                if '<' in value and '>' in value:
+                elif '<' in value and '>' in value:
                     attrs.append(f'{html_key}="{value}"')
                 else:
                     attrs.append(f'{html_key}="{html.escape(value)}"')
@@ -395,6 +412,13 @@ class PSXRuntime:
                     children_element._psx_context = self.context
                     props['children'] = children_element
                 
+                # Preserve _RAW_CODE prefix in props for raw rendering
+                # This ensures code attributes are rendered as-is
+                for key, value in props.items():
+                    if isinstance(value, str) and value.startswith('_RAW_CODE:'):
+                        # Keep the prefix so it can be detected during rendering
+                        pass
+                
                 # Call the component function
                 result = component_fn(**props)
                 
@@ -439,6 +463,10 @@ def process_python_logic(psx_str: str, context: Dict[str, Any]) -> str:
     """
     import re
     import ast
+    
+    # Skip processing for raw code markers
+    if psx_str.startswith('_RAW_CODE:'):
+        return psx_str
     
     def is_safe_expression(expr: str) -> bool:
         """Check if expression is valid Python-like (not JSX/text)"""
