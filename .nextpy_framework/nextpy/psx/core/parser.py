@@ -685,6 +685,11 @@ class PSXParser:
                     index += 1
                 value = code[vs:index]
 
+            # ── Special handling for code attribute ─────────────────────
+            # If this is the code attribute, mark the value as raw to prevent processing
+            if key == 'code':
+                value = f'_RAW_CODE:{value}'
+
             # ── Categorise ──────────────────────────────────────────────
             if key == 'bind':
                 # Compiler directive; extract the bound variable name only

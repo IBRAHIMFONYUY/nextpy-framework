@@ -37,22 +37,17 @@ def Introduction(props):
         <div class="mt-6 space-y-6 text-gray-400 leading-8">
 
             <p>
-                NextPy is a Python framework for building modern full-stack web
-                applications. It lets you create interactive user interfaces using
-                reusable Python components while providing built-in routing,
-                server-side rendering, APIs, state management, and developer tools.
+                <strong class="text-white">NextPy is a Python-first full-stack framework inspired by the developer experience of modern JavaScript frameworks.</strong> Build UI, APIs, routing, state, SSR, SSG, and AI-powered applications from one Python codebase.
             </p>
 
             <p>
-                Instead of configuring multiple frontend and backend technologies,
-                NextPy provides an integrated development experience so you can
-                focus on building your application rather than managing tooling.
+                <strong class="text-white">What if Python had the developer experience of Next.js?</strong> NextPy brings file-based routing, components, PSX (Python+JSX syntax), hooks, state management, server-side rendering, static generation, API routes, CLI tools, and AI-powered development to Python developers.
             </p>
 
             <p>
                 Whether you're an individual developer, startup, or enterprise
                 team, NextPy helps you build fast, scalable, and maintainable web
-                applications entirely with Python.
+                applications entirely with Python—without learning JavaScript frameworks.
             </p>
 
         </div>

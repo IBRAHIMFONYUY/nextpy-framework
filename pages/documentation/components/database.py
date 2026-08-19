@@ -21,7 +21,10 @@ def DatabaseGuide(props):
 
             <div class="grid gap-6 lg:grid-cols-2">
                 <div class="p-6 border border-gray-700 rounded-2xl bg-gray-900">
-                    <h3 class="font-semibold text-gray-100">Built-in Database</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-gray-100">Built-in Database</h3>
+                        <span class="px-2 py-1 text-xs font-medium text-yellow-400 bg-yellow-900/30 rounded-full">Experimental</span>
+                    </div>
                     <pre class="p-4 mt-4 overflow-x-auto text-sm bg-gray-950 rounded-lg text-emerald-400">from nextpy.db import Database
 
 # Initialize database
@@ -42,7 +45,10 @@ user = db.session.query(User).filter_by(id=1).first()</pre>
                 </div>
 
                 <div class="p-6 border border-gray-700 rounded-2xl bg-gray-900">
-                    <h3 class="font-semibold text-gray-100">SQLAlchemy Integration</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-gray-100">SQLAlchemy Integration</h3>
+                        <span class="px-2 py-1 text-xs font-medium text-green-400 bg-green-900/30 rounded-full">Stable</span>
+                    </div>
                     <pre class="p-4 mt-4 overflow-x-auto text-sm bg-gray-950 rounded-lg text-emerald-400">from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 

@@ -21,7 +21,10 @@ def AuthenticationGuide(props):
 
             <div class="grid gap-6 lg:grid-cols-2">
                 <div class="p-6 border border-gray-700 rounded-2xl bg-gray-900">
-                    <h3 class="font-semibold text-gray-100">Session-based Auth</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-gray-100">Session-based Auth</h3>
+                        <span class="px-2 py-1 text-xs font-medium text-green-400 bg-green-900/30 rounded-full">Stable</span>
+                    </div>
                     <pre class="p-4 mt-4 overflow-x-auto text-sm bg-gray-950 rounded-lg text-emerald-400">from nextpy.auth import SessionAuth
 
 # Initialize auth
@@ -44,7 +47,10 @@ async def login(request, params):
                 </div>
 
                 <div class="p-6 border border-gray-700 rounded-2xl bg-gray-900">
-                    <h3 class="font-semibold text-gray-100">JWT Authentication</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-gray-100">JWT Authentication</h3>
+                        <span class="px-2 py-1 text-xs font-medium text-green-400 bg-green-900/30 rounded-full">Stable</span>
+                    </div>
                     <pre class="p-4 mt-4 overflow-x-auto text-sm bg-gray-950 rounded-lg text-emerald-400">from nextpy.auth import JWTAuth
 
 # Initialize JWT auth
@@ -63,7 +69,10 @@ user = auth.verify_token(token)</pre>
 
             <div class="grid gap-6 lg:grid-cols-2">
                 <div class="p-6 border border-gray-700 rounded-2xl bg-gray-900">
-                    <h3 class="font-semibold text-gray-100">OAuth Integration</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-gray-100">OAuth Integration</h3>
+                        <span class="px-2 py-1 text-xs font-medium text-yellow-400 bg-yellow-900/30 rounded-full">Experimental</span>
+                    </div>
                     <pre class="p-4 mt-4 overflow-x-auto text-sm bg-gray-950 rounded-lg text-emerald-400">from nextpy.auth import OAuthProvider
 
 oauth = OAuthProvider(

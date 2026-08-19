@@ -19,6 +19,7 @@ from pages.documentation.components.styling import StylingGuide
 from pages.documentation.components.ssr_ssg import SSRSSGGuide
 from pages.documentation.components.error_handling import ErrorHandlingGuide
 from pages.documentation.components.table_of_contents import TableOfContents
+from pages.documentation.components.api_reference import APIReference
 
 # Register components
 register_component("Installation", Installation)
@@ -39,6 +40,7 @@ register_component("StylingGuide", StylingGuide)
 register_component("SSRSSGGuide", SSRSSGGuide)
 register_component("ErrorHandlingGuide", ErrorHandlingGuide)
 register_component("TableOfContents", TableOfContents)
+register_component("APIReference", APIReference)
 register_component("Introduction", Introduction)
 
 @component
@@ -63,6 +65,7 @@ def DocumentationPage():
             <SSRSSGGuide />
             <ErrorHandlingGuide />
             <AIAssistantGuide />
+            <APIReference />
         </>
     )
 

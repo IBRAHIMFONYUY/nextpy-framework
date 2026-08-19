@@ -201,7 +201,7 @@ def component(func):
                         print(f"DEBUG: Added state variable {state_var_names[i]} = {hook_data['value']}")
                     else:
                         # Fallback to common names only if actual names not found
-                        common_state_names = ['count', 'name', 'value', 'data', 'items', 'index', 'loading', 'error', 'success', 'user', 'message', 'text', 'visible', 'active', 'selected']
+                        common_state_names = ['count', 'name', 'value', 'data', 'items', 'index', 'loading', 'error', 'success', 'user', 'message', 'text', 'visible', 'active', 'selected', 'theme']
                         if i < len(common_state_names):
                             context[common_state_names[i]] = hook_data['value']
                             print(f"DEBUG: Fallback to common name {common_state_names[i]} = {hook_data['value']}")

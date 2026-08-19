@@ -29,7 +29,7 @@ def CodeBlock(props):
                 </span>
 
                 <!-- Copy button -->
-                <div create_onlick={handletoggle}>
+                <div create_onclick={handletoggle}>
                 {{if copy:
                      <button
                         onclick="navigator.clipboard.writeText(this.closest('.group').querySelector('code').innerText)"
