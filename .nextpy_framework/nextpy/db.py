@@ -119,3 +119,14 @@ class Post(Base):
     published = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Todo(Base):
+    """Persistent todo item shared by the API, PSX pages, and admin."""
+    __tablename__ = "todos"
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(255), nullable=False, index=True)
+    completed = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

@@ -59,7 +59,7 @@ except FileNotFoundError:
 
 import nextpy as nx
 from nextpy.admin import AdminSite
-from nextpy.db import User, Post
+from nextpy.db import User, Post, Todo
 
 # Database must initialize before the app starts
 from nextpy.db import init_db
@@ -70,6 +70,7 @@ init_db(settings["database_url"])
 admin_site = AdminSite()
 admin_site.register(User)
 admin_site.register(Post)
+admin_site.register(Todo)
 
 app = nx.create_app(
     pages_dir="pages",

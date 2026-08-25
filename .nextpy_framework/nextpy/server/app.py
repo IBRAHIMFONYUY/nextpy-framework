@@ -194,7 +194,6 @@ class NextPyApp:
         @self.app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket):
             """Handle WebSocket connections for live development"""
-            await websocket.accept()
             await handle_websocket(websocket)
             
     def _add_seo_routes(self) -> None:
