@@ -2445,10 +2445,16 @@ def Link(props: Dict[str, Any]) -> PSXElement:
             'hx-target': props.get('targetId', '#main-content'),
             'hx-swap': props.get('swap', 'innerHTML'),
             'hx-push-url': 'true',
+            'data-nextpy-link': 'true',
         })
         if props.get('prefetch', True):
             attrs['hx-trigger'] = 'mouseenter, click'
             attrs['preload'] = 'true'
+            attrs['data-nextpy-prefetch'] = 'true'
+        if props.get('replace'):
+            attrs['data-nextpy-replace'] = 'true'
+        if props.get('scroll') is False:
+            attrs['data-nextpy-scroll'] = 'false'
     return _component_element('a', attrs, *_component_children(props))
 
 

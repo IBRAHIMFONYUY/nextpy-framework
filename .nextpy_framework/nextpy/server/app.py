@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from nextpy.psx import (
     compile_psx, render_psx, psx, PSXElement, component,
     useState, useEffect, process_python_logic,
-    VNode, create_element, render, update
+    VNode, create_element, render, update, CLIENT_ROUTER_SCRIPT
 )
 
 from nextpy.core.router import Router
@@ -539,6 +539,8 @@ Allow: /
                     "request": request,
                 },
             )
+            if 'data-nextpy-link' in html:
+                html = f"<script>{CLIENT_ROUTER_SCRIPT}</script>{html}"
             return HTMLResponse(
                 content=html,
                 headers={

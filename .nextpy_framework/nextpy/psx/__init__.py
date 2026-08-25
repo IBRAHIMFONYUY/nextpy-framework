@@ -43,6 +43,76 @@ from .components.component import (
 )
 from .utils.helpers import compile_psx, compile_psx_file, is_psx_file, PSXCompiler
 
+CLIENT_ROUTER_SCRIPT = r"""
+(function () {
+    if (window.__nextpyRouterInstalled) return;
+    window.__nextpyRouterInstalled = true;
+    var cache = new Map();
+    var navigating = false;
+
+    function isInternal(url) {
+        return url.origin === window.location.origin &&
+            (url.protocol === 'http:' || url.protocol === 'https:');
+    }
+
+    async function load(url, replace, scroll) {
+        if (navigating) return;
+        navigating = true;
+        try {
+            var documentText = cache.get(url.href);
+            if (!documentText) {
+                var response = await fetch(url.href, {
+                    headers: {'X-NextPy-Navigation': 'true', 'Accept': 'text/html'}
+                });
+                if (!response.ok) throw new Error('Navigation failed: ' + response.status);
+                documentText = await response.text();
+                cache.set(url.href, documentText);
+            }
+            var parsed = new DOMParser().parseFromString(documentText, 'text/html');
+            if (!parsed.body) throw new Error('Navigation returned invalid HTML');
+            document.body.replaceWith(parsed.body);
+            document.title = parsed.title || document.title;
+            if (replace) history.replaceState({}, '', url.href);
+            else history.pushState({}, '', url.href);
+            if (scroll !== false) window.scrollTo(0, 0);
+            document.dispatchEvent(new CustomEvent('nextpy:navigate', {detail: {url: url.href}}));
+        } catch (error) {
+            console.error('[NextPy] client navigation failed; using browser navigation', error);
+            window.location.href = url.href;
+        } finally {
+            navigating = false;
+        }
+    }
+
+    document.addEventListener('click', function (event) {
+        var link = event.target.closest('[data-nextpy-link]');
+        if (!link || event.defaultPrevented || event.button !== 0 ||
+            event.metaKey || event.ctrlKey || event.shiftKey || event.altKey ||
+            link.target === '_blank') return;
+        var url = new URL(link.href, window.location.href);
+        if (!isInternal(url)) return;
+        event.preventDefault();
+        load(url, link.dataset.nextpyReplace === 'true', link.dataset.nextpyScroll !== 'false');
+    });
+
+    document.addEventListener('mouseenter', function (event) {
+        var link = event.target.closest('[data-nextpy-prefetch]');
+        if (!link) return;
+        var url = new URL(link.href, window.location.href);
+        if (isInternal(url) && !cache.has(url.href)) {
+            fetch(url.href, {headers: {'X-NextPy-Navigation': 'true', 'Accept': 'text/html'}})
+                .then(function (response) { return response.ok ? response.text() : null; })
+                .then(function (text) { if (text) cache.set(url.href, text); })
+                .catch(function () {});
+        }
+    }, true);
+
+    window.addEventListener('popstate', function () {
+        load(new URL(window.location.href), true, false);
+    });
+})();
+"""
+
 # Hydration Engine imports
 from .hydration import (
     HydrationEngine, get_hydration_engine,
@@ -72,6 +142,7 @@ __all__ = [
     # Core
     'PSXElement', 'PSXParser', 'psx', 'render_psx', 'fragment', 'key',
     'process_python_logic', 'runtime', 'SafeExpressionEngine',
+    'CLIENT_ROUTER_SCRIPT',
     
     # VDOM
     'VNode', 'create_element', 'render', 'update', 'get_vdom_metrics',
