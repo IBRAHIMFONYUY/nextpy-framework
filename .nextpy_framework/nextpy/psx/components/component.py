@@ -2395,9 +2395,208 @@ class ChildrenComponent(PSXComponent):
             return str(self.children)
 
 
+class Props:
+    """Base type for component props."""
+
+
+def Component(func: Callable) -> Callable:
+    """Compatibility decorator for props-dict component functions."""
+    wrapped = component(func)
+    wrapped.is_component = True
+    return wrapped
+
+
+def Children(props: Dict[str, Any]) -> Any:
+    """Return the children passed to a component."""
+    return props.get('children', [])
+
+
+def _component_children(props: Dict[str, Any]) -> List[Any]:
+    children = props.get('children', [])
+    if hasattr(children, 'tag') and getattr(children, 'tag', None) == 'fragment':
+        return list(getattr(children, 'children', []))
+    return children if isinstance(children, list) else [children]
+
+
+def _component_element(tag: str, props: Optional[Dict[str, Any]] = None, *children: Any) -> PSXElement:
+    return PSXElement(
+        tag=tag,
+        props={key: value for key, value in (props or {}).items() if value is not None},
+        children=list(children),
+    )
+
+
+@Component
+def Head(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('head', {}, *_component_children(props))
+
+
+@Component
+def Link(props: Dict[str, Any]) -> PSXElement:
+    href = str(props.get('href', '#'))
+    attrs: Dict[str, Any] = {'href': href}
+    if props.get('className') is not None:
+        attrs['class'] = props['className']
+    if props.get('target') is not None:
+        attrs['target'] = props['target']
+    if not props.get('target'):
+        attrs.update({
+            'hx-get': href,
+            'hx-target': props.get('targetId', '#main-content'),
+            'hx-swap': props.get('swap', 'innerHTML'),
+            'hx-push-url': 'true',
+        })
+        if props.get('prefetch', True):
+            attrs['hx-trigger'] = 'mouseenter, click'
+            attrs['preload'] = 'true'
+    return _component_element('a', attrs, *_component_children(props))
+
+
+@Component
+def Script(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('script', {'src': props.get('src')}, *_component_children(props))
+
+
+@Component
+def Image(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('img', {
+        'src': props.get('src', ''), 'alt': props.get('alt', ''),
+        'width': props.get('width'), 'height': props.get('height'),
+    })
+
+
+@Component
+def Meta(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('meta', {key: value for key, value in props.items() if key != 'children'})
+
+
+@Component
+def Title(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('title', {}, *_component_children(props))
+
+
+@Component
+def Layout(props: Dict[str, Any]) -> PSXElement:
+    return _component_element(
+        'html', {'lang': props.get('lang', 'en')},
+        _component_element('head', {},
+            _component_element('meta', {'charset': 'utf-8'}),
+            _component_element('meta', {'name': 'viewport', 'content': 'width=device-width, initial-scale=1'}),
+            _component_element('title', {}, props.get('title', 'NextPy App')),
+            Meta(name='description', content=props.get('description', 'NextPy Application')),
+        ),
+        _component_element('body', {}, *_component_children(props)),
+    )
+
+
+@Component
+def Container(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('div', {'class': props.get('className', 'container')}, *_component_children(props))
+
+
+@Component
+def Row(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('div', {'class': props.get('className', 'row')}, *_component_children(props))
+
+
+@Component
+def Col(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('div', {'class': props.get('className', 'col')}, *_component_children(props))
+
+
+@Component
+def Form(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('form', {
+        'action': props.get('action', ''), 'method': props.get('method', 'GET')
+    }, *_component_children(props))
+
+
+@Component
+def Input(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('input', {
+        'type': props.get('type', 'text'), 'name': props.get('name', ''),
+        'value': props.get('value', ''), 'placeholder': props.get('placeholder', ''),
+        'required': 'required' if props.get('required') else None,
+    })
+
+
+@Component
+def Button(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('button', {
+        'type': props.get('type', 'button'),
+        'disabled': 'disabled' if props.get('disabled') else None,
+    }, *_component_children(props))
+
+
+@Component
+def Navbar(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('nav', {'class': props.get('className', 'navbar')},
+        _component_element('div', {'class': 'nav-brand'}, props.get('brand', 'NextPy')),
+        _component_element('div', {'class': 'nav-links'}, *_component_children(props)))
+
+
+@Component
+def NavItem(props: Dict[str, Any]) -> PSXElement:
+    return Link(href=props.get('href', '#'), children=props.get('children', []))
+
+
+@Component
+def Card(props: Dict[str, Any]) -> PSXElement:
+    content: List[Any] = []
+    if props.get('title'):
+        content.append(_component_element('div', {'class': 'card-header'},
+            _component_element('h3', {}, props['title'])))
+    content.append(_component_element('div', {'class': 'card-body'}, *_component_children(props)))
+    if props.get('footer'):
+        content.append(_component_element('div', {'class': 'card-footer'}, props['footer']))
+    return _component_element('div', {'class': props.get('className', 'card')}, *content)
+
+
+@Component
+def List(props: Dict[str, Any]) -> PSXElement:
+    tag = 'ol' if props.get('ordered') else 'ul'
+    items = [_component_element('li', {}, item.get('text', str(item)) if isinstance(item, dict) else str(item))
+             for item in props.get('items', [])]
+    return _component_element(tag, {}, *items)
+
+
+@Component
+def Conditional(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('div', {}, *_component_children(props)) if props.get('condition', True) else _component_element('div')
+
+
+@Component
+def Loop(props: Dict[str, Any]) -> PSXElement:
+    render_func = props.get('render')
+    if not callable(render_func):
+        return _component_element('div')
+    return _component_element('div', {}, *(render_func(item) for item in props.get('items', [])))
+
+
+@Component
+def ErrorBoundary(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('div', {}, *_component_children(props))
+
+
+@Component
+def Suspense(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('div', {}, *_component_children(props))
+
+
+for _component_name in (
+    'Head', 'Link', 'Script', 'Image', 'Meta', 'Title', 'Layout', 'Container',
+    'Row', 'Col', 'Form', 'Input', 'Button', 'Navbar', 'NavItem', 'Card', 'List',
+    'Conditional', 'Loop', 'ErrorBoundary', 'Suspense',
+):
+    register_component(_component_name, globals()[_component_name])
+
+
 # Export all PSX component utilities
 __all__ = [
-    'PSXComponent', 'component', 'class_component',
+    'PSXComponent', 'component', 'Component', 'class_component', 'Props', 'Children',
+    'Head', 'Link', 'Script', 'Image', 'Meta', 'Title', 'Layout', 'Container',
+    'Row', 'Col', 'Form', 'Input', 'Button', 'Navbar', 'NavItem', 'Card', 'List',
+    'Conditional', 'Loop', 'ErrorBoundary', 'Suspense',
     'useState', 'useEffect', 'PSXHooks',
     'map_list', 'conditional', 'and_condition', 'or_condition',
     'EventHandlers', 'ComponentRegistry', 'component_registry',
