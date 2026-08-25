@@ -53,12 +53,14 @@ class NextPyApp:
         public_dir: str = "public",
         out_dir: str = "out",
         debug: bool = False,
+        admin_site: Any = None,
     ):
         self.pages_dir = Path(pages_dir)
         self.templates_dir = Path(templates_dir)
         self.public_dir = Path(public_dir)
         self.out_dir = Path(out_dir)
         self.debug = debug
+        self.admin_site = admin_site
         self._modules_cache: Dict[str, Any] = {}
         
         if demo_router.should_serve_demo():
@@ -94,6 +96,10 @@ class NextPyApp:
         self._setup_middleware()
         self._setup_static_files()
         self._setup_websocket()
+        # Mount protected admin routes before page routes so a dynamic page
+        # cannot capture /admin.
+        if self.admin_site is not None:
+            self.admin_site.mount(self.app)
         self._setup_routes()
         # optionally compile tailwind CSS after routes are registered
         try:
@@ -408,9 +414,9 @@ Allow: /
                 # API routes - FIXED: use default argument to capture route correctly
                 from fastapi import Request
                 def create_api_handler(route_obj):
-                    async def api_handler(request: Request, route=route_obj):
+                    async def api_handler(request: Request, route=route_obj, **path_params):
                         # delegate to async handler
-                        return await self._handle_api_request(request, route, {})
+                        return await self._handle_api_request(request, route, path_params)
                     return api_handler
                 
                 fastapi_path = self._convert_route_to_fastapi_path(route.path)
@@ -1332,6 +1338,7 @@ def create_app(
     public_dir: str = "public",
     out_dir: str = "out",
     debug: bool = False,
+    admin_site: Any = None,
 ) -> FastAPI:
     """
     Factory function to create a NextPy application
@@ -1352,5 +1359,6 @@ def create_app(
         public_dir=public_dir,
         out_dir=out_dir,
         debug=debug,
+        admin_site=admin_site,
     )
     return nextpy_app.app

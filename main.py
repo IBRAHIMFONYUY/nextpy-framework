@@ -57,26 +57,38 @@ except FileNotFoundError:
     print("See https://nodejs.org/ for installation instructions.")
 
 
-from nextpy.server.app import create_app
+import nextpy as nx
+from nextpy.admin import AdminSite
+from nextpy.db import User, Post
+
+# Database must initialize before the app starts
 from nextpy.db import init_db
 from nextpy.config import settings
 
-# Initialize database
-try:
-    init_db(settings["database_url"])
-except Exception as e:
-    print(f"Warning: Database initialization failed: {e}")
+init_db(settings["database_url"])
 
-app = create_app(
+admin_site = AdminSite()
+admin_site.register(User)
+admin_site.register(Post)
+
+app = nx.create_app(
     pages_dir="pages",
     templates_dir="templates",
     public_dir="public",
     out_dir="out",
-    
+    debug=settings["debug"],
+    admin_site=admin_site,
 )
+
+print([
+    (route.path, route.methods)
+    for route in app.routes
+    if "admin" in route.path
+])
 
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run('main:app', host="0.0.0.0", port=5000)
+    # Serve this exact app instance so Uvicorn cannot import another main.py.
+    uvicorn.run(app, host="0.0.0.0", port=5000)

@@ -6,8 +6,11 @@
 
 
 # NextPy
+.replit/
+.agents/
 
 nextpy.db
+app.db
 .web/
 out/
 public/tailwind.css # Ignore the compiled tailwind css as it's generated

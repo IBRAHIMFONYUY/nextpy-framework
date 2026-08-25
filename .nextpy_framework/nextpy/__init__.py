@@ -15,6 +15,7 @@ from nextpy.core.data_fetching import (
 from nextpy.components.head import Head
 from nextpy.components.link import Link
 from nextpy.server.app import create_app
+from nextpy.admin import AdminSite, admin, register
 
 # Import all PSX features for easy access
 from nextpy.psx import (
@@ -85,7 +86,7 @@ __all__ = [
     # Core NextPy
     'Router', 'Route', 'DynamicRoute', 'Renderer', 'create_app',
     'get_server_side_props', 'get_static_props', 'get_static_paths',
-    'Head', 'Link',
+    'Head', 'Link', 'AdminSite', 'admin', 'register',
     
     # PSX Core
     'PSXElement', 'PSXParser', 'psx', 'render_psx', 'fragment', 'key',
