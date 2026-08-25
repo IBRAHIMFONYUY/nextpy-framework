@@ -4,6 +4,8 @@ from nextpy.psx import component
 
 @component
 def Layout(children, **props):
+    props=props or {}
+    
     return (
         <html>
             <head>
@@ -111,3 +113,11 @@ def Layout(children, **props):
             </body>
         </html>
     )
+
+def getServerSideProps(context):
+    return {
+        "props": {
+            "title": "Nextpy - The Python Web Framework",
+            "message": "Your Python-powered web framework with True JSX"
+        }
+    }
