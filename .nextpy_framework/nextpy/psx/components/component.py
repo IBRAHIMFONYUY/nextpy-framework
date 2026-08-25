@@ -797,8 +797,7 @@ class CustomHooks:
     @staticmethod
     def use_fetch(url: str, options: Dict[str, Any] = None) -> Dict[str, Any]:
         """
-        useFetch custom hook with performance optimizations
-        Features: Request caching, retry logic, error handling, loading states
+        Fetch data from a real HTTP/API endpoint with caching and state tracking.
         """
         data, set_data = PSXHooks.use_state(None)
         loading, set_loading = PSXHooks.use_state(True)
@@ -818,17 +817,23 @@ class CustomHooks:
                 set_loading(False)
                 return
             
-            # In real implementation, would make HTTP request
             try:
-                # Simulate API call
-                import time
-                time.sleep(0.1)  # Simulate network delay
-                
-                mock_data = {'message': f'Data from {url}', 'timestamp': time.time()}
-                
-                # Cache the result
-                cache_ref.current[cache_key] = mock_data
-                set_data(mock_data)
+                import json
+                from urllib.request import Request, urlopen
+
+                request_options = options or {}
+                method = request_options.get('method', 'GET').upper()
+                headers = {'Accept': 'application/json', **request_options.get('headers', {})}
+                body = request_options.get('body')
+                if isinstance(body, (dict, list)):
+                    body = json.dumps(body).encode('utf-8')
+                    headers.setdefault('Content-Type', 'application/json')
+                request = Request(url, data=body, headers=headers, method=method)
+                with urlopen(request, timeout=request_options.get('timeout', 10)) as response:
+                    raw_data = response.read().decode('utf-8')
+                    fetched_data = json.loads(raw_data) if raw_data else None
+                cache_ref.current[cache_key] = fetched_data
+                set_data(fetched_data)
             except Exception as e:
                 set_error(str(e))
             finally:

@@ -14,7 +14,9 @@ from nextpy.core.data_fetching import (
 )
 from nextpy.components.head import Head
 from nextpy.components.link import Link
-from nextpy.server.app import create_app
+from nextpy.server.app import create_app, get_api_app
+from nextpy.db import Base, Database, get_db, get_session, init_db
+from nextpy.api import fetch_api
 from nextpy.admin import AdminSite, admin, register
 
 # Import all PSX features for easy access
@@ -84,7 +86,8 @@ from nextpy.hooks import (
 # Export everything for easy access
 __all__ = [
     # Core NextPy
-    'Router', 'Route', 'DynamicRoute', 'Renderer', 'create_app',
+    'Router', 'Route', 'DynamicRoute', 'Renderer', 'create_app', 'get_api_app',
+    'Base', 'Database', 'init_db', 'get_db', 'get_session', 'fetch_api',
     'get_server_side_props', 'get_static_props', 'get_static_paths',
     'Head', 'Link', 'AdminSite', 'admin', 'register',
     

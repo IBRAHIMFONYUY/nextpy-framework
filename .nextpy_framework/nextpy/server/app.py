@@ -40,6 +40,16 @@ from nextpy.jsx_preprocessor import JSXSyntaxError
 from nextpy.websocket import manager, handle_websocket
 
 
+_api_app: Optional[FastAPI] = None
+
+
+def get_api_app() -> FastAPI:
+    """Return the FastAPI instance created by :func:`create_app`."""
+    if _api_app is None:
+        raise RuntimeError("NextPy app is not initialized yet")
+    return _api_app
+
+
 class NextPyApp:
     """
     Enhanced NextPy application class with complete PSX integration
@@ -1353,6 +1363,7 @@ def create_app(
     Returns:
         FastAPI application instance
     """
+    global _api_app
     nextpy_app = NextPyApp(
         pages_dir=pages_dir,
         templates_dir=templates_dir,
@@ -1361,4 +1372,5 @@ def create_app(
         debug=debug,
         admin_site=admin_site,
     )
+    _api_app = nextpy_app.app
     return nextpy_app.app

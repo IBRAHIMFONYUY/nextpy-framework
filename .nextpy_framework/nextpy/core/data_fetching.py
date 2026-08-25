@@ -54,6 +54,12 @@ class PageContext:
             return self.preview_data
         if key == "locale":
             return self.locale
+        if key == "session":
+            try:
+                from ..db import get_session
+                return get_session()
+            except RuntimeError:
+                return default
         return default
 
     def __getitem__(self, key: str) -> Any:
@@ -64,7 +70,7 @@ class PageContext:
     def __contains__(self, key: object) -> bool:
         if not isinstance(key, str):
             return False
-        return key in {"params", "query", "req", "request", "res", "preview", "preview_data", "locale"}
+        return key in {"params", "query", "req", "request", "res", "preview", "preview_data", "locale", "session"}
 
 
 T = TypeVar("T", bound=Callable)
