@@ -422,8 +422,11 @@ Allow: /
             else:
                 # Page routes - FIXED: use default argument to capture route correctly
                 def create_page_handler(route_path):
-                    async def page_handler(request, path=route_path):
-                        return await self._handle_request(request, path)
+                    async def page_handler(request, **path_params):
+                        # FastAPI has already matched dynamic segments. Match the
+                        # actual URL again so the framework router can resolve
+                        # the slug and provide it to page data fetching.
+                        return await self._handle_request(request, request.url.path)
                     return page_handler
                 
                 fastapi_path = self._convert_route_to_fastapi_path(route.path)

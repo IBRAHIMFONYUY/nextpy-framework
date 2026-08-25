@@ -1,4 +1,4 @@
-from nextpy.psx import component
+from nextpy.psx import component, Link
 
 @component
 def BlogIndex(props=None):
@@ -38,9 +38,9 @@ def BlogIndex(props=None):
 
                                 <div class="flex flex-col flex-1 p-6">
                                     <h2 class="text-xl font-bold text-gray-900 line-clamp-2">
-                                        <a href="/blog/{post['slug']}" class="transition-colors rounded hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                        <Link href="/blog/{post['slug']}" class="transition-colors rounded hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                             {post["title"]}
-                                        </a>
+                                        </Link>
                                     </h2>
                                     <p class="mt-2 text-sm text-gray-600 line-clamp-3">{post["excerpt"]}</p>
 
@@ -56,12 +56,12 @@ def BlogIndex(props=None):
                                     </div>
 
                                     <div class="mt-4">
-                                        <a href="/blog/{post['slug']}" class="inline-flex items-center text-sm font-semibold text-indigo-600 transition-colors hover:text-indigo-800 group-hover:underline">
+                                        <Link href="/blog/{post['slug']}" class="inline-flex items-center text-sm font-semibold text-indigo-600 transition-colors hover:text-indigo-800 group-hover:underline">
                                             Read more
                                             <svg class="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                             </svg>
-                                        </a>
+                                        </Link>
                                     </div>
                                 </div>
                             </article>

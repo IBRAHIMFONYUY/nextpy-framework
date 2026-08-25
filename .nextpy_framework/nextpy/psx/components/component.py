@@ -8,7 +8,7 @@ import threading
 import uuid
 import inspect
 import re
-
+import ast
 # FIX: Module-level variable to store component_id for current component execution
 _current_component_id = None
 import hashlib
@@ -1587,10 +1587,7 @@ class EventHandlers:
         return wrapped_handler
     
     # Mouse Events
-    @staticmethod
-    def create_onclick(handler_func: Callable) -> str:
-        """Create onclick handler"""
-        return _create_python_call_placeholder(handler_func, 'python_call')
+
     
     @staticmethod
     def create_ondblclick(handler_func: Callable) -> str:
