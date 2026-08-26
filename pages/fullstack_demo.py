@@ -5,9 +5,10 @@ Demonstrates enhanced client-server communication with server actions and state 
 
 import json
 import nextpy as nx
-from nextpy.psx import component, useState, useEffect, create_onclick
+from nextpy.psx import component, useState, useEffect, create_onclick, render_psx_component
 from nextpy.server_actions import server_action, FormValidator, ActionSchema
 from nextpy.db import get_session, Todo
+from nextpy.websocket import manager as ws_manager
 
 
 # Server Actions - Define backend functions that can be called from client
@@ -17,24 +18,37 @@ async def create_todo(title: str, session=None):
     if not title or not title.strip():
         raise nx.server_actions.ValidationError("title", "Title cannot be empty")
     
-    with session if session else get_session() as db:
+    db = session or get_session()
+    try:
         todo = Todo(title=title.strip(), completed=False)
         db.add(todo)
         db.commit()
         db.refresh(todo)
         
-        return {
+        todo_data = {
             "id": todo.id,
             "title": todo.title,
             "completed": todo.completed,
             "created_at": todo.created_at.isoformat() if todo.created_at else None
         }
+        
+        await ws_manager.publish("todos", {
+            "type": "TODO_CHANGED",
+            "action": "created",
+            "data": todo_data
+        })
+        
+        return todo_data
+    finally:
+        if not session:
+            db.close()
 
 
 @server_action(name="toggle_todo")
 async def toggle_todo(todo_id: int, session=None):
     """Toggle todo completion status"""
-    with session if session else get_session() as db:
+    db = session or get_session()
+    try:
         todo = db.get(Todo, todo_id)
         if not todo:
             raise nx.server_actions.ServerActionError("Todo not found", "NOT_FOUND")
@@ -43,18 +57,30 @@ async def toggle_todo(todo_id: int, session=None):
         db.commit()
         db.refresh(todo)
         
-        return {
+        todo_data = {
             "id": todo.id,
             "title": todo.title,
             "completed": todo.completed,
             "updated_at": todo.updated_at.isoformat() if todo.updated_at else None
         }
+        
+        await ws_manager.publish("todos", {
+            "type": "TODO_CHANGED",
+            "action": "updated",
+            "data": todo_data
+        })
+        
+        return todo_data
+    finally:
+        if not session:
+            db.close()
 
 
 @server_action(name="delete_todo")
 async def delete_todo(todo_id: int, session=None):
     """Delete a todo item"""
-    with session if session else get_session() as db:
+    db = session or get_session()
+    try:
         todo = db.get(Todo, todo_id)
         if not todo:
             raise nx.server_actions.ServerActionError("Todo not found", "NOT_FOUND")
@@ -62,13 +88,23 @@ async def delete_todo(todo_id: int, session=None):
         db.delete(todo)
         db.commit()
         
+        await ws_manager.publish("todos", {
+            "type": "TODO_CHANGED",
+            "action": "deleted",
+            "data": {"id": todo_id}
+        })
+        
         return {"id": todo_id, "deleted": True}
+    finally:
+        if not session:
+            db.close()
 
 
 @server_action(name="get_todos")
 async def get_todos(session=None):
     """Get all todo items"""
-    with session if session else get_session() as db:
+    db = session or get_session()
+    try:
         todos = db.query(Todo).order_by(Todo.created_at.desc()).all()
         
         return [
@@ -81,6 +117,9 @@ async def get_todos(session=None):
             }
             for todo in todos
         ]
+    finally:
+        if not session:
+            db.close()
 
 
 # Validation schema for the todo form
@@ -112,16 +151,26 @@ def FullStackDemo(props=None):
         "fieldMapping": {
             "title": "span"
         },
-        "updateBody": lambda item_id, completed: {"todo_id": int(item_id)},
-        "deleteBody": lambda item_id: {"todo_id": int(item_id)},
-        "deleteConfirm": "Delete this todo?"
+        "idParam": "todo_id",
+        "deleteConfirm": "psx",
+        "createReset": True
     }
+    crud=json.dumps(crud_config)
+    
+    # PSX state for delete confirmation modal
+    [show_modal, setShowModal] = useState(False)
+    [pending_id, setPendingId] = useState(None)
+    [pending_title, setPendingTitle] = useState("")
+    
+    # Create handlers for modal buttons (JS functions registered at runtime)
+    confirm_delete = create_onclick(lambda e: confirmDeleteModal())  # type: ignore[name-defined]
+    cancel_delete = create_onclick(lambda e: hideDeleteModal())  # type: ignore[name-defined]
     
     return (
-        <main data-nextpy-crud={json.dumps(crud_config)} class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">
+        <main data-nextpy-crud={crud} class="min-h-screen px-4 py-12 bg-gradient-to-br from-gray-50 to-gray-100">
             <div class="max-w-3xl mx-auto">
-                <div class="text-center mb-12">
-                    <h1 class="text-4xl font-bold text-gray-900 mb-4">
+                <div class="mb-12 text-center">
+                    <h1 class="mb-4 text-4xl font-bold text-gray-900">
                         NextPy Full-Stack Demo
                     </h1>
                     <p class="text-lg text-gray-600">
@@ -129,8 +178,8 @@ def FullStackDemo(props=None):
                     </p>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Server Actions Available</h2>
+                <div class="p-6 mb-8 bg-white shadow-lg rounded-xl">
+                    <h2 class="mb-4 text-xl font-semibold text-gray-900">Server Actions Available</h2>
                     <ul class="space-y-2 text-gray-600">
                         <li>• <code>create_todo</code> - Create new todo items</li>
                         <li>• <code>toggle_todo</code> - Toggle todo completion</li>
@@ -139,8 +188,8 @@ def FullStackDemo(props=None):
                     </ul>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-                    <div class="flex justify-between items-center mb-4">
+                <div class="p-6 mb-8 bg-white shadow-lg rounded-xl">
+                    <div class="flex items-center justify-between mb-4">
                         <h2 class="text-xl font-semibold text-gray-900">Interactive Todos (Generic CRUD)</h2>
                         <span data-nextpy-status class="text-sm text-gray-500">Connecting...</span>
                     </div>
@@ -160,7 +209,7 @@ def FullStackDemo(props=None):
                     
                     <ul data-nextpy-list class="space-y-3">
                         {for todo in server_todos:
-                            <li data-nextpy-item={todo["id"]} class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                            <li data-nextpy-item={todo["id"]} class="flex items-center gap-4 p-4 rounded-lg bg-gray-50">
                                 <input 
                                     data-nextpy-toggle={todo["id"]} 
                                     type="checkbox" 
@@ -174,7 +223,7 @@ def FullStackDemo(props=None):
                                 <button 
                                     data-nextpy-delete={todo["id"]} 
                                     type="button" 
-                                    class="text-red-600 hover:text-red-800 text-sm font-medium"
+                                    class="text-sm font-medium text-red-600 hover:text-red-800"
                                 >
                                     Delete
                                 </button>
@@ -183,31 +232,31 @@ def FullStackDemo(props=None):
                     </ul>
                 </div>
 
-                <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <h3 class="font-semibold text-gray-900 mb-2">Server Actions</h3>
+                <div class="grid grid-cols-1 gap-6 mt-8 md:grid-cols-3">
+                    <div class="p-6 bg-white rounded-lg shadow">
+                        <h3 class="mb-2 font-semibold text-gray-900">Server Actions</h3>
                         <p class="text-sm text-gray-600">
                             CRUD operations use server actions - no API endpoints needed
                         </p>
                     </div>
                     
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <h3 class="font-semibold text-gray-900 mb-2">Pure Python</h3>
+                    <div class="p-6 bg-white rounded-lg shadow">
+                        <h3 class="mb-2 font-semibold text-gray-900">Pure Python</h3>
                         <p class="text-sm text-gray-600">
                             Define backend logic with @server_action decorator
                         </p>
                     </div>
                     
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <h3 class="font-semibold text-gray-900 mb-2">Generic</h3>
+                    <div class="p-6 bg-white rounded-lg shadow">
+                        <h3 class="mb-2 font-semibold text-gray-900">Generic</h3>
                         <p class="text-sm text-gray-600">
                             Works for any model - posts, users, products, etc.
                         </p>
                     </div>
                 </div>
 
-                <div class="mt-8 bg-gray-900 rounded-lg p-6 text-green-400 font-mono text-sm">
-                    <h3 class="text-white mb-4">Server Actions CRUD Configuration:</h3>
+                <div class="p-6 mt-8 font-mono text-sm text-green-400 bg-gray-900 rounded-lg">
+                    <h3 class="mb-4 text-white">Server Actions CRUD Configuration:</h3>
                     <pre>
 # Configure CRUD using Server Actions
 crud_config = {
@@ -218,8 +267,7 @@ crud_config = {
     "wsChannel": "posts",            # WebSocket channel
     "messageType": "POST_CHANGED",   # Message type
     "fieldMapping": {"title": "span", "content": "div.content"},
-    "updateBody": lambda id, data: {"post_id": id, **data},
-    "deleteBody": lambda id: {"post_id": id},
+    "idParam": "post_id",
     "deleteConfirm": "Delete this post?"
 }
 
@@ -249,6 +297,29 @@ async def create_post(title: str, content: str, session=None):
 &lt;/main&gt;
                     </pre>
                 </div>
+
+                <div data-delete-modal class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm hidden">
+                    <div class="w-full max-w-sm p-6 bg-white rounded-xl shadow-xl">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Confirm Delete</h3>
+                        <p data-bind="textContent:pending_title" class="text-sm text-gray-600 mb-6">this item</p>
+                        <div class="flex justify-end gap-3">
+                            <button 
+                                type="button" 
+                                onclick={cancel_delete}
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="button" 
+                                onclick={confirm_delete}
+                                class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     )
@@ -275,6 +346,8 @@ def getServerSideProps(context):
                 ]
             }
         }
+    
+    
 
 
 default = FullStackDemo

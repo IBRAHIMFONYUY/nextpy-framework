@@ -227,17 +227,15 @@ class HandlerCompiler(ast.NodeVisitor):
             # Extract create_onclick handlers using regex
             # Pattern to match: handleClick = create_onclick(lambda e: setName(name.upper()))
             # Need to handle nested parentheses in lambda body using greedy match
-            create_pattern = r'(\w+)\s*=\s*create_onclick\(\s*lambda\s+[^:]+:\s*(.+\))'
+            create_pattern = r'(\w+)\s*=\s*create_onclick\(\s*lambda\s+[^:]+:\s*(.+)\)'
             matches = re.findall(create_pattern, func_content)
             print(f"DEBUG: Regex pattern: {create_pattern}")
             print(f"DEBUG: Regex matches: {matches}")
             
             for handler_name, lambda_code in matches:
                 try:
-                    # Clean up the lambda code - remove only one trailing ) and whitespace
+                    # Clean up the lambda code - remove whitespace
                     clean_code = lambda_code.rstrip()
-                    if clean_code.endswith(')'):
-                        clean_code = clean_code[:-1]
                     print(f"DEBUG: Compiling handler {handler_name} with code: {clean_code}")
                     
                     # Generate placeholder key
@@ -450,17 +448,15 @@ class EnhancedHandlerExtractor:
             # Extract create_onclick handlers using regex
             # Pattern to match: handleClick = create_onclick(lambda e: setName(name.upper()))
             # Need to handle nested parentheses in lambda body using greedy match
-            create_pattern = r'(\w+)\s*=\s*create_onclick\(\s*lambda\s+[^:]+:\s*(.+\))'
+            create_pattern = r'(\w+)\s*=\s*create_onclick\(\s*lambda\s+[^:]+:\s*(.+)\)'
             matches = re.findall(create_pattern, func_content)
             print(f"DEBUG: Regex pattern: {create_pattern}")
             print(f"DEBUG: Regex matches: {matches}")
             
             for handler_name, lambda_code in matches:
                 try:
-                    # Clean up the lambda code - remove only one trailing ) and whitespace
+                    # Clean up the lambda code - remove whitespace
                     clean_code = lambda_code.rstrip()
-                    if clean_code.endswith(')'):
-                        clean_code = clean_code[:-1]
                     print(f"DEBUG: Compiling handler {handler_name} with code: {clean_code}")
                     
                     # Generate placeholder key

@@ -639,18 +639,31 @@ Allow: /
             return await self._handle_api_request(request, route, params)
             
         if isinstance(route, ComponentRoute) and getattr(route, "use_components", False):
-            html = self.router.render_route(
-                route,
-                context={
-                    "params": params,
-                    "query": dict(request.query_params),
-                    "request": request,
-                },
-            )
-            if 'data-nextpy-link' in html:
-                html = f"<script>{CLIENT_ROUTER_SCRIPT}</script>{html}"
+            context = {
+                "params": params,
+                "query": dict(request.query_params),
+                "request": request,
+            }
+            
+            module = self._load_module_from_file(route.file_path)
+            if module:
+                try:
+                    page_context = PageContext(
+                        params=params,
+                        query=dict(request.query_params),
+                        req=request,
+                    )
+                    fetched_props = await execute_data_fetching(module, page_context)
+                    context.update(fetched_props)
+                except Exception as e:
+                    if self.debug:
+                        print(f"Data fetching error for component route: {e}")
+            
+            html = self.router.render_route(route, context)
             if 'data-nextpy-crud' in html:
-                html = f"<script>{CRUD_RUNTIME_SCRIPT}</script>{html}"
+                html = f"{html}<script>{CRUD_RUNTIME_SCRIPT}</script>"
+            if 'data-nextpy-link' in html:
+                html = f"{html}<script>{CLIENT_ROUTER_SCRIPT}</script>"
             return HTMLResponse(
                 content=html,
                 headers={

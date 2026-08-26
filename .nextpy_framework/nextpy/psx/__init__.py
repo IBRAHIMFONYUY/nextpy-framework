@@ -140,6 +140,100 @@ CRUD_RUNTIME_SCRIPT = r"""
     if (window.__nextpyCrudRuntime) return;
     window.__nextpyCrudRuntime = true;
 
+    // Helper to dynamically inject custom modal CSS if it doesn't exist
+    if (!document.getElementById('nextpy-modal-styles')) {
+        var style = document.createElement('style');
+        style.id = 'nextpy-modal-styles';
+        style.textContent = '.nextpy-modal-open { overflow: hidden; }';
+        document.head.appendChild(style);
+    }
+
+    // Global function for PSX components to execute CRUD delete actions
+    window.executeCrudDelete = async function(actionName, idParam, itemId) {
+        var body = {};
+        body[idParam] = Number(itemId);
+        return await callServerAction(actionName, body);
+    };
+
+    // Global function to show PSX delete modal
+    window.showDeleteModal = function(itemId, itemTitle, crudConfig) {
+        // Store the CRUD config for later use
+        window.__nextpyDeleteConfig = crudConfig;
+        
+        // Find the PSX component that has the modal state
+        var components = window.nextpyComponents || {};
+        for (var compId in components) {
+            var comp = components[compId];
+            if (comp && comp.stateManager) {
+                // Update the component state to show modal
+                comp.stateManager.set('show_modal', true);
+                comp.stateManager.set('pending_id', itemId);
+                comp.stateManager.set('pending_title', itemTitle || 'this item');
+                
+                // Also directly show the modal element if it exists
+                var modal = document.querySelector('[data-delete-modal]');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    modal.style.display = 'flex';
+                }
+                return true;
+            }
+        }
+        return false;
+    };
+
+    // Global function to hide PSX delete modal
+    window.hideDeleteModal = function() {
+        var modal = document.querySelector('[data-delete-modal]');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.style.display = '';
+        }
+        // Update the component state
+        var components = window.nextpyComponents || {};
+        for (var compId in components) {
+            var comp = components[compId];
+            if (comp && comp.stateManager) {
+                comp.stateManager.set('show_modal', false);
+                return true;
+            }
+        }
+        return false;
+    };
+
+    // Global function to confirm delete and hide modal
+    window.confirmDeleteModal = async function() {
+        // Hide the modal first
+        window.hideDeleteModal();
+        
+        // Find the PSX component to get the pending_id
+        var components = window.nextpyComponents || {};
+        for (var compId in components) {
+            var comp = components[compId];
+            if (comp && comp.stateManager) {
+                var pendingId = comp.stateManager.get('pending_id');
+                if (pendingId !== null && pendingId !== undefined) {
+                    // Use the stored CRUD config
+                    var config = window.__nextpyDeleteConfig || {};
+                    var deleteAction = config.deleteAction || 'delete_todo';
+                    var idParam = config.idParam || 'todo_id';
+                    // Execute the delete action
+                    return await window.executeCrudDelete(deleteAction, idParam, pendingId);
+                }
+                break;
+            }
+        }
+        return null;
+    };
+
+    // Register functions with JS action runtime if available
+    if (window.NextPyActionRuntime) {
+        window.NextPyActionRuntime.registerFunction('executeCrudDelete', window.executeCrudDelete);
+        window.NextPyActionRuntime.registerFunction('showDeleteModal', window.showDeleteModal);
+        window.NextPyActionRuntime.registerFunction('hideDeleteModal', window.hideDeleteModal);
+        window.NextPyActionRuntime.registerFunction('confirmDeleteModal', window.confirmDeleteModal);
+    }
+
     function roots() { return document.querySelectorAll('[data-nextpy-crud]'); }
     function error(root, message) {
         var target = root.querySelector('[data-nextpy-error]');
@@ -154,15 +248,87 @@ CRUD_RUNTIME_SCRIPT = r"""
             window.sessionStorage.getItem('nextpy_access_token');
         var headers = {'Content-Type': 'application/json', 'Accept': 'application/json'};
         if (token) headers.Authorization = 'Bearer ' + token;
-        var response = await fetch('/_server_actions/' + actionName, {
+        var response = await fetch('/__nextpy/actions/execute', {
             method: 'POST',
             headers: headers,
-            body: JSON.stringify(data || {})
+            body: JSON.stringify({action: actionName, params: data || {}})
         });
         var result = await response.json();
-        if (!response.ok || result.error) throw new Error(result.error || 'Server action failed');
+        if (!response.ok || result.error) {
+            var msg = 'Server action failed';
+            if (result.error) {
+                msg = typeof result.error === 'object' ? (result.error.message || JSON.stringify(result.error)) : result.error;
+            }
+            throw new Error(msg);
+        }
         return result;
     }
+
+    // Custom helper to dynamically show a Tailwind CSS confirmation modal
+        function showCustomConfirm(messageText) {
+        return new Promise(function (resolve) {
+            // Create backdrop overlay container with a lighter 25% opacity
+            var overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/5 bg-opacity-25 backdrop-blur-sm transition-opacity duration-200';
+            
+            // Create modal content card
+            var card = document.createElement('div');
+            card.className = 'w-full max-w-sm p-6 bg-white rounded-xl shadow-xl transform scale-100 transition-transform duration-200';
+            
+            // Modal header
+            var title = document.createElement('h3');
+            title.className = 'text-lg font-semibold text-gray-900 mb-2';
+            title.textContent = 'Confirm Action';
+            card.appendChild(title);
+            
+            // Modal body text
+            var bodyText = document.createElement('p');
+            bodyText.className = 'text-sm text-gray-600 mb-6';
+            bodyText.textContent = messageText;
+            card.appendChild(bodyText);
+            
+            // Modal buttons wrapper
+            var actions = document.createElement('div');
+            actions.className = 'flex justify-end gap-3';
+            
+            // Cancel Button
+            var cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500';
+            cancelBtn.textContent = 'Cancel';
+            
+            // Delete (Confirm) Button
+            var confirmBtn = document.createElement('button');
+            confirmBtn.type = 'button';
+            confirmBtn.className = 'px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500';
+            confirmBtn.textContent = 'Delete';
+            
+            actions.appendChild(cancelBtn);
+            actions.appendChild(confirmBtn);
+            card.appendChild(actions);
+            overlay.appendChild(card);
+            
+            // Append modal to body and freeze background scrolling
+            document.body.appendChild(overlay);
+            document.body.classList.add('nextpy-modal-open');
+            
+            // Handle cleanup and resolve value
+            function close(result) {
+                cancelBtn.removeEventListener('click', handleCancel);
+                confirmBtn.removeEventListener('click', handleConfirm);
+                document.body.removeChild(overlay);
+                document.body.classList.remove('nextpy-modal-open');
+                resolve(result);
+            }
+            
+            function handleCancel() { close(false); }
+            function handleConfirm() { close(true); }
+            
+            cancelBtn.addEventListener('click', handleCancel);
+            confirmBtn.addEventListener('click', handleConfirm);
+        });
+    }
+
     function applyChange(root, message, config) {
         var item = message.data;
         if (message.action === 'deleted') {
@@ -170,13 +336,35 @@ CRUD_RUNTIME_SCRIPT = r"""
             if (deleted) deleted.remove();
             return;
         }
-        var element = root.querySelector('[data-nextpy-item="' + item.id + '"]');
-        if (!element && message.action === 'created') {
+        if (message.action === 'created') {
+            var existing = root.querySelector('[data-nextpy-item="' + item.id + '"]');
+            if (existing) return;
             var list = root.querySelector('[data-nextpy-list]');
             if (!list) return;
-            window.location.reload();
+            var li = document.createElement('li');
+            li.setAttribute('data-nextpy-item', item.id);
+            li.className = 'flex items-center gap-4 p-4 rounded-lg bg-gray-50';
+            var cb = document.createElement('input');
+            cb.setAttribute('data-nextpy-toggle', item.id);
+            cb.type = 'checkbox';
+            cb.checked = !!item.completed;
+            cb.className = 'w-5 h-5 text-blue-600 rounded focus:ring-blue-500';
+            cb.setAttribute('aria-label', 'Complete todo');
+            li.appendChild(cb);
+            var span = document.createElement('span');
+            span.className = 'flex-1 ' + (item.completed ? 'line-through text-gray-400' : 'text-gray-900');
+            span.textContent = item.title || '';
+            li.appendChild(span);
+            var btn = document.createElement('button');
+            btn.setAttribute('data-nextpy-delete', item.id);
+            btn.type = 'button';
+            btn.className = 'text-sm font-medium text-red-600 hover:text-red-800';
+            btn.textContent = 'Delete';
+            li.appendChild(btn);
+            list.appendChild(li);
             return;
         }
+        var element = root.querySelector('[data-nextpy-item="' + item.id + '"]');
         if (!element) return;
         if (config.fieldMapping) {
             for (var field in config.fieldMapping) {
@@ -184,6 +372,22 @@ CRUD_RUNTIME_SCRIPT = r"""
                 var target = element.querySelector(selector);
                 if (target && item[field] !== undefined) {
                     target.textContent = item[field];
+                }
+            }
+        }
+        var toggle = element.querySelector('[data-nextpy-toggle]');
+        if (toggle && item.completed !== undefined) {
+            toggle.checked = item.completed;
+        }
+        if (item.completed !== undefined) {
+            var span = element.querySelector('span');
+            if (span) {
+                if (item.completed) {
+                    span.classList.add('line-through', 'text-gray-400');
+                    span.classList.remove('text-gray-900');
+                } else {
+                    span.classList.remove('line-through', 'text-gray-400');
+                    span.classList.add('text-gray-900');
                 }
             }
         }
@@ -205,43 +409,75 @@ CRUD_RUNTIME_SCRIPT = r"""
             });
             try { 
                 await callServerAction(createAction, body); 
-                form.reset();
+                if (config.createReset !== false) form.reset();
             }
             catch (err) { error(root, err.message); }
         });
         root.addEventListener('change', async function (event) {
-            // FIX: Safely check if event.target exists and supports closest()
             if (!event.target || typeof event.target.closest !== 'function') 
                 return;
 
             var toggle = event.target.closest('[data-nextpy-toggle]');
             if (!toggle) return;
             var itemId = toggle.dataset.nextpyToggle;
-            var updateBody = config.updateBody ? config.updateBody(itemId, toggle.checked) : {id: Number(itemId), completed: toggle.checked};
-            try { await callServerAction(updateAction, updateBody); }
+            var idParam = config.idParam || 'id';
+            var body = {};
+            body[idParam] = Number(itemId);
+            if (config.updateFields) {
+                for (var f in config.updateFields) {
+                    body[f] = config.updateFields[f];
+                }
+            }
+            try { await callServerAction(updateAction, body); }
             catch (err) { error(root, err.message); toggle.checked = !toggle.checked; }
         });
         root.addEventListener('click', async function (event) {
-            // FIX: Safely check if event.target exists and supports closest()
             if (!event.target || typeof event.target.closest !== 'function') 
                 return;
-
             var button = event.target.closest('[data-nextpy-delete]');
             if (!button) return;
             var itemId = button.dataset.nextpyDelete;
-            var confirmMsg = config.deleteConfirm || 'Delete this item?';
-            if (!window.confirm(confirmMsg)) return;
-            var deleteBody = config.deleteBody ? config.deleteBody(itemId) : {id: Number(itemId)};
-            try { await callServerAction(deleteAction, deleteBody); }
-            catch (err) { error(root, err.message); }
+            
+            // Try to show PSX modal if deleteConfirm is "psx"
+            if (config.deleteConfirm === 'psx' && window.showDeleteModal) {
+                var itemTitle = 'this item';
+                var listItem = button.closest('[data-nextpy-item]');
+                if (listItem) {
+                    var titleSpan = listItem.querySelector('span');
+                    if (titleSpan) itemTitle = titleSpan.textContent;
+                }
+                var psxModalShown = window.showDeleteModal(Number(itemId), itemTitle, config);
+                if (psxModalShown) {
+                    // PSX modal handles the delete action via its own confirm button
+                    return;
+                }
+            }
+            
+            // Default behavior (custom confirm modal)
+            if (config.deleteConfirm !== false && config.deleteConfirm !== 'psx') {
+                var confirmMsg = typeof config.deleteConfirm === 'string' ? config.deleteConfirm : 'Delete this item?';
+                var confirmed = await showCustomConfirm(confirmMsg);
+                if (!confirmed) return;
+            }
+            
+            var idParam = config.idParam || 'id';
+            var body = {};
+            body[idParam] = Number(itemId);
+            try { 
+                await callServerAction(deleteAction, body); 
+            } catch (err) { 
+                error(root, err.message); 
+            }
         });
+        
         var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         var socket;
         var reconnectTimer;
+        
         function connect() {
             socket = new WebSocket(protocol + '//' + window.location.host + '/ws');
             socket.addEventListener('open', function () {
-                status(root, 'Live'); 
+                status(root, 'Live');
                 socket.send(JSON.stringify({type: 'subscribe', channel: wsChannel}));
             });
             socket.addEventListener('close', function () {
@@ -249,7 +485,9 @@ CRUD_RUNTIME_SCRIPT = r"""
                 clearTimeout(reconnectTimer);
                 reconnectTimer = setTimeout(connect, 2000);
             });
-            socket.addEventListener('error', function () { status(root, 'Offline'); });
+            socket.addEventListener('error', function () { 
+                status(root, 'Offline'); 
+            });
             socket.addEventListener('message', function (event) {
                 var message = JSON.parse(event.data);
                 if (message.type === messageType) applyChange(root, message, config);
@@ -259,6 +497,9 @@ CRUD_RUNTIME_SCRIPT = r"""
     });
 })();
 """
+
+            
+
 
 
 # Hydration Engine imports

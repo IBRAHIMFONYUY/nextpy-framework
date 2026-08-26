@@ -214,6 +214,20 @@ class HydrationEngine:
                 }} else if (property === 'value') {{
                     // Special handling for input value to ensure it updates
                     element.value = String(value);
+                }} else if (property.startsWith('data-') || property.startsWith('aria-')) {{
+                    element.setAttribute(property, String(value));
+                }} else if (property === 'checked') {{
+                    element.checked = !!value;
+                }} else if (property === 'disabled') {{
+                    element.disabled = !!value;
+                }} else if (property === 'className') {{
+                    element.className = String(value);
+                }} else if (property === 'style') {{
+                    if (typeof value === 'object') {{
+                        Object.assign(element.style, value);
+                    }} else {{
+                        element.setAttribute('style', String(value));
+                    }}
                 }} else if (property in element) {{
                     element[property] = value;
                 }}
