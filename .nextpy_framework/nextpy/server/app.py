@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from nextpy.psx import (
     compile_psx, render_psx, psx, PSXElement, component,
     useState, useEffect, process_python_logic,
-    VNode, create_element, render, update, CLIENT_ROUTER_SCRIPT
+    VNode, create_element, render, update, CLIENT_ROUTER_SCRIPT, CRUD_RUNTIME_SCRIPT
 )
 
 from nextpy.core.router import Router
@@ -38,6 +38,8 @@ from nextpy.server.middleware import NextPyMiddleware
 from nextpy.security import security_manager
 from nextpy.jsx_preprocessor import JSXSyntaxError
 from nextpy.websocket import manager, handle_websocket
+from nextpy.api import api
+from nextpy.server_actions import ServerAction
 
 
 _api_app: Optional[FastAPI] = None
@@ -106,6 +108,9 @@ class NextPyApp:
         self._setup_middleware()
         self._setup_static_files()
         self._setup_websocket()
+        self._load_project_api()
+        # Mount declarative application API routes before file-based routes.
+        self.app.include_router(api)
         # Mount protected admin routes before page routes so a dynamic page
         # cannot capture /admin.
         if self.admin_site is not None:
@@ -195,6 +200,27 @@ class NextPyApp:
         async def websocket_endpoint(websocket: WebSocket):
             """Handle WebSocket connections for live development"""
             await handle_websocket(websocket)
+    
+    def _load_project_api(self) -> None:
+        """Load project API modules before mounting the native API router.
+
+        Both ``api.py`` and ``pages/api.py`` are supported. The latter is
+        useful for projects that keep all route-facing Python files together
+        under ``pages``; the ``pages/api/`` directory remains file-based API
+        routing and is scanned separately.
+        """
+        api_files = [Path.cwd() / "api.py", self.pages_dir / "api.py"]
+        for index, api_file in enumerate(api_files):
+            if not api_file.exists():
+                continue
+            module_name = f"_nextpy_project_api_{index}"
+            if module_name in sys.modules:
+                continue
+            spec = importlib.util.spec_from_file_location(module_name, api_file)
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[module_name] = module
+                spec.loader.exec_module(module)
             
     def _add_seo_routes(self) -> None:
         """Add special SEO routes for sitemap.xml and robots.txt"""
@@ -278,6 +304,9 @@ Allow: /
         
         # Add debug API routes
         self._add_debug_routes()
+        
+        # Add server actions endpoint
+        self._add_server_actions_routes()
             
     def _add_debug_routes(self) -> None:
         """Add debug API routes for the debug panel"""
@@ -403,6 +432,67 @@ Allow: /
         self.app.add_route("/__nextpy/debug/end", debug_end_session, methods=["POST"])
         self.app.add_route("/__nextpy/debug/export", debug_export, methods=["GET"])
         self.app.add_route("/__nextpy/debug/clear", debug_clear, methods=["POST"])
+            
+    def _add_server_actions_routes(self) -> None:
+        """Add server actions API endpoints for enhanced client-server communication"""
+        
+        # List all available server actions
+        async def list_actions(request: Request):
+            try:
+                actions = ServerAction.list_actions()
+                return JSONResponse({
+                    "actions": actions,
+                    "count": len(actions)
+                })
+            except Exception as e:
+                if self.debug:
+                    print(f"Server actions list error: {e}")
+                return JSONResponse({"error": str(e)}, status_code=500)
+        
+        # Execute a server action
+        async def execute_action(request: Request):
+            try:
+                data = await request.json()
+                action_name = data.get("action")
+                params = data.get("params", {})
+                
+                if not action_name:
+                    return JSONResponse({"error": "action name is required"}, status_code=400)
+                
+                result = await ServerAction.execute(action_name, request, **params)
+                return JSONResponse(result)
+                
+            except Exception as e:
+                if self.debug:
+                    import traceback
+                    traceback.print_exc()
+                return JSONResponse({"error": str(e)}, status_code=500)
+        
+        # Get server action schema
+        async def get_action_schema(request: Request, action_name: str):
+            try:
+                action = ServerAction.get_action(action_name)
+                if not action:
+                    return JSONResponse({"error": "action not found"}, status_code=404)
+                
+                # Get type hints for schema
+                import inspect
+                hints = inspect.get_type_hints(action)
+                
+                return JSONResponse({
+                    "name": action_name,
+                    "schema": hints,
+                    "doc": action.__doc__
+                })
+            except Exception as e:
+                if self.debug:
+                    print(f"Action schema error: {e}")
+                return JSONResponse({"error": str(e)}, status_code=500)
+        
+        # Register server action routes
+        self.app.add_route("/__nextpy/actions", list_actions, methods=["GET"])
+        self.app.add_route("/__nextpy/actions/execute", execute_action, methods=["POST"])
+        self.app.add_route("/__nextpy/actions/{action_name}/schema", get_action_schema, methods=["GET"])
             
     def _convert_route_to_fastapi_path(self, route_path: str) -> str:
         """Convert router path with regex patterns to FastAPI-compatible path"""
@@ -559,6 +649,8 @@ Allow: /
             )
             if 'data-nextpy-link' in html:
                 html = f"<script>{CLIENT_ROUTER_SCRIPT}</script>{html}"
+            if 'data-nextpy-crud' in html:
+                html = f"<script>{CRUD_RUNTIME_SCRIPT}</script>{html}"
             return HTMLResponse(
                 content=html,
                 headers={

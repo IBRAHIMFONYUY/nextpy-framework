@@ -4,6 +4,13 @@ import json
 from typing import Any, Dict, Optional
 from urllib.request import Request, urlopen
 
+from fastapi import APIRouter
+
+
+# Native FastAPI surface for application code.  It is mounted automatically by
+# create_app(), so users do not need to reach into the framework internals.
+api = APIRouter(prefix="/api")
+
 
 def fetch_api(
     url: str,
@@ -26,3 +33,6 @@ def fetch_api(
     with urlopen(request, timeout=timeout) as response:
         raw = response.read().decode("utf-8")
         return json.loads(raw) if raw else None
+
+
+__all__ = ["api", "fetch_api"]

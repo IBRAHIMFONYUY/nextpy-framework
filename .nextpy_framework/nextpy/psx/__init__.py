@@ -1,6 +1,6 @@
 """
 PSX Package - Clean Python Syntax eXtension for NextPy
-Production-ready PSX with clean architecture
+Production-ready PSX with clean architecture and enhanced full-stack support
 """
 
 # Core imports
@@ -42,6 +42,15 @@ from .components.component import (
     create_onopen, create_onmessage, create_onclose, create_oninstall, create_onactivate
 )
 from .utils.helpers import compile_psx, compile_psx_file, is_psx_file, PSXCompiler
+
+# Load enhanced client runtime
+import os
+enhanced_runtime_path = os.path.join(os.path.dirname(__file__), 'runtime', 'enhanced_client_runtime.js')
+try:
+    with open(enhanced_runtime_path, 'r') as f:
+        ENHANCED_CLIENT_RUNTIME_SCRIPT = f.read()
+except FileNotFoundError:
+    ENHANCED_CLIENT_RUNTIME_SCRIPT = ""
 
 CLIENT_ROUTER_SCRIPT = r"""
 (function () {
@@ -95,23 +104,162 @@ CLIENT_ROUTER_SCRIPT = r"""
         load(url, link.dataset.nextpyReplace === 'true', link.dataset.nextpyScroll !== 'false');
     });
 
-    document.addEventListener('mouseenter', function (event) {
+    document.addEventListener('mouseenter', function(event) {
+        // FIX: Safely check if event.target exists and supports closest()
+        if (!event.target || typeof event.target.closest !== 'function')
+            return;
+
         var link = event.target.closest('[data-nextpy-prefetch]');
-        if (!link) return;
+        if (!link)
+            return;
         var url = new URL(link.href, window.location.href);
         if (isInternal(url) && !cache.has(url.href)) {
-            fetch(url.href, {headers: {'X-NextPy-Navigation': 'true', 'Accept': 'text/html'}})
-                .then(function (response) { return response.ok ? response.text() : null; })
-                .then(function (text) { if (text) cache.set(url.href, text); })
-                .catch(function () {});
+            fetch(url.href, {
+                headers: {
+                    'X-NextPy-Navigation': 'true',
+                    'Accept': 'text/html'
+                }
+            }).then(function(response) {
+                return response.ok ? response.text() : null;
+            }).then(function(text) {
+                if (text)
+                    cache.set(url.href, text);
+            }).catch(function() {});
         }
     }, true);
+
 
     window.addEventListener('popstate', function () {
         load(new URL(window.location.href), true, false);
     });
 })();
 """
+
+CRUD_RUNTIME_SCRIPT = r"""
+(function () {
+    if (window.__nextpyCrudRuntime) return;
+    window.__nextpyCrudRuntime = true;
+
+    function roots() { return document.querySelectorAll('[data-nextpy-crud]'); }
+    function error(root, message) {
+        var target = root.querySelector('[data-nextpy-error]');
+        if (target) { target.textContent = message || ''; target.classList.toggle('hidden', !message); }
+    }
+    function status(root, message) {
+        var target = root.querySelector('[data-nextpy-status]');
+        if (target) target.textContent = message;
+    }
+    async function callServerAction(actionName, data) {
+        var token = window.localStorage.getItem('nextpy_access_token') ||
+            window.sessionStorage.getItem('nextpy_access_token');
+        var headers = {'Content-Type': 'application/json', 'Accept': 'application/json'};
+        if (token) headers.Authorization = 'Bearer ' + token;
+        var response = await fetch('/_server_actions/' + actionName, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(data || {})
+        });
+        var result = await response.json();
+        if (!response.ok || result.error) throw new Error(result.error || 'Server action failed');
+        return result;
+    }
+    function applyChange(root, message, config) {
+        var item = message.data;
+        if (message.action === 'deleted') {
+            var deleted = root.querySelector('[data-nextpy-item="' + item.id + '"]');
+            if (deleted) deleted.remove();
+            return;
+        }
+        var element = root.querySelector('[data-nextpy-item="' + item.id + '"]');
+        if (!element && message.action === 'created') {
+            var list = root.querySelector('[data-nextpy-list]');
+            if (!list) return;
+            window.location.reload();
+            return;
+        }
+        if (!element) return;
+        if (config.fieldMapping) {
+            for (var field in config.fieldMapping) {
+                var selector = config.fieldMapping[field];
+                var target = element.querySelector(selector);
+                if (target && item[field] !== undefined) {
+                    target.textContent = item[field];
+                }
+            }
+        }
+    }
+    roots().forEach(function (root) {
+        var config = JSON.parse(root.dataset.nextpyCrud || '{}');
+        var createAction = config.createAction || 'create';
+        var updateAction = config.updateAction || 'update';
+        var deleteAction = config.deleteAction || 'delete';
+        var wsChannel = config.wsChannel || config.resource || 'items';
+        var messageType = config.messageType || (config.resource || 'ITEM') + '_CHANGED';
+        
+        var form = root.querySelector('[data-nextpy-action="create"]');
+        if (form) form.addEventListener('submit', async function (event) {
+            event.preventDefault(); error(root, '');
+            var body = {};
+            form.querySelectorAll('[data-nextpy-field]').forEach(function (field) {
+                body[field.dataset.nextpyField] = field.value;
+            });
+            try { 
+                await callServerAction(createAction, body); 
+                form.reset();
+            }
+            catch (err) { error(root, err.message); }
+        });
+        root.addEventListener('change', async function (event) {
+            // FIX: Safely check if event.target exists and supports closest()
+            if (!event.target || typeof event.target.closest !== 'function') 
+                return;
+
+            var toggle = event.target.closest('[data-nextpy-toggle]');
+            if (!toggle) return;
+            var itemId = toggle.dataset.nextpyToggle;
+            var updateBody = config.updateBody ? config.updateBody(itemId, toggle.checked) : {id: Number(itemId), completed: toggle.checked};
+            try { await callServerAction(updateAction, updateBody); }
+            catch (err) { error(root, err.message); toggle.checked = !toggle.checked; }
+        });
+        root.addEventListener('click', async function (event) {
+            // FIX: Safely check if event.target exists and supports closest()
+            if (!event.target || typeof event.target.closest !== 'function') 
+                return;
+
+            var button = event.target.closest('[data-nextpy-delete]');
+            if (!button) return;
+            var itemId = button.dataset.nextpyDelete;
+            var confirmMsg = config.deleteConfirm || 'Delete this item?';
+            if (!window.confirm(confirmMsg)) return;
+            var deleteBody = config.deleteBody ? config.deleteBody(itemId) : {id: Number(itemId)};
+            try { await callServerAction(deleteAction, deleteBody); }
+            catch (err) { error(root, err.message); }
+        });
+        var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        var socket;
+        var reconnectTimer;
+        function connect() {
+            socket = new WebSocket(protocol + '//' + window.location.host + '/ws');
+            socket.addEventListener('open', function () {
+                status(root, 'Live'); 
+                socket.send(JSON.stringify({type: 'subscribe', channel: wsChannel}));
+            });
+            socket.addEventListener('close', function () {
+                status(root, 'Offline');
+                clearTimeout(reconnectTimer);
+                reconnectTimer = setTimeout(connect, 2000);
+            });
+            socket.addEventListener('error', function () { status(root, 'Offline'); });
+            socket.addEventListener('message', function (event) {
+                var message = JSON.parse(event.data);
+                if (message.type === messageType) applyChange(root, message, config);
+            });
+        }
+        connect();
+    });
+})();
+"""
+
 
 # Hydration Engine imports
 from .hydration import (
@@ -122,18 +270,25 @@ from .hydration import (
 
 # Convenience functions
 def render_psx_component(element, context=None):
-    """Render PSX component using the clean renderer"""
+    """Render PSX component using the clean renderer with enhanced full-stack support"""
     html = renderer.render(element, context)
     
-    # Inject JavaScript runtime script for interactive components and full HTML documents
+    # Inject JavaScript runtime scripts for interactive components and full HTML documents
     try:
         from .runtime.js_actions_runtime import JS_ACTION_RUNTIME_SCRIPT
-        # Always inject for interactive components or full HTML documents
+        
+        # Always inject enhanced runtime for full-stack applications
+        if ENHANCED_CLIENT_RUNTIME_SCRIPT:
+            html = f"<script>{ENHANCED_CLIENT_RUNTIME_SCRIPT}</script>{html}"
+        
+        # Inject legacy runtime for backwards compatibility
         if 'data-handler-' in html or 'data-bind' in html or '<html' in html:
-            # Insert script at the very beginning to ensure it loads first
             html = f"<script>{JS_ACTION_RUNTIME_SCRIPT}</script>{html}"
+            
     except ImportError:
-        pass
+        # Fallback to enhanced runtime only
+        if ENHANCED_CLIENT_RUNTIME_SCRIPT:
+            html = f"<script>{ENHANCED_CLIENT_RUNTIME_SCRIPT}</script>{html}"
     
     return html
 
@@ -143,6 +298,7 @@ __all__ = [
     'PSXElement', 'PSXParser', 'psx', 'render_psx', 'fragment', 'key',
     'process_python_logic', 'runtime', 'SafeExpressionEngine',
     'CLIENT_ROUTER_SCRIPT',
+    'CRUD_RUNTIME_SCRIPT',
     
     # VDOM
     'VNode', 'create_element', 'render', 'update', 'get_vdom_metrics',
@@ -192,4 +348,7 @@ __all__ = [
     'HydrationEngine', 'get_hydration_engine',
     'interactive_component', 'enable_hydration_globally', 'create_interactive_page',
     'hydrate_component', 'get_component_hydrator',
+    
+    # Enhanced Full-Stack Runtime
+    'ENHANCED_CLIENT_RUNTIME_SCRIPT',
 ]

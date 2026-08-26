@@ -37,6 +37,7 @@ class PageContext:
     preview: bool = False
     preview_data: Optional[Dict[str, Any]] = None
     locale: Optional[str] = None
+    _session: Optional[Any] = None
 
     def get(self, key: str, default: Any = None) -> Any:
         """Support dict-style access for existing page modules."""
@@ -57,13 +58,15 @@ class PageContext:
         if key == "session":
             try:
                 from ..db import get_session
-                return get_session()
+                if self._session is None:
+                    self._session = get_session()
+                return self._session
             except RuntimeError:
                 return default
         return default
 
     def __getitem__(self, key: str) -> Any:
-        if key in {"params", "query", "req", "request", "res", "preview", "preview_data", "locale"}:
+        if key in {"params", "query", "req", "request", "res", "preview", "preview_data", "locale", "session"}:
             return self.get(key)
         raise KeyError(key)
 
@@ -223,6 +226,9 @@ async def execute_data_fetching(
                     props.update(result)
             break
             
+    if context._session is not None:
+        context._session.close()
+        context._session = None
     return props
 
 

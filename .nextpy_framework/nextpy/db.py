@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
+Model = Base
 
 
 class DatabaseConfig:
@@ -88,6 +89,11 @@ def get_session() -> Session:
     return get_db().get_session()
 
 
+def session() -> Session:
+    """Return a database session using the native NextPy API name."""
+    return get_session()
+
+
 # Models example
 from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean
 from datetime import datetime
@@ -130,3 +136,29 @@ class Todo(Base):
     completed = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+
+
+class Job(Base):
+    __tablename__ = "jobs"
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(200), nullable=False)
+    company = Column(String(200), nullable=False)
+    location = Column(String(200))
+    description = Column(Text, nullable=False)
+    salary = Column(String(100))
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Application(Base):
+    __tablename__ = "applications"
+
+    id = Column(Integer, primary_key=True)
+    job_id = Column(Integer, nullable=False)
+    applicant_name = Column(String(200), nullable=False)
+    applicant_email = Column(String(255), nullable=False)
+    resume_url = Column(String(500))
+    created_at = Column(DateTime, default=datetime.utcnow)
