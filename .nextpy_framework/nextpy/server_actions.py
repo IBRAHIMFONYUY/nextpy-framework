@@ -135,26 +135,37 @@ class ServerAction:
         }
     
     @classmethod
-    async def execute(cls, name: str, request: Request, **kwargs) -> Dict[str, Any]:
+    async def execute(cls, name: str, request: Request, response=None, params=None) -> Dict[str, Any]:
         """
         Execute a server action
         
         Args:
             name: Action name
             request: FastAPI request object
-            **kwargs: Action parameters
+            response: FastAPI response object (for setting cookies, headers, etc.)
+            params: Action parameters as dict
             
         Returns:
             Action result as dictionary
         """
+        if params is None:
+            params = {}
+        
         action = cls.get_action(name)
         if not action:
             raise HTTPException(status_code=404, detail=f"Action '{name}' not found")
+        
+        # Build kwargs from params
+        kwargs = dict(params)
         
         # Add request context if function accepts it
         sig = inspect.signature(action)
         if 'request' in sig.parameters:
             kwargs['request'] = request
+        
+        # Add response context if function accepts it
+        if response is not None and 'response' in sig.parameters:
+            kwargs['response'] = response
         
         # Add database session if function accepts it
         if 'session' in sig.parameters or 'db' in sig.parameters:

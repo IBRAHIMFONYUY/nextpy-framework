@@ -108,6 +108,9 @@ class User(Base):
     username = Column(String(255), unique=True, index=True)
     full_name = Column(String(255))
     hashed_password = Column(String(255))
+    role = Column(String(50), default="job_seeker")  # job_seeker | employer
+    bio = Column(Text, default="")
+    company_name = Column(String(255), default="")
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -148,17 +151,23 @@ class Job(Base):
     company = Column(String(200), nullable=False)
     location = Column(String(200))
     description = Column(Text, nullable=False)
-    salary = Column(String(100))
+    salary_min = Column(Integer)
+    salary_max = Column(Integer)
+    job_type = Column(String(50), default="full_time")  # full_time | part_time | contract | internship
+    experience_level = Column(String(50), default="mid")  # entry | mid | senior | lead
+    employer_id = Column(Integer, index=True)  # FK to users.id
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class Application(Base):
     __tablename__ = "applications"
 
     id = Column(Integer, primary_key=True)
-    job_id = Column(Integer, nullable=False)
-    applicant_name = Column(String(200), nullable=False)
-    applicant_email = Column(String(255), nullable=False)
-    resume_url = Column(String(500))
+    job_id = Column(Integer, index=True)
+    applicant_id = Column(Integer, index=True)  # FK to users.id
+    cover_letter = Column(Text, default="")
+    resume_url = Column(String(500), default="")
+    status = Column(String(50), default="pending")  # pending | accepted | rejected
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -61,6 +61,14 @@ import nextpy as nx
 from nextpy.admin import AdminSite
 from nextpy.db import User, Post, Todo, Job, Application
 
+# Import all server actions (triggers registration)
+from pages.actions.todo_actions import create_todo, toggle_todo, delete_todo, get_todos, get_todo_stats  # noqa: F401
+from pages.jobs.actions import (  # noqa: F401
+    register, login, logout, get_me,
+    create_job, update_job, delete_job, get_my_jobs, list_jobs,
+    apply_to_job, get_my_applications, get_job_applications, update_application_status,
+)
+
 # Database must initialize before the app starts
 from nextpy.db import init_db
 from nextpy.config import settings

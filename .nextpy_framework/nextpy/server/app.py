@@ -450,6 +450,8 @@ Allow: /
                 return JSONResponse({"error": str(e)}, status_code=500)
         
         # Execute a server action
+        from fastapi.responses import Response as FastAPIResponse
+        
         async def execute_action(request: Request):
             try:
                 data = await request.json()
@@ -459,8 +461,21 @@ Allow: /
                 if not action_name:
                     return JSONResponse({"error": "action name is required"}, status_code=400)
                 
-                result = await ServerAction.execute(action_name, request, **params)
-                return JSONResponse(result)
+                # Create a response object so actions can set cookies/headers
+                action_response = FastAPIResponse()
+                result = await ServerAction.execute(action_name, request, response=action_response, params=params)
+                
+                # Build the JSON response with cookies from action_response
+                json_response = JSONResponse(result)
+                # Copy any cookies set by the action
+                for cookie in action_response.headers.getlist("set-cookie"):
+                    json_response.headers.append("set-cookie", cookie)
+                # Copy any headers set by the action
+                for key, value in action_response.headers.items():
+                    if key not in ("set-cookie", "content-type", "content-length"):
+                        json_response.headers.append(key, value)
+                
+                return json_response
                 
             except Exception as e:
                 if self.debug:
@@ -660,6 +675,20 @@ Allow: /
                         print(f"Data fetching error for component route: {e}")
             
             html = self.router.render_route(route, context)
+            # Auto-add data-nextpy-link to internal <a> tags
+            import re
+            def _mark_internal_links(html_text):
+                def _replace_link(match):
+                    full_tag = match.group(0)
+                    href = match.group(1)
+                    if href.startswith('/') or href.startswith('#'):
+                        if 'data-nextpy-link' not in full_tag:
+                            return full_tag.replace('<a ', '<a data-nextpy-link="true" ', 1)
+                    return full_tag
+                return re.sub(r'<a\s+([^>]*?)href="([^"]*)"', _replace_link, html_text)
+            
+            if '<a ' in html:
+                html = _mark_internal_links(html)
             if 'data-nextpy-crud' in html:
                 html = f"{html}<script>{CRUD_RUNTIME_SCRIPT}</script>"
             if 'data-nextpy-link' in html:
@@ -732,6 +761,26 @@ Allow: /
                     "request": request,
                 },
             )
+            
+            # Auto-add data-nextpy-link to internal <a> tags for client-side navigation
+            import re
+            host = request.headers.get('host', 'localhost')
+            def _mark_internal_links(html_text):
+                def _replace_link(match):
+                    full_tag = match.group(0)
+                    href = match.group(1)
+                    if href.startswith('/') or href.startswith('#'):
+                        if 'data-nextpy-link' not in full_tag:
+                            return full_tag.replace('<a ', '<a data-nextpy-link="true" ', 1)
+                    return full_tag
+                return re.sub(r'<a\s+([^>]*?)href="([^"]*)"', _replace_link, html_text)
+            
+            if '<a ' in html:
+                html = _mark_internal_links(html)
+            
+            # Inject client-side router if internal links exist
+            if 'data-nextpy-link' in html:
+                html = f"{html}<script>{CLIENT_ROUTER_SCRIPT}</script>"
             
             return HTMLResponse(
                 content=html,

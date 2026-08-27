@@ -28,6 +28,7 @@ class ComponentState:
     hooks: List[Any] = field(default_factory=list)
     hook_index: int = 0
     cleanup_functions: List[Callable] = field(default_factory=list)
+    mount_actions: List[Dict[str, Any]] = field(default_factory=list)
 
 
 # Thread-local storage for component state
@@ -161,6 +162,13 @@ def component(func):
         for key, value in component_locals.items():
             if not key.startswith('_') and key not in ['func', 'props', 'result', 'execution_result', 'execute_component', 'wrapper', 'execute_with_locals', 'component_locals', 'component_frame', 'frame', 'current_frame', 'original_globals']:
                 context[key] = value
+        
+        # Add module-level functions (like sub-components) to context
+        # This allows <ApplyButton /> inside @component to resolve
+        for key, value in original_globals.items():
+            if key not in context and callable(value) and not key.startswith('_'):
+                context[key] = value
+        
         print(f"DEBUG: Context after creation: {list(context.keys())}")
         
         # FIX: Add component_id to context if not present (fallback mechanism)
@@ -797,57 +805,83 @@ class CustomHooks:
     @staticmethod
     def use_fetch(url: str, options: Dict[str, Any] = None) -> Dict[str, Any]:
         """
-        Fetch data from a real HTTP/API endpoint with caching and state tracking.
+        Client-side fetch hook. Compiles to a FETCH_DATA action that runs
+        `fetch(url, options)` in the browser and updates component state.
         """
+        component = get_current_component()
+
+        data_key = f"_fetch_data_{component.hook_index}"
+        loading_key = f"_fetch_loading_{component.hook_index}"
+        error_key = f"_fetch_error_{component.hook_index}"
+        func_key = f"_fetch_refetch_{component.hook_index}"
+
         data, set_data = PSXHooks.use_state(None)
         loading, set_loading = PSXHooks.use_state(True)
         error, set_error = PSXHooks.use_state(None)
-        
-        # Cache for requests
-        cache_ref = PSXHooks.use_ref({})
-        
-        def refetch():
-            set_loading(True)
-            set_error(None)
-            
-            # Check cache first
-            cache_key = f"{url}_{str(options)}"
-            if cache_ref.current.get(cache_key):
-                set_data(cache_ref.current[cache_key])
-                set_loading(False)
-                return
-            
-            try:
-                import json
-                from urllib.request import Request, urlopen
 
-                request_options = options or {}
-                method = request_options.get('method', 'GET').upper()
-                headers = {'Accept': 'application/json', **request_options.get('headers', {})}
-                body = request_options.get('body')
-                if isinstance(body, (dict, list)):
-                    body = json.dumps(body).encode('utf-8')
-                    headers.setdefault('Content-Type', 'application/json')
-                request = Request(url, data=body, headers=headers, method=method)
-                with urlopen(request, timeout=request_options.get('timeout', 10)) as response:
-                    raw_data = response.read().decode('utf-8')
-                    fetched_data = json.loads(raw_data) if raw_data else None
-                cache_ref.current[cache_key] = fetched_data
-                set_data(fetched_data)
-            except Exception as e:
-                set_error(str(e))
-            finally:
-                set_loading(False)
-        
-        # Initial fetch
-        PSXHooks.use_effect(refetch, [url, options])
-        
-        return {
-            'data': data,
-            'loading': loading,
-            'error': error,
-            'refetch': refetch
+        fetch_action = {
+            "type": "FETCH_DATA",
+            "data": {
+                "url": url,
+                "options": options or {},
+                "dataKey": data_key,
+                "loadingKey": loading_key,
+                "errorKey": error_key,
+            },
         }
+
+        if not hasattr(component, 'mount_actions'):
+            component.mount_actions = []
+        component.mount_actions.append(fetch_action)
+
+        if not hasattr(component, 'registered_functions'):
+            component.registered_functions = {}
+        component.registered_functions[func_key] = fetch_action
+
+        refetch_action = {
+            "type": "CALL_FUNCTION",
+            "function": func_key,
+        }
+
+        return {
+            "data": data,
+            "loading": loading,
+            "error": error,
+            "refetch": refetch_action,
+            "_dataKey": data_key,
+            "_loadingKey": loading_key,
+            "_errorKey": error_key,
+        }
+
+    @staticmethod
+    def use_crud_event(resource: Optional[str] = None):
+        """
+        Subscribe to nextpy:crud:changed events.
+        Returns a dict with the latest event detail that triggers re-renders.
+        If resource is set, only fires for that config.resource.
+
+        Usage:
+            event = use_crud_event(resource="todos")
+            # event["_eventKey"] is the state key for data-bind
+            # event["data"] is the Python-side value (None until JS updates it)
+        """
+        component = get_current_component()
+        event_key = f"_crud_event_{component.hook_index}"
+        event_data, _set_event = PSXHooks.use_state(None)
+
+        subscribe_action = {
+            "type": "SUBSCRIBE_CRUD_EVENT",
+            "data": {
+                "eventKey": event_key,
+                "resource": resource,
+            },
+        }
+
+        if not hasattr(component, 'mount_actions'):
+            component.mount_actions = []
+        component.mount_actions.append(subscribe_action)
+
+        return {"data": event_data, "_eventKey": event_key}
     
     @staticmethod
     def use_debounce(value: Any, delay: int) -> Any:
@@ -2048,6 +2082,10 @@ def useFetch(url: str, options: Dict[str, Any] = None) -> Dict[str, Any]:
     """useFetch custom hook"""
     return CustomHooks.use_fetch(url, options)
 
+def useCrudEvent(resource: Optional[str] = None) -> Dict[str, Any]:
+    """useCrudEvent custom hook - subscribe to CRUD events"""
+    return CustomHooks.use_crud_event(resource)
+
 def useDebounce(value: Any, delay: int) -> Any:
     """useDebounce custom hook"""
     return CustomHooks.use_debounce(value, delay)
@@ -2597,6 +2635,34 @@ for _component_name in (
     'Conditional', 'Loop', 'ErrorBoundary', 'Suspense',
 ):
     register_component(_component_name, globals()[_component_name])
+
+
+# ---------------------------------------------------------------------------
+# callServerAction — a marker function that the PSX compiler recognises and
+# compiles into a CALL_SERVER_ACTION structured action.  The JS runtime then
+# executes a fetch POST to /__nextpy/actions/execute.
+# ---------------------------------------------------------------------------
+
+def callServerAction(action_name: str, params: dict = None, on_result=None, on_error=None):
+    """Call a registered server action from a PSX event handler.
+
+    Usage inside an interactive_component handler::
+
+        def handle_submit(e):
+            result = callServerAction("login", {"email": email, "password": password})
+            if result.get("success"):
+                navigate("/dashboard")
+
+    The PSX compiler translates this into::
+
+        {"type": "CALL_SERVER_ACTION", "data": {"action": "login", "params": {...}}}
+
+    The JS runtime issues the fetch and stores the result so that a
+    subsequent SET_STATE or CALL_FUNCTION can reference it.
+    """
+    # This function is never called at runtime — it exists only so the
+    # PSX handler compiler can match it in the AST and emit the action.
+    pass
 
 
 # Export all PSX component utilities

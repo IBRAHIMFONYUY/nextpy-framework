@@ -18,7 +18,12 @@ from nextpy.server.app import create_app, get_api_app
 from nextpy.db import Base, Model, Database, get_db, get_session, session, init_db
 from nextpy.api import api, fetch_api
 from nextpy.admin import AdminSite, admin, register
-from nextpy.auth import AuthManager, require_auth, create_session, get_session as get_auth_session, delete_session
+from nextpy.auth import (
+    AuthManager, require_auth, create_session,
+    get_session as get_auth_session, delete_session,
+    hash_password, verify_password,
+    set_session_cookie, get_user_id_from_request, clear_session_cookie,
+)
 
 # Enhanced full-stack features
 from nextpy.server_actions import (
@@ -54,6 +59,9 @@ from nextpy.psx import (
     # Custom Hooks
     useCounter, useToggle, useLocalStorage, useFetch, useDebounce,
     useInterval, usePrevious, useAsync, useMediaQuery, useGeolocation, usePerformance,
+    
+    # Server action bridge
+    callServerAction,
     
     # Event Handlers
     create_onclick, create_ondblclick, create_onmousedown, create_onmouseup,
@@ -100,6 +108,7 @@ __all__ = [
     'Router', 'Route', 'DynamicRoute', 'Renderer', 'create_app', 'get_api_app',
     'Base', 'Model', 'Database', 'init_db', 'get_db', 'get_session', 'session', 'api', 'fetch_api',
     'AuthManager', 'require_auth', 'create_session', 'get_auth_session', 'delete_session',
+    'hash_password', 'verify_password', 'set_session_cookie', 'get_user_id_from_request', 'clear_session_cookie',
     'get_server_side_props', 'get_static_props', 'get_static_paths',
     'Head', 'Link', 'AdminSite', 'admin', 'register',
     

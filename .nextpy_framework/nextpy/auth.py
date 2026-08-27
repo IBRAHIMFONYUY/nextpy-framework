@@ -1,13 +1,38 @@
 """
-NextPy Authentication - JWT and Session support
+NextPy Authentication - JWT, Session, and Password support
 """
 
 import jwt
+import hashlib
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from functools import wraps
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, Response
 from nextpy.config import settings
+
+
+# ---------------------------------------------------------------------------
+# Password hashing (HMAC-SHA256 with random salt — no bcrypt dependency)
+# ---------------------------------------------------------------------------
+_HASH_ITERATIONS = 260_000
+
+
+def hash_password(password: str) -> str:
+    """Hash a password with a random salt.  Returns ``salt$hash``."""
+    salt = secrets.token_hex(16)
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), _HASH_ITERATIONS)
+    return f"{salt}${dk.hex()}"
+
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Verify a password against a ``salt$hash`` string."""
+    try:
+        salt, expected_hex = hashed.split("$", 1)
+        dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), _HASH_ITERATIONS)
+        return secrets.compare_digest(dk.hex(), expected_hex)
+    except Exception:
+        return False
 
 
 class AuthManager:
@@ -92,3 +117,44 @@ def delete_session(session_id: str) -> bool:
         del _sessions[session_id]
         return True
     return False
+
+
+# ---------------------------------------------------------------------------
+# Cookie-based session helpers (for server actions / API routes)
+# ---------------------------------------------------------------------------
+
+COOKIE_NAME = "nextpy_session"
+COOKIE_MAX_AGE = 86400  # 24 hours
+
+
+def set_session_cookie(response: Response, user_id: int) -> str:
+    """Create a session and set it as an HTTP cookie on *response*."""
+    session_id = create_session(user_id)
+    response.set_cookie(
+        COOKIE_NAME,
+        session_id,
+        max_age=COOKIE_MAX_AGE,
+        httponly=True,
+        samesite="lax",
+    )
+    return session_id
+
+
+def get_user_id_from_request(request: Request) -> Optional[int]:
+    """Extract the authenticated user-id from the session cookie.
+
+    Returns ``None`` when not authenticated.
+    """
+    session_id = request.cookies.get(COOKIE_NAME)
+    if not session_id:
+        return None
+    sess = get_session(session_id)
+    if sess is None:
+        return None
+    return sess.get("user_id")
+
+
+def clear_session_cookie(response: Response, session_id: str) -> None:
+    """Delete the session cookie and the server-side session."""
+    delete_session(session_id)
+    response.delete_cookie(COOKIE_NAME)

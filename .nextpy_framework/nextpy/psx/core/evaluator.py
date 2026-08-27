@@ -117,7 +117,6 @@ class SafeExpressionEngine:
         dangerous_nodes = (
             ast.Repr,
             ast.Lambda,
-            ast.IfExp,
             ast.DictComp,
             ast.SetComp,
             ast.GeneratorExp,
@@ -282,8 +281,21 @@ class SafeExpressionEngine:
             
         elif isinstance(node, ast.Subscript):
             obj = self._evaluate_node(node.value)
-            index = self._evaluate_node(node.slice)
+            sl = node.slice
+            if isinstance(sl, ast.Slice):
+                lower = self._evaluate_node(sl.lower) if sl.lower else None
+                upper = self._evaluate_node(sl.upper) if sl.upper else None
+                step = self._evaluate_node(sl.step) if sl.step else None
+                index = slice(lower, upper, step)
+            else:
+                index = self._evaluate_node(sl)
             return obj[index]
+            
+        elif isinstance(node, ast.Slice):
+            lower = self._evaluate_node(node.lower) if node.lower else None
+            upper = self._evaluate_node(node.upper) if node.upper else None
+            step = self._evaluate_node(node.step) if node.step else None
+            return slice(lower, upper, step)
             
         elif isinstance(node, ast.List):
             return [self._evaluate_node(elt) for elt in node.elts]
@@ -298,6 +310,37 @@ class SafeExpressionEngine:
             
         elif isinstance(node, ast.ListComp):
             return self._evaluate_list_comp(node)
+        
+        elif isinstance(node, ast.IfExp):
+            test = self._evaluate_node(node.test)
+            if test:
+                return self._evaluate_node(node.body)
+            else:
+                return self._evaluate_node(node.orelse)
+        
+        elif isinstance(node, ast.JoinedStr):
+            parts = []
+            for value in node.values:
+                if isinstance(value, ast.Constant):
+                    parts.append(str(value.value))
+                elif isinstance(value, ast.FormattedValue):
+                    val = self._evaluate_node(value.value)
+                    parts.append(str(val))
+                else:
+                    parts.append(str(self._evaluate_node(value)))
+            return ''.join(parts)
+        
+        elif isinstance(node, ast.Set):
+            return {self._evaluate_node(elt) for elt in node.elts}
+        
+        elif isinstance(node, ast.SetComp):
+            return self._evaluate_set_comp(node)
+        
+        elif isinstance(node, ast.GeneratorExp):
+            return list(self._evaluate_generator_exp(node))
+        
+        elif isinstance(node, ast.DictComp):
+            return self._evaluate_dict_comp(node)
             
         else:
             raise ValueError(f"Unsupported AST node type: {type(node).__name__}")
@@ -347,6 +390,75 @@ class SafeExpressionEngine:
             
         finally:
             # Restore original context
+            self.context.clear()
+            self.context.update(original_context)
+    
+    def _evaluate_set_comp(self, node: ast.SetComp) -> set:
+        """Evaluate set comprehension safely"""
+        result = set()
+        original_context = self.context.copy()
+        try:
+            for generator in node.generators:
+                iterable = self._evaluate_node(generator.iter)
+                for item in iterable:
+                    if isinstance(generator.target, ast.Name):
+                        self.context[generator.target.id] = item
+                    elif isinstance(generator.target, ast.Tuple):
+                        if isinstance(item, (list, tuple)) and len(item) == len(generator.target.elts):
+                            for i, elt in enumerate(generator.target.elts):
+                                if isinstance(elt, ast.Name):
+                                    self.context[elt.id] = item[i]
+                    conditions_met = all(self._evaluate_node(c) for c in generator.ifs)
+                    if conditions_met:
+                        result.add(self._evaluate_node(node.elt))
+            return result
+        finally:
+            self.context.clear()
+            self.context.update(original_context)
+    
+    def _evaluate_generator_exp(self, node):
+        """Evaluate generator expression safely"""
+        original_context = self.context.copy()
+        try:
+            for generator in node.generators:
+                iterable = self._evaluate_node(generator.iter)
+                for item in iterable:
+                    if isinstance(generator.target, ast.Name):
+                        self.context[generator.target.id] = item
+                    elif isinstance(generator.target, ast.Tuple):
+                        if isinstance(item, (list, tuple)) and len(item) == len(generator.target.elts):
+                            for i, elt in enumerate(generator.target.elts):
+                                if isinstance(elt, ast.Name):
+                                    self.context[elt.id] = item[i]
+                    conditions_met = all(self._evaluate_node(c) for c in generator.ifs)
+                    if conditions_met:
+                        yield self._evaluate_node(node.elt)
+        finally:
+            self.context.clear()
+            self.context.update(original_context)
+    
+    def _evaluate_dict_comp(self, node: ast.DictComp) -> dict:
+        """Evaluate dict comprehension safely"""
+        result = {}
+        original_context = self.context.copy()
+        try:
+            for generator in node.generators:
+                iterable = self._evaluate_node(generator.iter)
+                for item in iterable:
+                    if isinstance(generator.target, ast.Name):
+                        self.context[generator.target.id] = item
+                    elif isinstance(generator.target, ast.Tuple):
+                        if isinstance(item, (list, tuple)) and len(item) == len(generator.target.elts):
+                            for i, elt in enumerate(generator.target.elts):
+                                if isinstance(elt, ast.Name):
+                                    self.context[elt.id] = item[i]
+                    conditions_met = all(self._evaluate_node(c) for c in generator.ifs)
+                    if conditions_met:
+                        key = self._evaluate_node(node.key)
+                        value = self._evaluate_node(node.value)
+                        result[key] = value
+            return result
+        finally:
             self.context.clear()
             self.context.update(original_context)
 
