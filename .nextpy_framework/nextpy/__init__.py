@@ -1,9 +1,9 @@
 """
-NextPy - The Python Web Framdwork
-File-based routing, SSR, SSG, and more with FastAPI + PSX (True JSX)
+NextPy - The Python Web Framework
+Full-stack framework with file-based routing, SSR, SSG, and enhanced client-server sync
 """
 
-__version__ = "4.0.0"
+__version__ = "5.0.0"
 
 from nextpy.core.router import Router, Route, DynamicRoute
 from nextpy.core.renderer import Renderer
@@ -14,7 +14,26 @@ from nextpy.core.data_fetching import (
 )
 from nextpy.components.head import Head
 from nextpy.components.link import Link
-from nextpy.server.app import create_app
+from nextpy.server.app import create_app, get_api_app
+from nextpy.db import Base, Model, Database, get_db, get_session, session, init_db
+from nextpy.api import api, fetch_api
+from nextpy.admin import AdminSite, admin, register
+from nextpy.auth import (
+    AuthManager, require_auth, create_session,
+    get_session as get_auth_session, delete_session,
+    hash_password, verify_password,
+    set_session_cookie, get_user_id_from_request, clear_session_cookie,
+)
+
+# Enhanced full-stack features
+from nextpy.server_actions import (
+    ServerAction, server_action, ServerActionError, ValidationError,
+    FormValidator, ActionSchema, get_health_status, get_current_user
+)
+from nextpy.state_sync import (
+    StateManager, get_state_manager, get_state, set_state, update_state, delete_state,
+    ServerState, DatabaseState
+)
 
 # Import all PSX features for easy access
 from nextpy.psx import (
@@ -40,6 +59,9 @@ from nextpy.psx import (
     # Custom Hooks
     useCounter, useToggle, useLocalStorage, useFetch, useDebounce,
     useInterval, usePrevious, useAsync, useMediaQuery, useGeolocation, usePerformance,
+    
+    # Server action bridge
+    callServerAction,
     
     # Event Handlers
     create_onclick, create_ondblclick, create_onmousedown, create_onmouseup,
@@ -83,9 +105,18 @@ from nextpy.hooks import (
 # Export everything for easy access
 __all__ = [
     # Core NextPy
-    'Router', 'Route', 'DynamicRoute', 'Renderer', 'create_app',
+    'Router', 'Route', 'DynamicRoute', 'Renderer', 'create_app', 'get_api_app',
+    'Base', 'Model', 'Database', 'init_db', 'get_db', 'get_session', 'session', 'api', 'fetch_api',
+    'AuthManager', 'require_auth', 'create_session', 'get_auth_session', 'delete_session',
+    'hash_password', 'verify_password', 'set_session_cookie', 'get_user_id_from_request', 'clear_session_cookie',
     'get_server_side_props', 'get_static_props', 'get_static_paths',
-    'Head', 'Link',
+    'Head', 'Link', 'AdminSite', 'admin', 'register',
+    
+    # Enhanced Full-Stack Features
+    'ServerAction', 'server_action', 'ServerActionError', 'ValidationError',
+    'FormValidator', 'ActionSchema', 'get_health_status', 'get_current_user',
+    'StateManager', 'get_state_manager', 'get_state', 'set_state', 'update_state', 'delete_state',
+    'ServerState', 'DatabaseState',
     
     # PSX Core
     'PSXElement', 'PSXParser', 'psx', 'render_psx', 'fragment', 'key',

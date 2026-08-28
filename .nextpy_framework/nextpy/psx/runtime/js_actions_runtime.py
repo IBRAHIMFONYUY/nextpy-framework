@@ -188,6 +188,16 @@ class NextPyActionRuntime {
                     return this._executeLambda(data);
                 case 'JSX_UPDATE':
                     return this._executeJsxUpdate(data, componentId);
+                case 'FETCH_DATA':
+                    return this._executeFetchData(data, componentId);
+                case 'SUBSCRIBE_CRUD_EVENT':
+                    return this._executeSubscribeCrudEvent(data, componentId);
+                case 'CALL_SERVER_ACTION':
+                    return this._executeCallServerAction(data, componentId);
+                case 'IF':
+                    return this._executeIf(data, componentId);
+                case 'NAVIGATE':
+                    return this._executeNavigate(data, componentId);
                 default:
                     console.warn(`Unknown action type: ${type}`);
                     return null;
@@ -199,12 +209,12 @@ class NextPyActionRuntime {
         }
     }
 
-    executeActions(actions, componentId = null) {
+    async executeActions(actions, componentId = null) {
         console.log('DEBUG executeNextPyActions: Executing actions:', JSON.stringify(actions, null, 2));
         console.log('DEBUG executeNextPyActions: componentId:', componentId);
         const results = [];
         for (const action of actions) {
-            const result = this.executeAction(action, componentId);
+            const result = await this.executeAction(action, componentId);
             results.push(result);
         }
         console.log('DEBUG executeNextPyActions: Results:', results);
@@ -326,25 +336,23 @@ class NextPyActionRuntime {
 
 
     _executeBinaryOp(data, componentId) {
-
         const { left, op, right } = data;
         const leftValue = this._evaluateExpression(left, componentId);
         const rightValue = this._evaluateExpression(right, componentId);
 
-        if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
-            return [...leftValue, ...rightValue];
+        // Array concat when either operand is an array
+        if (op === '+') {
+            if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
+                return [...leftValue, ...rightValue];
+            }
+            if (Array.isArray(leftValue)) {
+                return [...leftValue, rightValue];
+            }
+            if (Array.isArray(rightValue)) {
+                return [leftValue, ...rightValue];
+            }
         }
 
-        if (Array.isArray(leftValue)) {
-            return [...leftValue, rightValue];
-        }
-
-        if (Array.isArray(rightValue)) {
-            return [leftValue, ...rightValue];
-        }
-
-        return leftValue + rightValue;
-        
         switch (op) {
             case '+': return leftValue + rightValue;
             case '-': return leftValue - rightValue;
@@ -502,6 +510,159 @@ class NextPyActionRuntime {
         const obj = this._evaluateExpression(object, componentId);
         
         return obj[attr];
+    }
+
+    async _executeFetchData(data, componentId) {
+        const { url, options, dataKey, loadingKey, errorKey } = data;
+        const component = this.components.get(componentId);
+        if (!component) {
+            console.warn('FETCH_DATA: component not found:', componentId);
+            return null;
+        }
+
+        // Set loading state
+        if (loadingKey) {
+            component.state[loadingKey] = true;
+            this._triggerComponentUpdate(componentId, loadingKey, true);
+        }
+        if (errorKey) {
+            component.state[errorKey] = null;
+            this._triggerComponentUpdate(componentId, errorKey, null);
+        }
+
+        try {
+            const fetchOptions = options || {};
+            const response = await fetch(url, fetchOptions);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const contentType = response.headers.get('content-type') || '';
+            let result;
+            if (contentType.includes('application/json')) {
+                result = await response.json();
+            } else {
+                result = await response.text();
+            }
+
+            if (dataKey) {
+                component.state[dataKey] = result;
+                this._triggerComponentUpdate(componentId, dataKey, result);
+            }
+        } catch (err) {
+            console.error('FETCH_DATA error:', err);
+            if (errorKey) {
+                component.state[errorKey] = err.message || String(err);
+                this._triggerComponentUpdate(componentId, errorKey, err.message || String(err));
+            }
+        } finally {
+            if (loadingKey) {
+                component.state[loadingKey] = false;
+                this._triggerComponentUpdate(componentId, loadingKey, false);
+            }
+        }
+    }
+
+    async _executeSubscribeCrudEvent(data, componentId) {
+        const { eventKey, resource } = data;
+        const component = this.components.get(componentId);
+        if (!component) {
+            console.warn('SUBSCRIBE_CRUD_EVENT: component not found:', componentId);
+            return null;
+        }
+
+        const handler = (e) => {
+            const detail = e.detail || {};
+            if (resource && detail.config && detail.config.resource !== resource) return;
+
+            this._executeSetState({key: eventKey, value: detail}, componentId);
+        };
+
+        window.addEventListener('nextpy:crud:changed', handler);
+
+        const cleanupFn = () => {
+            window.removeEventListener('nextpy:crud:changed', handler);
+        };
+
+        if (window.nextpyComponents && window.nextpyComponents[componentId]) {
+            window.nextpyComponents[componentId].unsubscribers.push(cleanupFn);
+        }
+
+        return cleanupFn;
+    }
+
+    async _executeCallServerAction(data, componentId) {
+        let actionName = data.action;
+        let params = data.params || {};
+
+        // Resolve action name if it's a dynamic value
+        if (actionName && typeof actionName === 'object' && actionName.type) {
+            actionName = this._evaluateExpression(actionName, componentId);
+        }
+        if (params && typeof params === 'object' && params.type) {
+            params = this._evaluateExpression(params, componentId);
+        }
+
+        const component = componentId ? this.components.get(componentId) : null;
+
+        // Store loading state
+        if (component) {
+            component.state['_server_loading'] = true;
+            component.state['_server_error'] = null;
+            this._triggerComponentUpdate(componentId, '_server_loading', true);
+        }
+
+        try {
+            const response = await fetch('/__nextpy/actions/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ action: actionName, params: params }),
+            });
+
+            const result = await response.json();
+
+            if (component) {
+                component.state['_server_loading'] = false;
+                component.state['_server_result'] = result;
+                this._triggerComponentUpdate(componentId, '_server_loading', false);
+                this._triggerComponentUpdate(componentId, '_server_result', result);
+            }
+
+            return result;
+        } catch (err) {
+            console.error('CALL_SERVER_ACTION error:', err);
+            if (component) {
+                component.state['_server_loading'] = false;
+                component.state['_server_error'] = err.message || String(err);
+                this._triggerComponentUpdate(componentId, '_server_loading', false);
+                this._triggerComponentUpdate(componentId, '_server_error', err.message || String(err));
+            }
+            return { success: false, error: err.message || String(err) };
+        }
+    }
+
+    async _executeIf(data, componentId) {
+        const { condition, then: thenActions, else: elseActions } = data;
+        const result = this._evaluateExpression(condition, componentId);
+
+        if (result) {
+            if (thenActions && thenActions.length > 0) {
+                await this.executeActions(thenActions, componentId);
+            }
+        } else {
+            if (elseActions && elseActions.length > 0) {
+                await this.executeActions(elseActions, componentId);
+            }
+        }
+        return null;
+    }
+
+    _executeNavigate(data, componentId) {
+        const { url } = data;
+        const resolvedUrl = typeof url === 'object' ? this._evaluateExpression(url, componentId) : url;
+        console.log('[NextPy] Navigating to:', resolvedUrl);
+        window.location.href = resolvedUrl;
     }
 
     _evaluateExpression(expr, componentId = null) {
@@ -744,8 +905,8 @@ class NextPyActionRuntime {
 window.NextPyActionRuntime = new NextPyActionRuntime();
 
 // Handler execution function
-window.executeNextPyActions = function(actions, componentId = null) {
-    return window.NextPyActionRuntime.executeActions(actions, componentId);
+window.executeNextPyActions = async function(actions, componentId = null) {
+    return await window.NextPyActionRuntime.executeActions(actions, componentId);
 };
 
 // Component registration function

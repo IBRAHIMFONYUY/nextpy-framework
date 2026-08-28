@@ -45,11 +45,12 @@ class JSXTransformer:
             # Load the transformed module
             spec = importlib.util.spec_from_file_location(module_name, temp_file_path)
             module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
             
-            # Store the original file path for reference
+            # Store the original file path BEFORE exec so decorators can access it
             module.__original_file__ = str(file_path)
             module.__is_jsx__ = True
+            
+            spec.loader.exec_module(module)
             
             # Add to sys.modules so it can be accessed later
             sys.modules[module_name] = module

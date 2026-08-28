@@ -40,6 +40,11 @@ class ActionType(Enum):
     AWAIT = "AWAIT"
     ASYNC_CALL = "ASYNC_CALL"
     JSX_UPDATE = "JSX_UPDATE"
+    FETCH_DATA = "FETCH_DATA"
+    SUBSCRIBE_CRUD_EVENT = "SUBSCRIBE_CRUD_EVENT"
+    CALL_SERVER_ACTION = "CALL_SERVER_ACTION"
+    IF = "IF"
+    NAVIGATE = "NAVIGATE"
 
 
 @dataclass
@@ -131,24 +136,7 @@ class ActionCompiler:
             else:
                 # Regular function code
                 tree = ast.parse(handler_code)
-                actions = []
-                
-                for node in ast.walk(tree):
-                    if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
-                        action = self._compile_expression(node.value)
-                        if action:
-                            actions.append(action)
-                    elif isinstance(node, ast.Assign):
-                        # Handle variable assignments
-                        action = self._compile_assignment(node)
-                        if action:
-                            actions.append(action)
-                    elif isinstance(node, ast.Return):
-                        # Handle return statements
-                        action = self._compile_return(node)
-                        if action:
-                            actions.append(action)
-                
+                actions = self._compile_statements(tree.body)
                 return actions
             
             return []
@@ -161,6 +149,35 @@ class ActionCompiler:
                 metadata={"error": True}
             )]
     
+    def _compile_statements(self, stmts: list) -> List[Action]:
+        """Compile a list of top-level statements, skipping nested functions"""
+        actions = []
+        for stmt in stmts:
+            # Skip nested function/class definitions
+            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                continue
+            action = self._compile_statement(stmt)
+            if action:
+                actions.append(action)
+        return actions
+
+    def _compile_statement(self, node: ast.AST) -> Optional[Action]:
+        """Compile a single statement (call, assign, if, return, etc.)"""
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+            return self._compile_expression(node.value)
+        elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Await):
+            # await callServerAction(...) as standalone expression
+            return self._compile_expression(node.value.value)
+        elif isinstance(node, ast.Assign):
+            return self._compile_assignment(node)
+        elif isinstance(node, ast.If):
+            return self._compile_if(node)
+        elif isinstance(node, ast.Return):
+            return self._compile_return(node)
+        elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Attribute):
+            return self._compile_expression(node.value)
+        return None
+
     def _compile_expression(self, node: ast.AST) -> Optional[Action]:
         """Compile AST expression to action"""
         if isinstance(node, ast.Call):
@@ -189,6 +206,34 @@ class ActionCompiler:
             return self._compile_lambda(node)
         
         return None
+
+    def _compile_if(self, node: ast.If) -> Optional[Action]:
+        """Compile if/else block to IF action"""
+        condition = self._compile_expression(node.test)
+        
+        # Compile body statements (skip nested functions)
+        body_actions = [a.to_dict() for a in self._compile_statements(node.body)]
+        
+        # Compile else/elif branches
+        else_actions = []
+        if node.orelse:
+            else_actions = [a.to_dict() for a in self._compile_statements(node.orelse)]
+        
+        return Action(
+            type=ActionType.IF,
+            data={
+                "condition": condition.to_dict() if condition else None,
+                "then": body_actions,
+                "else": else_actions,
+            }
+        )
+
+    def _compile_navigate(self, url: str) -> Action:
+        """Compile window.location.href assignment to NAVIGATE action"""
+        return Action(
+            type=ActionType.NAVIGATE,
+            data={"url": url}
+        )
     
     def _compile_call(self, node: ast.Call) -> Action:
         """Compile function call to action"""
@@ -371,6 +416,17 @@ class ActionCompiler:
                             "type": "CONSTANT",
                             "data": {"value": None}
                         }
+                    }
+                )
+            elif func_name == 'callServerAction':
+                # callServerAction("action_name", params_dict)
+                action_name_arg = args[0] if len(args) > 0 else {"type": "CONSTANT", "data": {"value": ""}}
+                params_arg = args[1] if len(args) > 1 else {"type": "DICT", "data": {"entries": {}}}
+                return Action(
+                    type=ActionType.CALL_SERVER_ACTION,
+                    data={
+                        "action": action_name_arg.to_dict() if hasattr(action_name_arg, 'to_dict') else action_name_arg,
+                        "params": params_arg.to_dict() if hasattr(params_arg, 'to_dict') else params_arg,
                     }
                 )
             elif func_name in self.python_builtins:
@@ -606,11 +662,32 @@ class ActionCompiler:
     
     def _compile_assignment(self, node: ast.Assign) -> Optional[Action]:
         """Compile assignment to action"""
-        if len(node.targets) != 1 or not isinstance(node.targets[0], ast.Name):
+        if len(node.targets) != 1:
             return None
         
-        target_name = node.targets[0].id
-        value = self._compile_expression(node.value)
+        target = node.targets[0]
+        
+        # Handle window.location.href = "..." -> NAVIGATE
+        if (isinstance(target, ast.Attribute) and target.attr == 'href'
+            and isinstance(target.value, ast.Attribute) and target.value.attr == 'location'
+            and isinstance(target.value.value, ast.Name) and target.value.value.id == 'window'
+            and isinstance(node.value, ast.Constant)):
+            return self._compile_navigate(node.value.value)
+        
+        if not isinstance(target, ast.Name):
+            return None
+        
+        target_name = target.id
+        # Unwrap await: result = await callServerAction(...) -> compile the inner call
+        value_node = node.value
+        if isinstance(value_node, ast.Await):
+            value_node = value_node.value
+        value = self._compile_expression(value_node)
+        
+        # If the value is a CALL_SERVER_ACTION, return it directly
+        # (runtime stores result in _server_result state automatically)
+        if value and value.type == ActionType.CALL_SERVER_ACTION:
+            return value
         
         return Action(
             type=ActionType.SET_STATE,

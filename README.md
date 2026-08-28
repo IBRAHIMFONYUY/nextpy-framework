@@ -77,6 +77,36 @@ Build full-stack applications without switching languages.
 
 Write component-based user interfaces using NextPy's Python Syntax Extension.
 
+### Enhanced Full-Stack Architecture (New in v5.0)
+
+NextPy v5.0 introduces revolutionary client-server communication:
+
+- **Server Actions**: Call Python functions directly from client JavaScript
+- **State Synchronization**: Real-time state sync between client and server
+- **Type-Safe APIs**: Automatic validation and type checking
+- **WebSocket Integration**: Built-in real-time updates
+- **Database-Backed State**: Persistent state management
+
+```python
+# Define a server action
+from nextpy.server_actions import server_action
+
+@server_action()
+async def create_todo(title: str, session=None):
+    todo = Todo(title=title, completed=False)
+    session.add(todo)
+    session.commit()
+    return {"id": todo.id, "title": title}
+```
+
+And call it from client JavaScript:
+
+```javascript
+const result = await window.nextpy.executeAction("create_todo", {
+    title: "Learn NextPy"
+});
+```
+
 ### AI Native
 
 NextPy includes an integrated AI coding assistant:
@@ -105,27 +135,42 @@ nextpy ai create ecommerce app
 
 ### Full-Stack by Default
 
-* Frontend
-* Backend
-* API Routes
-* Database Integration
-* Authentication
-* Deployment
+* Frontend with PSX components
+* Backend with FastAPI
+* Server Actions for client-server communication
+* API Routes with automatic routing
+* Database Integration with SQLAlchemy
+* State Synchronization with WebSocket support
+* Authentication & Authorization
+* Real-time updates
+* Everything in one framework
 
-Everything in one framework.
+---
+
+## Full-Stack Capabilities
+
+NextPy v5.0 provides enhanced full-stack features:
+
+- **Server Actions**: Direct client-to-server function calls
+- **State Synchronization**: Real-time state management
+- **Type-Safe APIs**: Automatic validation and type checking
+- **WebSocket Integration**: Built-in real-time updates
+- **Database-Backed State**: Persistent state management
+
+[Read the Full-Stack Guide](FULLSTACK_GUIDE.md)
 
 ---
 
 ## Example
 
 ```python
-from nextpy import interactive_component as component, useState, create_onclick
+from nextpy.psx import component, useState, create_onclick
 
 @component
 def Home(props=None):
-    props=props or {}
+    props = props or {}
     [count, setCount] = useState(0)
-    handle_count=create_onclick(lambda e: setCount(count + 1))
+    handle_count = create_onclick(lambda e: setCount(count + 1))
 
     return (
         <div>

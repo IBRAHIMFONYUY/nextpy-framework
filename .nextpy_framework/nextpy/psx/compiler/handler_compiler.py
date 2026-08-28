@@ -158,27 +158,35 @@ class HandlerCompiler(ast.NodeVisitor):
             file_path = None
             if hasattr(func, '__module__'):
                 module_name = func.__module__
-                # Try to find the PSX file
                 import sys
                 import os
                 
-                for path in sys.path:
-                    potential_file = os.path.join(path, module_name.replace('.', '/') + '.psx')
-                    if os.path.exists(potential_file):
-                        file_path = potential_file
-                        break
+                # FIRST: Try module.__original_file__ (set by JSX transformer before exec)
+                mod = sys.modules.get(module_name)
+                if mod and hasattr(mod, '__original_file__'):
+                    potential = mod.__original_file__
+                    if os.path.exists(potential):
+                        file_path = potential
+                
+                # Fallback: try sys.path
+                if not file_path:
+                    for path in sys.path:
+                        potential_file = os.path.join(path, module_name.replace('.', '/') + '.psx')
+                        if os.path.exists(potential_file):
+                            file_path = potential_file
+                            break
             
             if not file_path:
                 # Try to get file from inspect
                 try:
                     file_path = inspect.getfile(func)
-                    if file_path.endswith('.py'):
-                        # This is a compiled Python file, not PSX
-                        return {}
                 except:
                     return {}
             
-            # Read the PSX file directly
+            if not file_path:
+                return {}
+            
+            # Read the source file directly (PSX or PY)
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             
@@ -227,17 +235,15 @@ class HandlerCompiler(ast.NodeVisitor):
             # Extract create_onclick handlers using regex
             # Pattern to match: handleClick = create_onclick(lambda e: setName(name.upper()))
             # Need to handle nested parentheses in lambda body using greedy match
-            create_pattern = r'(\w+)\s*=\s*create_onclick\(\s*lambda\s+[^:]+:\s*(.+\))'
+            create_pattern = r'(\w+)\s*=\s*create_onclick\(\s*lambda\s+[^:]+:\s*(.+)\)'
             matches = re.findall(create_pattern, func_content)
             print(f"DEBUG: Regex pattern: {create_pattern}")
             print(f"DEBUG: Regex matches: {matches}")
             
             for handler_name, lambda_code in matches:
                 try:
-                    # Clean up the lambda code - remove only one trailing ) and whitespace
+                    # Clean up the lambda code - remove whitespace
                     clean_code = lambda_code.rstrip()
-                    if clean_code.endswith(')'):
-                        clean_code = clean_code[:-1]
                     print(f"DEBUG: Compiling handler {handler_name} with code: {clean_code}")
                     
                     # Generate placeholder key
@@ -263,6 +269,43 @@ class HandlerCompiler(ast.NodeVisitor):
                         handlers[f'inline_handler_{i}'] = actions
                 except Exception as e:
                     print(f"Inline handler compilation error: {e}")
+            
+            # Extract regular function definitions as handlers
+            # Pattern: def handle_something(e): or def handle_something(event):
+            func_def_pattern = r'^(\s*)def\s+(\w+)\s*\(\s*\w+\s*\)\s*:'
+            lines = func_content.split('\n')
+            i = 0
+            while i < len(lines):
+                match = re.match(func_def_pattern, lines[i])
+                if match:
+                    handler_name = match.group(2)
+                    body_indent = len(match.group(1)) + 4
+                    body_lines = []
+                    i += 1
+                    while i < len(lines):
+                        line = lines[i]
+                        if not line.strip():
+                            body_lines.append(line)
+                            i += 1
+                            continue
+                        line_indent = len(line) - len(line.lstrip(' '))
+                        if line_indent < body_indent and line.strip():
+                            break
+                        body_lines.append(line)
+                        i += 1
+                    body_code = '\n'.join(body_lines)
+                    if body_code.strip():
+                        try:
+                            import textwrap
+                            body_code = textwrap.dedent(body_code)
+                            actions = compile_handler_to_actions(body_code, handler_name, state_setter_map)
+                            if actions:
+                                handlers[handler_name] = actions
+                                print(f"DEBUG: Extracted function handler: {handler_name} -> {len(actions)} actions")
+                        except Exception as e:
+                            print(f"Function handler compilation error for {handler_name}: {e}")
+                else:
+                    i += 1
             
             return handlers
             
@@ -363,16 +406,26 @@ class EnhancedHandlerExtractor:
             if hasattr(func, '__module__'):
                 module_name = func.__module__
                 print(f"DEBUG: EnhancedHandlerExtractor looking for module: {module_name}")
-                # Try to find the PSX file
                 import sys
                 import os
                 import re
                 
-                # First try to find in pages directory (common NextPy structure)
-                pages_paths = [
-                    os.path.join(os.getcwd(), 'pages', module_name + '.psx'),
-                    os.path.join(os.getcwd(), '..', 'pages', module_name + '.psx'),
-                ]
+                # FIRST: Try module.__original_file__ (set by JSX transformer before exec)
+                mod = sys.modules.get(module_name)
+                if mod and hasattr(mod, '__original_file__'):
+                    potential = mod.__original_file__
+                    if os.path.exists(potential):
+                        file_path = potential
+                        print(f"DEBUG: EnhancedHandlerExtractor found via __original_file__: {file_path}")
+                
+                # Fallback: find the source file
+                if not file_path:
+                    pages_paths = []
+                    for ext in ('.psx', '.py'):
+                        pages_paths.extend([
+                            os.path.join(os.getcwd(), 'pages', module_name + ext),
+                            os.path.join(os.getcwd(), '..', 'pages', module_name + ext),
+                        ])
                 
                 for potential_file in pages_paths:
                     print(f"DEBUG: EnhancedHandlerExtractor checking pages path: {potential_file}")
@@ -391,17 +444,27 @@ class EnhancedHandlerExtractor:
                             print(f"DEBUG: EnhancedHandlerExtractor found PSX file in sys.path: {file_path}")
                             break
             
+            # Try module.__original_file__ (set by JSX transformer before exec)
+            if not file_path and hasattr(func, '__module__'):
+                import sys as _sys
+                mod = _sys.modules.get(func.__module__)
+                if mod and hasattr(mod, '__original_file__'):
+                    potential = mod.__original_file__
+                    if os.path.exists(potential):
+                        file_path = potential
+                        print(f"DEBUG: EnhancedHandlerExtractor found via __original_file__: {file_path}")
+            
             if not file_path:
                 # Try to get file from inspect
                 try:
                     file_path = inspect.getfile(func)
-                    if file_path.endswith('.py'):
-                        # This is a compiled Python file, not PSX
-                        return {}
                 except:
                     return {}
             
-            # Read the PSX file directly
+            if not file_path:
+                return {}
+            
+            # Read the source file directly (PSX or PY)
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             
@@ -450,17 +513,15 @@ class EnhancedHandlerExtractor:
             # Extract create_onclick handlers using regex
             # Pattern to match: handleClick = create_onclick(lambda e: setName(name.upper()))
             # Need to handle nested parentheses in lambda body using greedy match
-            create_pattern = r'(\w+)\s*=\s*create_onclick\(\s*lambda\s+[^:]+:\s*(.+\))'
+            create_pattern = r'(\w+)\s*=\s*create_onclick\(\s*lambda\s+[^:]+:\s*(.+)\)'
             matches = re.findall(create_pattern, func_content)
             print(f"DEBUG: Regex pattern: {create_pattern}")
             print(f"DEBUG: Regex matches: {matches}")
             
             for handler_name, lambda_code in matches:
                 try:
-                    # Clean up the lambda code - remove only one trailing ) and whitespace
+                    # Clean up the lambda code - remove whitespace
                     clean_code = lambda_code.rstrip()
-                    if clean_code.endswith(')'):
-                        clean_code = clean_code[:-1]
                     print(f"DEBUG: Compiling handler {handler_name} with code: {clean_code}")
                     
                     # Generate placeholder key
@@ -486,6 +547,42 @@ class EnhancedHandlerExtractor:
                         handlers[f'inline_handler_{i}'] = actions
                 except Exception as e:
                     print(f"Inline handler compilation error: {e}")
+            
+            # Extract regular function definitions as handlers
+            func_def_pattern = r'^(\s*)def\s+(\w+)\s*\(\s*\w+\s*\)\s*:'
+            fdef_lines = func_content.split('\n')
+            fi = 0
+            while fi < len(fdef_lines):
+                fdef_match = re.match(func_def_pattern, fdef_lines[fi])
+                if fdef_match:
+                    handler_name = fdef_match.group(2)
+                    body_indent = len(fdef_match.group(1)) + 4
+                    body_lines = []
+                    fi += 1
+                    while fi < len(fdef_lines):
+                        line = fdef_lines[fi]
+                        if not line.strip():
+                            body_lines.append(line)
+                            fi += 1
+                            continue
+                        line_indent = len(line) - len(line.lstrip(' '))
+                        if line_indent < body_indent and line.strip():
+                            break
+                        body_lines.append(line)
+                        fi += 1
+                    body_code = '\n'.join(body_lines)
+                    if body_code.strip():
+                        try:
+                            import textwrap
+                            body_code = textwrap.dedent(body_code)
+                            actions = compile_handler_to_actions(body_code, handler_name, state_setter_map)
+                            if actions:
+                                handlers[handler_name] = actions
+                                print(f"DEBUG: Extracted function handler (enhanced): {handler_name} -> {len(actions)} actions")
+                        except Exception as e:
+                            print(f"Function handler compilation error for {handler_name}: {e}")
+                else:
+                    fi += 1
             
             return handlers
             

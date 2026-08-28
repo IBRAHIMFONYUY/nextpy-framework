@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from nextpy.psx import (
     compile_psx, render_psx, psx, PSXElement, component,
     useState, useEffect, process_python_logic,
-    VNode, create_element, render, update
+    VNode, create_element, render, update, CLIENT_ROUTER_SCRIPT, CRUD_RUNTIME_SCRIPT
 )
 
 from nextpy.core.router import Router
@@ -38,6 +38,18 @@ from nextpy.server.middleware import NextPyMiddleware
 from nextpy.security import security_manager
 from nextpy.jsx_preprocessor import JSXSyntaxError
 from nextpy.websocket import manager, handle_websocket
+from nextpy.api import api
+from nextpy.server_actions import ServerAction
+
+
+_api_app: Optional[FastAPI] = None
+
+
+def get_api_app() -> FastAPI:
+    """Return the FastAPI instance created by :func:`create_app`."""
+    if _api_app is None:
+        raise RuntimeError("NextPy app is not initialized yet")
+    return _api_app
 
 
 class NextPyApp:
@@ -53,12 +65,14 @@ class NextPyApp:
         public_dir: str = "public",
         out_dir: str = "out",
         debug: bool = False,
+        admin_site: Any = None,
     ):
         self.pages_dir = Path(pages_dir)
         self.templates_dir = Path(templates_dir)
         self.public_dir = Path(public_dir)
         self.out_dir = Path(out_dir)
         self.debug = debug
+        self.admin_site = admin_site
         self._modules_cache: Dict[str, Any] = {}
         
         if demo_router.should_serve_demo():
@@ -94,6 +108,13 @@ class NextPyApp:
         self._setup_middleware()
         self._setup_static_files()
         self._setup_websocket()
+        self._load_project_api()
+        # Mount declarative application API routes before file-based routes.
+        self.app.include_router(api)
+        # Mount protected admin routes before page routes so a dynamic page
+        # cannot capture /admin.
+        if self.admin_site is not None:
+            self.admin_site.mount(self.app)
         self._setup_routes()
         # optionally compile tailwind CSS after routes are registered
         try:
@@ -178,8 +199,28 @@ class NextPyApp:
         @self.app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket):
             """Handle WebSocket connections for live development"""
-            await websocket.accept()
             await handle_websocket(websocket)
+    
+    def _load_project_api(self) -> None:
+        """Load project API modules before mounting the native API router.
+
+        Both ``api.py`` and ``pages/api.py`` are supported. The latter is
+        useful for projects that keep all route-facing Python files together
+        under ``pages``; the ``pages/api/`` directory remains file-based API
+        routing and is scanned separately.
+        """
+        api_files = [Path.cwd() / "api.py", self.pages_dir / "api.py"]
+        for index, api_file in enumerate(api_files):
+            if not api_file.exists():
+                continue
+            module_name = f"_nextpy_project_api_{index}"
+            if module_name in sys.modules:
+                continue
+            spec = importlib.util.spec_from_file_location(module_name, api_file)
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[module_name] = module
+                spec.loader.exec_module(module)
             
     def _add_seo_routes(self) -> None:
         """Add special SEO routes for sitemap.xml and robots.txt"""
@@ -263,6 +304,9 @@ Allow: /
         
         # Add debug API routes
         self._add_debug_routes()
+        
+        # Add server actions endpoint
+        self._add_server_actions_routes()
             
     def _add_debug_routes(self) -> None:
         """Add debug API routes for the debug panel"""
@@ -389,6 +433,82 @@ Allow: /
         self.app.add_route("/__nextpy/debug/export", debug_export, methods=["GET"])
         self.app.add_route("/__nextpy/debug/clear", debug_clear, methods=["POST"])
             
+    def _add_server_actions_routes(self) -> None:
+        """Add server actions API endpoints for enhanced client-server communication"""
+        
+        # List all available server actions
+        async def list_actions(request: Request):
+            try:
+                actions = ServerAction.list_actions()
+                return JSONResponse({
+                    "actions": actions,
+                    "count": len(actions)
+                })
+            except Exception as e:
+                if self.debug:
+                    print(f"Server actions list error: {e}")
+                return JSONResponse({"error": str(e)}, status_code=500)
+        
+        # Execute a server action
+        from fastapi.responses import Response as FastAPIResponse
+        
+        async def execute_action(request: Request):
+            try:
+                data = await request.json()
+                action_name = data.get("action")
+                params = data.get("params", {})
+                
+                if not action_name:
+                    return JSONResponse({"error": "action name is required"}, status_code=400)
+                
+                # Create a response object so actions can set cookies/headers
+                action_response = FastAPIResponse()
+                result = await ServerAction.execute(action_name, request, response=action_response, params=params)
+                
+                # Build the JSON response with cookies from action_response
+                json_response = JSONResponse(result)
+                # Copy any cookies set by the action
+                for cookie in action_response.headers.getlist("set-cookie"):
+                    json_response.headers.append("set-cookie", cookie)
+                # Copy any headers set by the action
+                for key, value in action_response.headers.items():
+                    if key not in ("set-cookie", "content-type", "content-length"):
+                        json_response.headers.append(key, value)
+                
+                return json_response
+                
+            except Exception as e:
+                if self.debug:
+                    import traceback
+                    traceback.print_exc()
+                return JSONResponse({"error": str(e)}, status_code=500)
+        
+        # Get server action schema
+        async def get_action_schema(request: Request, action_name: str):
+            try:
+                action = ServerAction.get_action(action_name)
+                if not action:
+                    return JSONResponse({"error": "action not found"}, status_code=404)
+                
+                # Get type hints for schema
+                import inspect
+                hints = inspect.get_type_hints(action)
+                
+                return JSONResponse({
+                    "name": action_name,
+                    "schema": hints,
+                    "doc": action.__doc__
+                })
+            except Exception as e:
+                if self.debug:
+                    print(f"Action schema error: {e}")
+                return JSONResponse({"error": str(e)}, status_code=500)
+        
+        # Register server action routes
+        self.app.add_route("/__nextpy/actions", list_actions, methods=["GET"])
+        self.app.add_route("/__nextpy/actions/execute", execute_action, methods=["POST"])
+        self.app.add_route("/__nextpy/actions/{action_name}/schema", get_action_schema, methods=["GET"])
+            
     def _convert_route_to_fastapi_path(self, route_path: str) -> str:
         """Convert router path with regex patterns to FastAPI-compatible path"""
         import re
@@ -408,9 +528,9 @@ Allow: /
                 # API routes - FIXED: use default argument to capture route correctly
                 from fastapi import Request
                 def create_api_handler(route_obj):
-                    async def api_handler(request: Request, route=route_obj):
+                    async def api_handler(request: Request, route=route_obj, **path_params):
                         # delegate to async handler
-                        return await self._handle_api_request(request, route, {})
+                        return await self._handle_api_request(request, route, path_params)
                     return api_handler
                 
                 fastapi_path = self._convert_route_to_fastapi_path(route.path)
@@ -422,8 +542,11 @@ Allow: /
             else:
                 # Page routes - FIXED: use default argument to capture route correctly
                 def create_page_handler(route_path):
-                    async def page_handler(request, path=route_path):
-                        return await self._handle_request(request, path)
+                    async def page_handler(request, **path_params):
+                        # FastAPI has already matched dynamic segments. Match the
+                        # actual URL again so the framework router can resolve
+                        # the slug and provide it to page data fetching.
+                        return await self._handle_request(request, request.url.path)
                     return page_handler
                 
                 fastapi_path = self._convert_route_to_fastapi_path(route.path)
@@ -531,14 +654,45 @@ Allow: /
             return await self._handle_api_request(request, route, params)
             
         if isinstance(route, ComponentRoute) and getattr(route, "use_components", False):
-            html = self.router.render_route(
-                route,
-                context={
-                    "params": params,
-                    "query": dict(request.query_params),
-                    "request": request,
-                },
-            )
+            context = {
+                "params": params,
+                "query": dict(request.query_params),
+                "request": request,
+            }
+            
+            module = self._load_module_from_file(route.file_path)
+            if module:
+                try:
+                    page_context = PageContext(
+                        params=params,
+                        query=dict(request.query_params),
+                        req=request,
+                    )
+                    fetched_props = await execute_data_fetching(module, page_context)
+                    context.update(fetched_props)
+                except Exception as e:
+                    if self.debug:
+                        print(f"Data fetching error for component route: {e}")
+            
+            html = self.router.render_route(route, context)
+            # Auto-add data-nextpy-link to internal <a> tags
+            import re
+            def _mark_internal_links(html_text):
+                def _replace_link(match):
+                    full_tag = match.group(0)
+                    href = match.group(1)
+                    if href.startswith('/') or href.startswith('#'):
+                        if 'data-nextpy-link' not in full_tag:
+                            return full_tag.replace('<a ', '<a data-nextpy-link="true" ', 1)
+                    return full_tag
+                return re.sub(r'<a\s+([^>]*?)href="([^"]*)"', _replace_link, html_text)
+            
+            if '<a ' in html:
+                html = _mark_internal_links(html)
+            if 'data-nextpy-crud' in html:
+                html = f"{html}<script>{CRUD_RUNTIME_SCRIPT}</script>"
+            if 'data-nextpy-link' in html:
+                html = f"{html}<script>{CLIENT_ROUTER_SCRIPT}</script>"
             return HTMLResponse(
                 content=html,
                 headers={
@@ -607,6 +761,26 @@ Allow: /
                     "request": request,
                 },
             )
+            
+            # Auto-add data-nextpy-link to internal <a> tags for client-side navigation
+            import re
+            host = request.headers.get('host', 'localhost')
+            def _mark_internal_links(html_text):
+                def _replace_link(match):
+                    full_tag = match.group(0)
+                    href = match.group(1)
+                    if href.startswith('/') or href.startswith('#'):
+                        if 'data-nextpy-link' not in full_tag:
+                            return full_tag.replace('<a ', '<a data-nextpy-link="true" ', 1)
+                    return full_tag
+                return re.sub(r'<a\s+([^>]*?)href="([^"]*)"', _replace_link, html_text)
+            
+            if '<a ' in html:
+                html = _mark_internal_links(html)
+            
+            # Inject client-side router if internal links exist
+            if 'data-nextpy-link' in html:
+                html = f"{html}<script>{CLIENT_ROUTER_SCRIPT}</script>"
             
             return HTMLResponse(
                 content=html,
@@ -1327,6 +1501,7 @@ def create_app(
     public_dir: str = "public",
     out_dir: str = "out",
     debug: bool = False,
+    admin_site: Any = None,
 ) -> FastAPI:
     """
     Factory function to create a NextPy application
@@ -1341,11 +1516,14 @@ def create_app(
     Returns:
         FastAPI application instance
     """
+    global _api_app
     nextpy_app = NextPyApp(
         pages_dir=pages_dir,
         templates_dir=templates_dir,
         public_dir=public_dir,
         out_dir=out_dir,
         debug=debug,
+        admin_site=admin_site,
     )
+    _api_app = nextpy_app.app
     return nextpy_app.app

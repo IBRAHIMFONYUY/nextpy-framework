@@ -57,26 +57,49 @@ except FileNotFoundError:
     print("See https://nodejs.org/ for installation instructions.")
 
 
-from nextpy.server.app import create_app
+import nextpy as nx
+from nextpy.admin import AdminSite
+from nextpy.db import User, Post, Todo, Job, Application
+
+# Import all server actions (triggers registration)
+from pages.actions.todo_actions import create_todo, toggle_todo, delete_todo, get_todos, get_todo_stats  # noqa: F401
+from pages.jobs.actions import (  # noqa: F401
+    register, login, logout, get_me,
+    create_job, update_job, delete_job, get_my_jobs, list_jobs,
+    apply_to_job, get_my_applications, get_job_applications, update_application_status,
+)
+
+# Database must initialize before the app starts
 from nextpy.db import init_db
 from nextpy.config import settings
 
-# Initialize database
-try:
-    init_db(settings["database_url"])
-except Exception as e:
-    print(f"Warning: Database initialization failed: {e}")
+init_db(settings["database_url"])
 
-app = create_app(
+admin_site = AdminSite()
+admin_site.register(User)
+admin_site.register(Post)
+admin_site.register(Todo)
+admin_site.register(Job)
+admin_site.register(Application)
+
+app = nx.create_app(
     pages_dir="pages",
     templates_dir="templates",
     public_dir="public",
     out_dir="out",
-    
+    debug=settings["debug"],
+    admin_site=admin_site,
 )
+
+print([
+    (route.path, route.methods)
+    for route in app.routes
+    if "admin" in route.path
+])
 
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run('main:app', host="0.0.0.0", port=5000)
+    # Serve this exact app instance so Uvicorn cannot import another main.py.
+    uvicorn.run(app, host="0.0.0.0", port=5000)

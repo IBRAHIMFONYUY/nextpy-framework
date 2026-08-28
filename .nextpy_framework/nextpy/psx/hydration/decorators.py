@@ -1041,6 +1041,21 @@ def interactive_component(func: Callable) -> Callable:
         else:
             html = str(base_component_result)
         
+        # FIX: Extract lambda handlers from _psx_context (set by PSXRuntime during rendering)
+        if hasattr(base_component_result, '_psx_context'):
+            lambda_handlers = base_component_result._psx_context.get('_lambda_handlers', {})
+            if lambda_handlers:
+                print(f"DEBUG: Found {len(lambda_handlers)} lambda handlers from PSX runtime: {list(lambda_handlers.keys())}")
+                # Convert lambda Python code to JavaScript and add to handlers
+                for handler_name, lambda_source in lambda_handlers.items():
+                    try:
+                        js_code = python_code_to_js(lambda_source, state_keys)
+                        handlers[handler_name] = js_code
+                        print(f"DEBUG: Compiled lambda handler {handler_name}: {lambda_source[:60]} -> JS")
+                    except Exception as e:
+                        print(f"DEBUG: Failed to compile lambda handler {handler_name}: {e}")
+                        handlers[handler_name] = f'console.error("Lambda compile failed: {e}")'
+        
         # Extract state keys from the component for better conversion
         try:
             # Try to get source from function first
@@ -1090,12 +1105,16 @@ def interactive_component(func: Callable) -> Callable:
         html = convert_handler_attributes_in_html(html, handlers, state_keys, initial_state)
         
         # Manually register component to ensure consistent ID
+        from ..components.component import get_current_component
+        _comp_state = get_current_component()
         component_data = {
             'name': metadata['name'],
             'state': metadata['state'],
             'handlers': metadata['handlers'],
             'effects': metadata['effects'],
             'props': props or {},
+            'mount_actions': getattr(_comp_state, 'mount_actions', []),
+            'registered_functions': getattr(_comp_state, 'registered_functions', {}),
         }
         print(f"DEBUG: Component data state: {component_data['state']}")
         # Override the generated ID with our consistent one

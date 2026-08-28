@@ -262,7 +262,6 @@ class PSXRuntime:
             return self._render_element_node(node)
         elif isinstance(node, TextNode):
             # Use proper HTML detection with regex
-            import html
             import re
             
             HTML_TAG_RE = re.compile(r'</?[a-zA-Z][^>]*>')
@@ -335,6 +334,14 @@ class PSXRuntime:
 
             # Handle different value types
             if isinstance(value, str):
+                # Evaluate {expr} attribute values (preserved by process_python_logic fix)
+                if value.startswith('{') and value.endswith('}'):
+                    inner = value[1:-1].strip()
+                    try:
+                        evaluated = self.evaluate_expression(inner)
+                        value = str(evaluated) if evaluated is not None else ''
+                    except Exception:
+                        value = inner
                 # Special handling for 'code' attribute - render as raw text without escaping
                 if html_key == 'code' and node.attributes.get('_raw_code'):
                     attrs.append(f'{html_key}="{value}"')
@@ -353,14 +360,27 @@ class PSXRuntime:
             if str_value.startswith('{') and str_value.endswith('}'):
                 str_value = str_value[1:-1]
             
-            # Check if we should apply interactive component conversion
-            if hasattr(self.context, '_interactive_handlers') and str_value in self.context._interactive_handlers:
-                # This is an interactive component - convert to data-handler format
-                event_type = key[2:].lower() if key.startswith('on') else key.lower()
+            event_type = key[2:].lower() if key.startswith('on') else key.lower()
+            
+            # Check if this is a named handler in _interactive_handlers
+            interactive_handlers = self.context.get('_interactive_handlers', {})
+            if isinstance(interactive_handlers, dict) and str_value in interactive_handlers:
                 attrs.append(f'data-handler-{event_type}="{str_value}"')
                 attrs.append(f'{key}="return false;"')
+            elif str_value.strip().startswith('lambda'):
+                # Lambda handler — generate stable handler name and compile to JS
+                import hashlib
+                import re as _re
+                normalized = _re.sub(r'\s+', ' ', str_value.strip())
+                handler_name = 'lambda_' + hashlib.sha256(normalized.encode('utf-8')).hexdigest()[:12]
+                # Store lambda source for JS compilation
+                if '_lambda_handlers' not in self.context:
+                    self.context['_lambda_handlers'] = {}
+                self.context['_lambda_handlers'][handler_name] = normalized
+                attrs.append(f'data-handler-{event_type}="{handler_name}"')
+                attrs.append(f'{key}="return false;"')
             else:
-                # Regular event handler
+                # Regular event handler (named function reference, etc.)
                 attrs.append(f'{key}="{self._escape_html(str_value)}"')
             
         attr_str = " " + " ".join(attrs) if attrs else ""
@@ -1129,6 +1149,14 @@ def process_python_logic(psx_str: str, context: Dict[str, Any]) -> str:
             'import ', 'from ', 'elif ', 'else'
         ]):
             continue
+
+        # Skip attribute values (preceded by '=') — these are for the PSX parser
+        # e.g. class={expr}, onclick={handler}, value={state}
+        match_start = match.start()
+        if match_start > 0:
+            char_before = result[match_start - 1]
+            if char_before == '=' or (char_before.isspace() and match_start > 1 and result[match_start - 2] == '='):
+                continue
 
         # 🚀 NEW: strict validation
         if not is_safe_expression(expr):

@@ -19,6 +19,8 @@ class HydrationContext:
     event_handlers: Dict[str, str] = field(default_factory=dict)  # {eventName: pythonCode}
     use_effects: List[Dict[str, Any]] = field(default_factory=list)
     data_bindings: Dict[str, str] = field(default_factory=dict)  # {elementId: {prop: binding}}
+    mount_actions: List[Dict[str, Any]] = field(default_factory=list)
+    registered_functions: Dict[str, Any] = field(default_factory=dict)
 
 
 class HydrationEngine:
@@ -43,6 +45,8 @@ class HydrationEngine:
             initial_state=component_data.get('state', {}),
             event_handlers=component_data.get('handlers', {}),
             use_effects=component_data.get('effects', []),
+            mount_actions=component_data.get('mount_actions', []),
+            registered_functions=component_data.get('registered_functions', {}),
         )
         
         self.contexts[component_id] = context
@@ -214,6 +218,20 @@ class HydrationEngine:
                 }} else if (property === 'value') {{
                     // Special handling for input value to ensure it updates
                     element.value = String(value);
+                }} else if (property.startsWith('data-') || property.startsWith('aria-')) {{
+                    element.setAttribute(property, String(value));
+                }} else if (property === 'checked') {{
+                    element.checked = !!value;
+                }} else if (property === 'disabled') {{
+                    element.disabled = !!value;
+                }} else if (property === 'className') {{
+                    element.className = String(value);
+                }} else if (property === 'style') {{
+                    if (typeof value === 'object') {{
+                        Object.assign(element.style, value);
+                    }} else {{
+                        element.setAttribute('style', String(value));
+                    }}
                 }} else if (property in element) {{
                     element[property] = value;
                 }}
@@ -319,6 +337,28 @@ class HydrationEngine:
     // Store handlers for event system
     window.nextpyComponentHandlers = window.nextpyComponentHandlers || {{}};
     window.nextpyComponentHandlers[componentId] = {json.dumps(context.event_handlers)};
+    
+    // Register refetch and other user-defined functions on the global runtime
+    if (window.NextPyActionRuntime) {{
+        const _regFuncs = {json.dumps(context.registered_functions)};
+        for (const [fname, actionBody] of Object.entries(_regFuncs)) {{
+            window.NextPyActionRuntime.functions.set(fname, function() {{
+                window.NextPyActionRuntime.executeAction(actionBody, componentId);
+            }});
+        }}
+    }}
+    
+    // Execute mount actions (e.g. FETCH_DATA for useFetch)
+    const _mountActions = {json.dumps(context.mount_actions)};
+    if (_mountActions.length > 0 && window.NextPyActionRuntime) {{
+        for (const _ma of _mountActions) {{
+            if (_ma.type === 'RAW_JS' && _ma.code) {{
+                try {{ new Function(_ma.code)(); }} catch(e) {{ console.error('RAW_JS mount action error:', e); }}
+            }} else {{
+                window.NextPyActionRuntime.executeAction(_ma, componentId);
+            }}
+        }}
+    }}
     
     }}
     

@@ -154,6 +154,11 @@ class PSXElement:
         stored_ctx = getattr(self, '_psx_context', None)
         if stored_ctx:
             ctx = dict(stored_ctx)
+            # Ensure _lambda_handlers is a mutable dict that persists across the shallow copy
+            if '_lambda_handlers' not in ctx:
+                ctx['_lambda_handlers'] = {}
+                if stored_ctx is not None:
+                    stored_ctx['_lambda_handlers'] = ctx['_lambda_handlers']
         if context:
             ctx.update(context)
 

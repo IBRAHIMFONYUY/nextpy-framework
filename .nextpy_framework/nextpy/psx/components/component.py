@@ -8,7 +8,7 @@ import threading
 import uuid
 import inspect
 import re
-
+import ast
 # FIX: Module-level variable to store component_id for current component execution
 _current_component_id = None
 import hashlib
@@ -28,6 +28,7 @@ class ComponentState:
     hooks: List[Any] = field(default_factory=list)
     hook_index: int = 0
     cleanup_functions: List[Callable] = field(default_factory=list)
+    mount_actions: List[Dict[str, Any]] = field(default_factory=list)
 
 
 # Thread-local storage for component state
@@ -161,6 +162,13 @@ def component(func):
         for key, value in component_locals.items():
             if not key.startswith('_') and key not in ['func', 'props', 'result', 'execution_result', 'execute_component', 'wrapper', 'execute_with_locals', 'component_locals', 'component_frame', 'frame', 'current_frame', 'original_globals']:
                 context[key] = value
+        
+        # Add module-level functions (like sub-components) to context
+        # This allows <ApplyButton /> inside @component to resolve
+        for key, value in original_globals.items():
+            if key not in context and callable(value) and not key.startswith('_'):
+                context[key] = value
+        
         print(f"DEBUG: Context after creation: {list(context.keys())}")
         
         # FIX: Add component_id to context if not present (fallback mechanism)
@@ -797,52 +805,83 @@ class CustomHooks:
     @staticmethod
     def use_fetch(url: str, options: Dict[str, Any] = None) -> Dict[str, Any]:
         """
-        useFetch custom hook with performance optimizations
-        Features: Request caching, retry logic, error handling, loading states
+        Client-side fetch hook. Compiles to a FETCH_DATA action that runs
+        `fetch(url, options)` in the browser and updates component state.
         """
+        component = get_current_component()
+
+        data_key = f"_fetch_data_{component.hook_index}"
+        loading_key = f"_fetch_loading_{component.hook_index}"
+        error_key = f"_fetch_error_{component.hook_index}"
+        func_key = f"_fetch_refetch_{component.hook_index}"
+
         data, set_data = PSXHooks.use_state(None)
         loading, set_loading = PSXHooks.use_state(True)
         error, set_error = PSXHooks.use_state(None)
-        
-        # Cache for requests
-        cache_ref = PSXHooks.use_ref({})
-        
-        def refetch():
-            set_loading(True)
-            set_error(None)
-            
-            # Check cache first
-            cache_key = f"{url}_{str(options)}"
-            if cache_ref.current.get(cache_key):
-                set_data(cache_ref.current[cache_key])
-                set_loading(False)
-                return
-            
-            # In real implementation, would make HTTP request
-            try:
-                # Simulate API call
-                import time
-                time.sleep(0.1)  # Simulate network delay
-                
-                mock_data = {'message': f'Data from {url}', 'timestamp': time.time()}
-                
-                # Cache the result
-                cache_ref.current[cache_key] = mock_data
-                set_data(mock_data)
-            except Exception as e:
-                set_error(str(e))
-            finally:
-                set_loading(False)
-        
-        # Initial fetch
-        PSXHooks.use_effect(refetch, [url, options])
-        
-        return {
-            'data': data,
-            'loading': loading,
-            'error': error,
-            'refetch': refetch
+
+        fetch_action = {
+            "type": "FETCH_DATA",
+            "data": {
+                "url": url,
+                "options": options or {},
+                "dataKey": data_key,
+                "loadingKey": loading_key,
+                "errorKey": error_key,
+            },
         }
+
+        if not hasattr(component, 'mount_actions'):
+            component.mount_actions = []
+        component.mount_actions.append(fetch_action)
+
+        if not hasattr(component, 'registered_functions'):
+            component.registered_functions = {}
+        component.registered_functions[func_key] = fetch_action
+
+        refetch_action = {
+            "type": "CALL_FUNCTION",
+            "function": func_key,
+        }
+
+        return {
+            "data": data,
+            "loading": loading,
+            "error": error,
+            "refetch": refetch_action,
+            "_dataKey": data_key,
+            "_loadingKey": loading_key,
+            "_errorKey": error_key,
+        }
+
+    @staticmethod
+    def use_crud_event(resource: Optional[str] = None):
+        """
+        Subscribe to nextpy:crud:changed events.
+        Returns a dict with the latest event detail that triggers re-renders.
+        If resource is set, only fires for that config.resource.
+
+        Usage:
+            event = use_crud_event(resource="todos")
+            # event["_eventKey"] is the state key for data-bind
+            # event["data"] is the Python-side value (None until JS updates it)
+        """
+        component = get_current_component()
+        event_key = f"_crud_event_{component.hook_index}"
+        event_data, _set_event = PSXHooks.use_state(None)
+
+        subscribe_action = {
+            "type": "SUBSCRIBE_CRUD_EVENT",
+            "data": {
+                "eventKey": event_key,
+                "resource": resource,
+            },
+        }
+
+        if not hasattr(component, 'mount_actions'):
+            component.mount_actions = []
+        component.mount_actions.append(subscribe_action)
+
+        return {"data": event_data, "_eventKey": event_key}
     
     @staticmethod
     def use_debounce(value: Any, delay: int) -> Any:
@@ -1587,10 +1626,7 @@ class EventHandlers:
         return wrapped_handler
     
     # Mouse Events
-    @staticmethod
-    def create_onclick(handler_func: Callable) -> str:
-        """Create onclick handler"""
-        return _create_python_call_placeholder(handler_func, 'python_call')
+
     
     @staticmethod
     def create_ondblclick(handler_func: Callable) -> str:
@@ -2046,6 +2082,10 @@ def useFetch(url: str, options: Dict[str, Any] = None) -> Dict[str, Any]:
     """useFetch custom hook"""
     return CustomHooks.use_fetch(url, options)
 
+def useCrudEvent(resource: Optional[str] = None) -> Dict[str, Any]:
+    """useCrudEvent custom hook - subscribe to CRUD events"""
+    return CustomHooks.use_crud_event(resource)
+
 def useDebounce(value: Any, delay: int) -> Any:
     """useDebounce custom hook"""
     return CustomHooks.use_debounce(value, delay)
@@ -2395,9 +2435,242 @@ class ChildrenComponent(PSXComponent):
             return str(self.children)
 
 
+class Props:
+    """Base type for component props."""
+
+
+def Component(func: Callable) -> Callable:
+    """Compatibility decorator for props-dict component functions."""
+    wrapped = component(func)
+    wrapped.is_component = True
+    return wrapped
+
+
+def Children(props: Dict[str, Any]) -> Any:
+    """Return the children passed to a component."""
+    return props.get('children', [])
+
+
+def _component_children(props: Dict[str, Any]) -> List[Any]:
+    children = props.get('children', [])
+    if hasattr(children, 'tag') and getattr(children, 'tag', None) == 'fragment':
+        return list(getattr(children, 'children', []))
+    return children if isinstance(children, list) else [children]
+
+
+def _component_element(tag: str, props: Optional[Dict[str, Any]] = None, *children: Any) -> PSXElement:
+    return PSXElement(
+        tag=tag,
+        props={key: value for key, value in (props or {}).items() if value is not None},
+        children=list(children),
+    )
+
+
+@Component
+def Head(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('head', {}, *_component_children(props))
+
+
+@Component
+def Link(props: Dict[str, Any]) -> PSXElement:
+    href = str(props.get('href', '#'))
+    attrs: Dict[str, Any] = {'href': href}
+    if props.get('className') is not None:
+        attrs['class'] = props['className']
+    if props.get('target') is not None:
+        attrs['target'] = props['target']
+    if not props.get('target'):
+        attrs.update({
+            'hx-get': href,
+            'hx-target': props.get('targetId', '#main-content'),
+            'hx-swap': props.get('swap', 'innerHTML'),
+            'hx-push-url': 'true',
+            'data-nextpy-link': 'true',
+        })
+        if props.get('prefetch', True):
+            attrs['hx-trigger'] = 'mouseenter, click'
+            attrs['preload'] = 'true'
+            attrs['data-nextpy-prefetch'] = 'true'
+        if props.get('replace'):
+            attrs['data-nextpy-replace'] = 'true'
+        if props.get('scroll') is False:
+            attrs['data-nextpy-scroll'] = 'false'
+    return _component_element('a', attrs, *_component_children(props))
+
+
+@Component
+def Script(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('script', {'src': props.get('src')}, *_component_children(props))
+
+
+@Component
+def Image(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('img', {
+        'src': props.get('src', ''), 'alt': props.get('alt', ''),
+        'width': props.get('width'), 'height': props.get('height'),
+    })
+
+
+@Component
+def Meta(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('meta', {key: value for key, value in props.items() if key != 'children'})
+
+
+@Component
+def Title(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('title', {}, *_component_children(props))
+
+
+@Component
+def Layout(props: Dict[str, Any]) -> PSXElement:
+    return _component_element(
+        'html', {'lang': props.get('lang', 'en')},
+        _component_element('head', {},
+            _component_element('meta', {'charset': 'utf-8'}),
+            _component_element('meta', {'name': 'viewport', 'content': 'width=device-width, initial-scale=1'}),
+            _component_element('title', {}, props.get('title', 'NextPy App')),
+            Meta(name='description', content=props.get('description', 'NextPy Application')),
+        ),
+        _component_element('body', {}, *_component_children(props)),
+    )
+
+
+@Component
+def Container(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('div', {'class': props.get('className', 'container')}, *_component_children(props))
+
+
+@Component
+def Row(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('div', {'class': props.get('className', 'row')}, *_component_children(props))
+
+
+@Component
+def Col(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('div', {'class': props.get('className', 'col')}, *_component_children(props))
+
+
+@Component
+def Form(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('form', {
+        'action': props.get('action', ''), 'method': props.get('method', 'GET')
+    }, *_component_children(props))
+
+
+@Component
+def Input(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('input', {
+        'type': props.get('type', 'text'), 'name': props.get('name', ''),
+        'value': props.get('value', ''), 'placeholder': props.get('placeholder', ''),
+        'required': 'required' if props.get('required') else None,
+    })
+
+
+@Component
+def Button(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('button', {
+        'type': props.get('type', 'button'),
+        'disabled': 'disabled' if props.get('disabled') else None,
+    }, *_component_children(props))
+
+
+@Component
+def Navbar(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('nav', {'class': props.get('className', 'navbar')},
+        _component_element('div', {'class': 'nav-brand'}, props.get('brand', 'NextPy')),
+        _component_element('div', {'class': 'nav-links'}, *_component_children(props)))
+
+
+@Component
+def NavItem(props: Dict[str, Any]) -> PSXElement:
+    return Link(href=props.get('href', '#'), children=props.get('children', []))
+
+
+@Component
+def Card(props: Dict[str, Any]) -> PSXElement:
+    content: List[Any] = []
+    if props.get('title'):
+        content.append(_component_element('div', {'class': 'card-header'},
+            _component_element('h3', {}, props['title'])))
+    content.append(_component_element('div', {'class': 'card-body'}, *_component_children(props)))
+    if props.get('footer'):
+        content.append(_component_element('div', {'class': 'card-footer'}, props['footer']))
+    return _component_element('div', {'class': props.get('className', 'card')}, *content)
+
+
+@Component
+def List(props: Dict[str, Any]) -> PSXElement:
+    tag = 'ol' if props.get('ordered') else 'ul'
+    items = [_component_element('li', {}, item.get('text', str(item)) if isinstance(item, dict) else str(item))
+             for item in props.get('items', [])]
+    return _component_element(tag, {}, *items)
+
+
+@Component
+def Conditional(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('div', {}, *_component_children(props)) if props.get('condition', True) else _component_element('div')
+
+
+@Component
+def Loop(props: Dict[str, Any]) -> PSXElement:
+    render_func = props.get('render')
+    if not callable(render_func):
+        return _component_element('div')
+    return _component_element('div', {}, *(render_func(item) for item in props.get('items', [])))
+
+
+@Component
+def ErrorBoundary(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('div', {}, *_component_children(props))
+
+
+@Component
+def Suspense(props: Dict[str, Any]) -> PSXElement:
+    return _component_element('div', {}, *_component_children(props))
+
+
+for _component_name in (
+    'Head', 'Link', 'Script', 'Image', 'Meta', 'Title', 'Layout', 'Container',
+    'Row', 'Col', 'Form', 'Input', 'Button', 'Navbar', 'NavItem', 'Card', 'List',
+    'Conditional', 'Loop', 'ErrorBoundary', 'Suspense',
+):
+    register_component(_component_name, globals()[_component_name])
+
+
+# ---------------------------------------------------------------------------
+# callServerAction — a marker function that the PSX compiler recognises and
+# compiles into a CALL_SERVER_ACTION structured action.  The JS runtime then
+# executes a fetch POST to /__nextpy/actions/execute.
+# ---------------------------------------------------------------------------
+
+def callServerAction(action_name: str, params: dict = None, on_result=None, on_error=None):
+    """Call a registered server action from a PSX event handler.
+
+    Usage inside an interactive_component handler::
+
+        def handle_submit(e):
+            result = callServerAction("login", {"email": email, "password": password})
+            if result.get("success"):
+                navigate("/dashboard")
+
+    The PSX compiler translates this into::
+
+        {"type": "CALL_SERVER_ACTION", "data": {"action": "login", "params": {...}}}
+
+    The JS runtime issues the fetch and stores the result so that a
+    subsequent SET_STATE or CALL_FUNCTION can reference it.
+    """
+    # This function is never called at runtime — it exists only so the
+    # PSX handler compiler can match it in the AST and emit the action.
+    pass
+
+
 # Export all PSX component utilities
 __all__ = [
-    'PSXComponent', 'component', 'class_component',
+    'PSXComponent', 'component', 'Component', 'class_component', 'Props', 'Children',
+    'Head', 'Link', 'Script', 'Image', 'Meta', 'Title', 'Layout', 'Container',
+    'Row', 'Col', 'Form', 'Input', 'Button', 'Navbar', 'NavItem', 'Card', 'List',
+    'Conditional', 'Loop', 'ErrorBoundary', 'Suspense',
     'useState', 'useEffect', 'PSXHooks',
     'map_list', 'conditional', 'and_condition', 'or_condition',
     'EventHandlers', 'ComponentRegistry', 'component_registry',

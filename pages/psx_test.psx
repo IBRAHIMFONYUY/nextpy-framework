@@ -14,6 +14,8 @@ def Home(props=None):
     props = props or {}
     title = props.get("title", "Welcome to NextPy")
     message = props.get("message", "Your Python-powered web framework with True JSX")
+
+    
     
     handleIncrement = create_onclick(lambda e: setCount(count + 1))
     handleClick = create_onclick(lambda e: setName(name.upper()))
