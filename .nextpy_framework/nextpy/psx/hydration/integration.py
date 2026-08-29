@@ -72,9 +72,7 @@ class ComponentHydrator:
                         # Try ast.literal_eval for more complex expressions
                         value = ast.literal_eval(initial_value)
                     state[var_name] = value
-                    print(f"DEBUG _extract_state: {var_name} = {value} (type: {type(value).__name__})")
                 except Exception as e:
-                    print(f"DEBUG _extract_state: Could not parse initial value for {var_name}: {initial_value}, error: {e}")
                     # Provide sensible fallbacks based on type
                     if '0' in initial_value or initial_value.isdigit():
                         state[var_name] = 0
@@ -83,7 +81,6 @@ class ComponentHydrator:
                     else:
                         state[var_name] = initial_value.strip()
             
-            print(f"DEBUG _extract_state: Final state dict: {state}")
             return state
         except Exception as e:
             print(f"Warning: Could not extract state: {e}")

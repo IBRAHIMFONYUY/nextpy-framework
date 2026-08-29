@@ -16,7 +16,7 @@ def LogoutPage(props=None):
         callServerAction("logout", {})
         setLogged_out(True)
         setLoading(False)
-        window.location.href = "/jobs"
+        window.navigateTo("/jobs")
 
     useEffect(handle_logout, [])
 

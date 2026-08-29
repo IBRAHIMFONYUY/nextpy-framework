@@ -576,6 +576,10 @@ class PSXParser:
         if ch == '{' and not in_pre_tag:
             end  = _match_brace(code, index)
             expr = code[index + 1 : end - 1].strip()
+            if expr:
+                _CTRL_KW = ('if ', 'for ', 'while ', 'try', 'elif ', 'else', 'def ', 'class ', 'import ', 'from ')
+                if any(expr.startswith(k) for k in _CTRL_KW):
+                    return TextNode(content=code[index:end]), end
             pexpr = self.ast_parser.parse_expression(expr)
             return ExpressionNode(expression=expr, parsed_expression=pexpr), end
 
@@ -753,6 +757,11 @@ class PSXParser:
                 end  = _match_brace(text, i)
                 expr = text[i + 1 : end - 1].strip()
                 if expr:
+                    _CTRL_KW = ('if ', 'for ', 'while ', 'try', 'elif ', 'else', 'def ', 'class ', 'import ', 'from ')
+                    if any(expr.startswith(k) for k in _CTRL_KW):
+                        nodes.append(TextNode(content=text[i:end]))
+                        i = end
+                        continue
                     pexpr = self.ast_parser.parse_expression(expr)
                     nodes.append(ExpressionNode(expression=expr, parsed_expression=pexpr))
                 i = end
@@ -818,7 +827,6 @@ def psx(psx_str: str, context: Dict[str, Any] = None) -> PSXElement:
                         not k.startswith('_')
                         and not callable(v)
                         and not isinstance(v, type)
-                        and v is not None
                     )
                 }
         except Exception:

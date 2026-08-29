@@ -366,8 +366,26 @@ class HydrationEngine:
     if (document.readyState === 'loading') {{
         document.addEventListener('DOMContentLoaded', initializeComponent);
     }} else {{
-        // DOM is already ready
-        initializeComponent();
+        // DOM is already ready - try immediately, then retry if element not found (SPA navigation timing)
+        const el = document.getElementById(componentId);
+        if (el) {{
+            initializeComponent();
+        }} else {{
+            // Element not found yet - retry with increasing delays (SPA body replacement timing)
+            let retries = 0;
+            const maxRetries = 10;
+            const retryInterval = setInterval(() => {{
+                retries++;
+                const retryEl = document.getElementById(componentId);
+                if (retryEl) {{
+                    clearInterval(retryInterval);
+                    initializeComponent();
+                }} else if (retries >= maxRetries) {{
+                    clearInterval(retryInterval);
+                    console.warn('Component element not found after retries:', componentId);
+                }}
+            }}, 50);
+        }}
     }}
 }})();
             """

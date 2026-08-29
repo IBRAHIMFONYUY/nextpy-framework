@@ -9,8 +9,9 @@ from nextpy.auth import get_user_id_from_request
 
 
 @component
-def JobsLayout(props):
-    children = props.get("children", "")
+def Layout(children, **props):
+    props=props or {}
+    
     me = useFetch("/__nextpy/actions/execute", {
         "method": "POST",
         "headers": {"Content-Type": "application/json", "Accept": "application/json"},
@@ -30,11 +31,11 @@ def JobsLayout(props):
             </head>
             <body class="min-h-screen bg-gray-50">
                 <nav class="sticky top-0 z-40 border-b border-gray-200 bg-white/80 backdrop-blur-md">
-                    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+                    <div class="flex items-center justify-between px-4 py-3 mx-auto max-w-7xl sm:px-6 lg:px-8">
                         <a href="/jobs" class="flex items-center gap-2 text-xl font-bold text-indigo-600">
                             JobHub
                         </a>
-                        <div class="hidden items-center gap-6 text-sm font-medium text-gray-700 sm:flex">
+                        <div class="items-center hidden gap-6 text-sm font-medium text-gray-700 sm:flex">
                             <a href="/jobs" class="hover:text-indigo-600">Browse Jobs</a>
                             <a href="/jobs/dashboard" class="hover:text-indigo-600">Dashboard</a>
                         </div>
@@ -43,28 +44,28 @@ def JobsLayout(props):
                                 <span class="text-sm text-gray-600">Hi, {user.get("full_name", user.get("username", ""))}</span>
                             }
                             {if user:
-                                <a href="/jobs/logout" class="rounded-md px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
+                                <a href="/jobs/logout" class="px-3 py-2 text-sm font-medium text-red-600 rounded-md hover:bg-red-50">
                                     Logout
                                 </a>
                             }
                             {if not user:
-                                <a href="/jobs/login" class="rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                                <a href="/jobs/login" class="px-4 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100">
                                     Log in
                                 </a>
                             }
                             {if not user:
-                                <a href="/jobs/register" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                                <a href="/jobs/register" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">
                                     Sign up
                                 </a>
                             }
                         </div>
                     </div>
                 </nav>
-                <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                <main class="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
                     {children}
                 </main>
-                <footer class="mt-16 border-t border-gray-200 bg-white">
-                    <div class="mx-auto max-w-7xl px-4 py-8 text-center text-sm text-gray-500">
+                <footer class="mt-16 bg-white border-t border-gray-200">
+                    <div class="px-4 py-8 mx-auto text-sm text-center text-gray-500 max-w-7xl">
                         Built with NextPyVision - JobHub
                     </div>
                 </footer>
@@ -77,4 +78,3 @@ def getServerSideProps(context):
     return {"props": {}}
 
 
-default = JobsLayout
