@@ -2,10 +2,10 @@
 JobHub — Browse / search jobs page. Uses useFetch + useCrudEvent.
 """
 
-from nextpy.psx import component, useFetch, useCrudEvent
+from nextpy.psx import interactive_component, useFetch, useCrudEvent
 
 
-@component
+@interactive_component
 def JobsBrowse(props=None):
     props = props or {}
     search = props.get("search", "")
@@ -40,7 +40,7 @@ def JobsBrowse(props=None):
         ("full_time", "Full-time"),
         ("part_time", "Part-time"),
         ("contract", "Contract"),
-        ("internship", "Internship"),
+        ("internship", "Internships"),
     ]
     LEVELS = [
         ("", "All Levels"),

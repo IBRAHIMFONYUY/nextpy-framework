@@ -266,7 +266,14 @@ class PSXRuntime:
             
             HTML_TAG_RE = re.compile(r'</?[a-zA-Z][^>]*>')
             content = node.content
-            
+
+            # Process control flow blocks ({if}, {for}, {else}, etc.) in TextNode content
+            # This handles cases where PSXElement.to_ast() wraps string children containing
+            # control flow as TextNodes without going through parse_psx() entry point
+            _CONTROL_FLOW_RE = re.compile(r'\{(if |for |else|elif |while |try |except )')
+            if _CONTROL_FLOW_RE.search(content):
+                content = process_python_logic(content, self.context)
+
             # Check if content looks like HTML (has actual HTML tags)
             if HTML_TAG_RE.search(content):
                 return content
@@ -344,6 +351,9 @@ class PSXRuntime:
                         value = inner
                 # Special handling for 'code' attribute - render as raw text without escaping
                 if html_key == 'code' and node.attributes.get('_raw_code'):
+                    attrs.append(f'{html_key}="{value}"')
+                # Don't escape data-if-* attributes — they're already escaped by process_python_logic
+                elif html_key.startswith('data-if-'):
                     attrs.append(f'{html_key}="{value}"')
                 # Don't escape already HTML content
                 elif '<' in value and '>' in value:
@@ -663,7 +673,7 @@ def process_python_logic(psx_str: str, context: Dict[str, Any]) -> str:
                 if_result = process_python_logic(if_body, enhanced_context)
                 else_result = process_python_logic(else_body, enhanced_context) if else_body else ''
                 
-                # Escape the condition for HTML attribute
+                # Escape the condition for HTML attribute using html.escape
                 escaped_condition = html.escape(condition)
                 escaped_if_true = html.escape(if_result)
                 escaped_if_false = html.escape(else_result)
@@ -1077,12 +1087,8 @@ def process_python_logic(psx_str: str, context: Dict[str, Any]) -> str:
             escaped_condition = html.escape(condition)
             escaped_if_true = html.escape(if_result)
             escaped_if_false = html.escape(else_result)
-            print('processed content', processed_content, escaped_condition, escaped_if_true, escaped_if_false)
-            
             # FIX: Add data-component-id for dependency tracking
             component_id = enhanced_context.get('_component_id', '')
-            print(f'DEBUG: enhanced_context keys: {list(enhanced_context.keys())}')
-            print(f'DEBUG: Adding data-component-id="{component_id}" to conditional element')
             
             wrapped_content = f'<span data-if-condition="{escaped_condition}" data-if-true="{escaped_if_true}" data-if-false="{escaped_if_false}" data-component-id="{component_id}">{processed_content}</span>'
             

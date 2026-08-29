@@ -138,6 +138,11 @@ CLIENT_ROUTER_SCRIPT = r"""
     window.addEventListener('popstate', function () {
         load(new URL(window.location.href), true, false);
     });
+
+    // Expose navigate function globally for programmatic SPA navigation
+    window.__nextpyNavigate = function(url, replace, scroll) {
+        load(new URL(url, window.location.href), replace || false, scroll !== false);
+    };
 })();
 """
 

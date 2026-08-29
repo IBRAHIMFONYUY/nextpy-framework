@@ -4,7 +4,10 @@ Replaces JS string evaluation with structured action processing
 """
 
 # JavaScript runtime script as a constant
-JS_ACTION_RUNTIME_SCRIPT = """
+JS_ACTION_RUNTIME_SCRIPT = r"""
+(function() {
+if (window.__nextpyActionRuntimeLoaded) return;
+window.__nextpyActionRuntimeLoaded = true;
 /**
  * NextPy PSX JavaScript Runtime - Structured Action Execution
  * Replacing JS string evaluation with structured action processing
@@ -34,22 +37,16 @@ class NextPyActionRuntime {
     _buildDependencyMap(componentId) {
         // FIX: Scan DOM and build dependency map for conditional elements
         const conditionalElements = document.querySelectorAll(`[data-if-condition]`);
-        console.log('DEBUG: Building dependency map for component', componentId, 'found', conditionalElements.length, 'conditional elements');
-        
         // FIX: Initialize dependency map for component if not exists
         if (!this.dependencyMap.has(componentId)) {
             this.dependencyMap.set(componentId, {});
-            console.log('DEBUG: Initialized dependency map for component:', componentId);
         }
         
         conditionalElements.forEach(element => {
             if (element.dataset.componentId === componentId) {
-                console.log('DEBUG: Registering conditional element with componentId:', componentId);
                 this._registerConditionalElement(element, componentId);
             }
         });
-        console.log('DEBUG: Dependency map for component', componentId, ':', this.dependencyMap.get(componentId));
-        
         // FIX: Set up input bindings for elements with data-bind attribute
         this._setupInputBindings(componentId);
     }
@@ -57,16 +54,12 @@ class NextPyActionRuntime {
     _setupInputBindings(componentId) {
         // FIX: Set up automatic input bindings for elements with data-bind attribute
         const boundElements = document.querySelectorAll(`[data-bind]`);
-        console.log('DEBUG: Setting up input bindings for component', componentId, 'found', boundElements.length, 'bound elements');
-        
         boundElements.forEach(element => {
             const bindSpec = element.dataset.bind;
             if (!bindSpec) return;
             
             // Parse bind specification: "value:name" or "checked:name"
             const [bindType, stateKey] = bindSpec.split(':');
-            console.log('DEBUG: Processing bind:', bindSpec, 'type:', bindType, 'key:', stateKey);
-            
             // Determine the appropriate event based on element type
             let eventType = 'input';
             if (element.tagName === 'SELECT' || element.type === 'checkbox' || element.type === 'radio') {
@@ -87,7 +80,6 @@ class NextPyActionRuntime {
                     newValue = e.target.value;
                 }
                 
-                console.log('DEBUG: Input changed:', stateKey, '->', newValue);
                 this._executeSetState(componentId, stateKey, newValue);
             });
             
@@ -103,7 +95,6 @@ class NextPyActionRuntime {
             
             // Listen for state changes to update input value
             this._addStateListener(componentId, stateKey, (newValue) => {
-                console.log('DEBUG: State changed, updating input:', stateKey, '->', newValue);
                 if (bindType === 'value') {
                     element.value = newValue;
                 } else if (bindType === 'checked') {
@@ -210,14 +201,11 @@ class NextPyActionRuntime {
     }
 
     async executeActions(actions, componentId = null) {
-        console.log('DEBUG executeNextPyActions: Executing actions:', JSON.stringify(actions, null, 2));
-        console.log('DEBUG executeNextPyActions: componentId:', componentId);
         const results = [];
         for (const action of actions) {
             const result = await this.executeAction(action, componentId);
             results.push(result);
         }
-        console.log('DEBUG executeNextPyActions: Results:', results);
         return results;
     }
 
@@ -305,28 +293,47 @@ class NextPyActionRuntime {
             evaluatedKwargs[key] = this._evaluateExpression(value, componentId);
         }
 
-        // FIX: Require componentId to prevent state contamination
         if (!componentId || !this.components.has(componentId)) {
             console.warn('CALL_METHOD: componentId required or component not found:', componentId);
             throw new Error(`Cannot call method without component context`);
         }
 
-        // Get the object - retrieve from component state only
         const component = this.components.get(componentId);
-        console.log(`DEBUG _executeCallMethod: All component state:`, component.state);
-        console.log(`DEBUG _executeCallMethod: Looking for object '${object}' in state`);
-        const obj = component.state[object];
+        let obj = component.state[object];
 
-        console.log(`DEBUG _executeCallMethod: Object value:`, obj);
-        console.log(`DEBUG _executeCallMethod: Object type:`, typeof obj);
-
+        // Handle global objects (window, document, etc.)
         if (obj === undefined || obj === null) {
-            console.warn(`Object '${object}' is undefined or null, returning empty string`);
-            return "";
+            if (object === 'window' && typeof window !== 'undefined') {
+                obj = window;
+            } else if (object === 'document' && typeof document !== 'undefined') {
+                obj = document;
+            } else if (object === 'console' && typeof console !== 'undefined') {
+                obj = console;
+            } else if (object === 'localStorage' && typeof localStorage !== 'undefined') {
+                obj = localStorage;
+            } else if (object === 'Math' && typeof Math !== 'undefined') {
+                obj = Math;
+            } else {
+                console.warn(`Object '${object}' is undefined or null, returning empty string`);
+                return "";
+            }
         }
 
-        // Safety check: ensure method exists and is callable
-        // Allow methods on strings, arrays, and objects
+        // Handle Python dict.get() as bracket notation
+        if (method === 'get' && typeof obj === 'object' && !Array.isArray(obj)) {
+            const key = evaluatedArgs[0];
+            const defaultVal = evaluatedArgs.length > 1 ? evaluatedArgs[1] : undefined;
+            if (key in obj) return obj[key];
+            return defaultVal !== undefined ? defaultVal : "";
+        }
+
+        // Handle Python dict.keys(), dict.values(), dict.items()
+        if (typeof obj === 'object' && !Array.isArray(obj)) {
+            if (method === 'keys') return Object.keys(obj);
+            if (method === 'values') return Object.values(obj);
+            if (method === 'items') return Object.entries(obj);
+        }
+
         if (obj && typeof obj[method] === 'function') {
             return obj[method](...evaluatedArgs);
         } else {
@@ -438,12 +445,15 @@ class NextPyActionRuntime {
     _executeBooleanOp(data, componentId) {
         const { op, values } = data;
         const evaluatedValues = values.map(v => this._evaluateExpression(v, componentId));
+        const trimmedOp = (op || '').trim();
         
-        switch (op) {
+        switch (trimmedOp) {
             case 'and': return evaluatedValues.every(v => v);
             case 'or': return evaluatedValues.some(v => v);
+            case '&&': return evaluatedValues.every(v => v);
+            case '||': return evaluatedValues.some(v => v);
             default:
-                throw new Error(`Unknown boolean operator: ${op}`);
+                throw new Error(`Unknown boolean operator: '${trimmedOp}'`);
         }
     }
 
@@ -661,8 +671,11 @@ class NextPyActionRuntime {
     _executeNavigate(data, componentId) {
         const { url } = data;
         const resolvedUrl = typeof url === 'object' ? this._evaluateExpression(url, componentId) : url;
-        console.log('[NextPy] Navigating to:', resolvedUrl);
-        window.location.href = resolvedUrl;
+        if (window.__nextpyNavigate) {
+            window.__nextpyNavigate(resolvedUrl);
+        } else {
+            window.location.href = resolvedUrl;
+        }
     }
 
     _evaluateExpression(expr, componentId = null) {
@@ -688,25 +701,32 @@ class NextPyActionRuntime {
         const elements = document.querySelectorAll(`[data-state-${key}]`);
         elements.forEach(element => {
             if (element.dataset.componentId === componentId) {
-                // Update the element content
                 element.textContent = newValue;
             }
         });
         
-        // FIX: Handle conditional rendering updates using dependency map
-        const componentDeps = this.dependencyMap.get(componentId);
-        console.log('DEBUG: State changed', key, '->', newValue, 'for component', componentId);
-        console.log('DEBUG: Component dependencies:', componentDeps);
-        if (componentDeps && componentDeps[key]) {
-            console.log('DEBUG: Found', componentDeps[key].length, 'conditional elements depending on', key);
-            componentDeps[key].forEach(element => {
+        // FIX: Re-evaluate ALL conditional elements for this component on ANY state change.
+        // Conditions reference derived Python variables (user, is_employer, etc.) that
+        // don't match state keys (_fetch_data_0, etc.), so we can't rely on the
+        // dependency map for targeted updates. Instead, re-evaluate all conditionals.
+        // Also update layout elements with empty data-component-id that reference the
+        // same state (e.g., layout nav conditionals for user/login).
+        const allConditionals = document.querySelectorAll(`[data-if-condition]`);
+        const component = this.components.get(componentId);
+        allConditionals.forEach(element => {
+            if (element.dataset.componentId === componentId) {
                 const condition = element.dataset.ifCondition;
-                console.log('DEBUG: Updating conditional element with condition:', condition);
-                this._updateConditionalElement(element, componentId, condition);
-            });
-        } else {
-            console.log('DEBUG: No conditional elements depend on', key);
-        }
+                if (condition) {
+                    this._updateConditionalElement(element, componentId, condition);
+                }
+            } else if (!element.dataset.componentId && component) {
+                // Layout element with empty component ID — update using this component's state
+                const condition = element.dataset.ifCondition;
+                if (condition) {
+                    this._updateConditionalElement(element, componentId, condition);
+                }
+            }
+        });
         
         // Trigger custom event
         const event = new CustomEvent('nextpy:stateChange', {
@@ -719,21 +739,16 @@ class NextPyActionRuntime {
         // Evaluate the condition with current state
         const component = this.components.get(componentId);
         if (!component) {
-            console.log('DEBUG: Component not found:', componentId);
             return;
         }
         
         try {
             // FIX: Safe expression evaluation
-            console.log('DEBUG: Evaluating condition:', condition, 'with state:', component.state);
             const result = this._evaluateCondition(condition, component.state);
-            console.log('DEBUG: Condition result:', result);
             
             // Get the true and false branches from data attributes
             const trueContent = element.dataset.ifTrue || '';
             const falseContent = element.dataset.ifFalse || '';
-            console.log('DEBUG: True content:', trueContent);
-            console.log('DEBUG: False content:', falseContent);
             
             // FIX: Unescape HTML content before setting as innerHTML
             const unescapeHtml = (html) => {
@@ -745,10 +760,8 @@ class NextPyActionRuntime {
             // Update the element content based on condition result
             if (result) {
                 element.innerHTML = unescapeHtml(trueContent);
-                console.log('DEBUG: Updated element with true content');
             } else {
                 element.innerHTML = unescapeHtml(falseContent);
-                console.log('DEBUG: Updated element with false content');
             }
         } catch (error) {
             console.error('Conditional update error:', error);
@@ -756,28 +769,119 @@ class NextPyActionRuntime {
     }
 
     _evaluateCondition(expr, state) {
-        // FIX: Safe condition evaluation with proper variable substitution
+        // Derive common Python variables from fetch data before evaluating
+        const derived = this._deriveVariables(state);
+        
+        // Merge derived variables with state for evaluation
+        const fullState = { ...state, ...derived };
+        
+        // Convert Python operators to JS operators
+        let evalExpr = expr
+            .replace(/\bnot\s+/g, '!')          // Python 'not' -> JS '!'
+            .replace(/\band\b/g, '&&')           // Python 'and' -> JS '&&'
+            .replace(/\bor\b/g, '||')            // Python 'or' -> JS '||'
+            .replace(/\bNone\b/g, 'null')        // Python 'None' -> JS 'null'
+            .replace(/\bTrue\b/g, 'true')        // Python 'True' -> JS 'true'
+            .replace(/\bFalse\b/g, 'false')      // Python 'False' -> JS 'false'
+            .replace(/\blen\((\w+)\)/g, '$1.length')  // Python 'len(x)' -> JS 'x.length'
+            .replace(/\b(\w+)\.get\(([^)]+)\)/g, '$1[$2]');  // Python 'x.get("k")' -> JS 'x["k"]'
+        
+        // Safe condition evaluation with proper variable substitution
         // Replace state variable names with their values
-        let evalExpr = expr;
-        for (const [key, value] of Object.entries(state)) {
-            // Try exact match first, then word boundary regex
+        const replacedKeys = new Set();
+        for (const [key, value] of Object.entries(fullState)) {
             if (evalExpr === key) {
                 evalExpr = typeof value === 'string' ? `'${value}'` : JSON.stringify(value);
+                replacedKeys.add(key);
             } else {
                 const regex = new RegExp(`\\b${key}\\b`, 'g');
-                evalExpr = evalExpr.replace(regex, typeof value === 'string' ? `'${value}'` : JSON.stringify(value));
+                if (regex.test(evalExpr)) {
+                    evalExpr = evalExpr.replace(regex, typeof value === 'string' ? `'${value}'` : JSON.stringify(value));
+                    replacedKeys.add(key);
+                }
             }
         }
         
-        console.log('DEBUG: Evaluating condition:', expr, '->', evalExpr, 'with state:', state);
+        // FIX: Treat any remaining undefined identifiers as null (like Python's None)
+        const idRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
+        let match;
+        const remainingIds = new Set();
+        while ((match = idRegex.exec(evalExpr)) !== null) {
+            const id = match[1];
+            if (!replacedKeys.has(id) && !['true', 'false', 'null', 'undefined', 'NaN', 'Infinity', 'len', 'str', 'int', 'float', 'bool', 'list', 'dict', 'abs', 'min', 'max', 'sum', 'round', 'any', 'all'].includes(id)) {
+                remainingIds.add(id);
+            }
+        }
         
-        // Safe evaluation of simple boolean expressions
+        // Build variable declarations for undefined identifiers
+        const varDeclarations = Array.from(remainingIds).map(id => `let ${id} = null;`).join(' ');
+        
         try {
-            return Function(`"use strict"; return (${evalExpr})`)();
+            return Function(`"use strict"; ${varDeclarations} return (${evalExpr})`)();
         } catch (e) {
-            console.warn('Failed to evaluate condition:', expr, e);
+            console.warn('Failed to evaluate condition:', expr, '->', evalExpr, e);
             return false;
         }
+    }
+
+    _deriveVariables(state) {
+        // Derive common Python variables from fetch data
+        // This bridges the gap between Python server-side derived variables
+        // and client-side state that only has raw fetch data
+        const derived = {};
+        
+        for (const [key, value] of Object.entries(state)) {
+            // Only process fetch data keys
+            if (!key.startsWith('_fetch_data_')) continue;
+            if (value === null || value === undefined || typeof value !== 'object') continue;
+            
+            // Pattern 1: Direct response like {"user": {...}} from get_me
+            // The Python code does: me_data.get("data") or {} then me.get("user")
+            // At client-side, _fetch_data_0 IS the raw response (no wrapping)
+            // But Python's useFetch wraps it in {"data": raw_response}
+            // So _fetch_data_0 = {"data": {"user": {...}}} or {"data": {"user": None}}
+            const data = value.data !== undefined ? value.data : value;
+            if (data === null || data === undefined || typeof data !== 'object') continue;
+            
+            // Extract 'user' from get_me response
+            if (data.user !== undefined && !derived.user) {
+                derived.user = data.user;
+                derived.not = data.user ? false : true;
+                if (data.user) {
+                    derived.is_employer = data.user.role === 'employer';
+                    derived.is_jobseeker = data.user.role !== 'employer';
+                } else {
+                    derived.is_employer = false;
+                    derived.is_jobseeker = false;
+                }
+            }
+            
+            // Pattern 2: get_my_jobs returns {"data": [...]} or {"data": {"data": [...]}}
+            if (Array.isArray(data) && !derived.my_jobs) {
+                derived.my_jobs = data;
+                derived.has_my_jobs = data.length > 0;
+            } else if (data.data && Array.isArray(data.data) && !derived.my_jobs) {
+                derived.my_jobs = data.data;
+                derived.has_my_jobs = data.data.length > 0;
+            } else if (data.jobs && Array.isArray(data.jobs) && !derived.my_jobs) {
+                derived.my_jobs = data.jobs;
+                derived.has_my_jobs = data.jobs.length > 0;
+            }
+            
+            // Pattern 3: get_my_applications
+            if (Array.isArray(data) && !derived.my_apps) {
+                derived.my_apps = data;
+                derived.has_my_apps = data.length > 0;
+            } else if (data.data && Array.isArray(data.data) && !derived.my_apps) {
+                derived.my_apps = data.data;
+                derived.has_my_apps = data.data.length > 0;
+            } else if (data.applications && Array.isArray(data.applications) && !derived.my_apps) {
+                derived.my_apps = data.applications;
+                derived.has_my_apps = data.applications.length > 0;
+            }
+        }
+        
+        return derived;
     }
 
     _registerConditionalElement(element, componentId) {
@@ -788,12 +892,10 @@ class NextPyActionRuntime {
         // FIX: Initialize dependency map for component if not exists
         if (!this.dependencyMap.has(componentId)) {
             this.dependencyMap.set(componentId, {});
-            console.log('DEBUG: Initialized dependency map for component:', componentId);
         }
         
         const componentDeps = this.dependencyMap.get(componentId);
         const component = this.components.get(componentId);
-        console.log('DEBUG: Condition:', condition, 'State keys:', Object.keys(component.state));
         
         // Extract state dependencies from condition using exact match or word boundary
         for (const key of Object.keys(component.state)) {
@@ -801,7 +903,6 @@ class NextPyActionRuntime {
             const exactMatch = condition === key;
             const regex = new RegExp(`\\b${key}\\b`);
             const wordBoundaryMatch = regex.test(condition);
-            console.log('DEBUG: Testing key:', key, 'exact match:', exactMatch, 'word boundary match:', wordBoundaryMatch);
             
             if (exactMatch || wordBoundaryMatch) {
                 if (!componentDeps[key]) {
@@ -809,7 +910,6 @@ class NextPyActionRuntime {
                 }
                 if (!componentDeps[key].includes(element)) {
                     componentDeps[key].push(element);
-                    console.log('DEBUG: Registered element for state key:', key);
                 }
             }
         }
@@ -914,5 +1014,38 @@ window.registerNextPyComponent = function(componentId, initialState = {}) {
     return window.NextPyActionRuntime.registerComponent(componentId, initialState);
 };
 
+// SPA-style navigation function — called by lambda handlers after actions
+window.navigateTo = function(url) {
+    if (window.__nextpyNavigate) {
+        window.__nextpyNavigate(url);
+    } else if (window.htmx) {
+        const target = document.getElementById('main-content') || document.querySelector('main');
+        if (target) {
+            htmx.ajax('GET', url, { target: '#main-content', swap: 'innerHTML' });
+            history.pushState({}, '', url);
+            return;
+        }
+        window.location.href = url;
+    } else {
+        window.location.href = url;
+    }
+};
+
+// SPA-style reload — re-fetches current page content without full reload
+window.spaReload = function() {
+    const url = window.location.pathname + window.location.search;
+    if (window.__nextpyNavigate) {
+        window.__nextpyNavigate(url, true);
+    } else if (window.htmx) {
+        const target = document.getElementById('main-content') || document.querySelector('main');
+        if (target) {
+            htmx.ajax('GET', url, { target: '#main-content', swap: 'innerHTML' });
+            return;
+        }
+    }
+    window.location.reload();
+};
+
 console.log('[NextPy] Action Runtime loaded');
+})();
 """

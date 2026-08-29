@@ -18,7 +18,7 @@ def LoginPage(props=None):
         setError("")
         callServerAction("login", {"email": email, "password": password})
         if _server_result and _server_result.get("success"):
-            window.location.href = "/jobs/dashboard"
+            window.navigateTo("/jobs/dashboard")
         else:
             setError(_server_result.get("error", "Login failed") if _server_result else "Login failed")
             setLoading(False)
