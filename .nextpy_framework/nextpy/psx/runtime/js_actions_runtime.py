@@ -630,7 +630,18 @@ class NextPyActionRuntime {
                 body: JSON.stringify({ action: actionName, params: params }),
             });
 
-            const result = await response.json();
+            const responseData = await response.json();
+
+            // ServerAction.execute wraps every action result as
+            // {success, data, timestamp}. Handlers expect the action's own
+            // result ({success, error, user, ...}), so unwrap it; otherwise
+            // failed actions look successful and clients redirect anyway.
+            const result = (
+                responseData &&
+                responseData.success === true &&
+                Object.prototype.hasOwnProperty.call(responseData, 'data') &&
+                Object.prototype.hasOwnProperty.call(responseData, 'timestamp')
+            ) ? responseData.data : responseData;
 
             if (component) {
                 component.state['_server_loading'] = false;

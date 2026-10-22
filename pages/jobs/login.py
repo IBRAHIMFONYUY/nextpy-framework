@@ -36,13 +36,13 @@ def LoginPage(props=None):
                 <form onsubmit={handle_login} class="space-y-5">
                     <div>
                         <label class="block mb-1 text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" value={email} 
+                        <input type="email" value={email} oninput={lambda e: setEmail(e.target.value)}
                             required placeholder="you@example.com"
                             class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
                     </div>
                     <div>
                         <label class="block mb-1 text-sm font-medium text-gray-700">Password</label>
-                        <input type="password" value={password} oninput={e => password = e.target.value}
+                        <input type="password" value={password} oninput={lambda e: setPassword(e.target.value)}
                             required placeholder="Your password"
                             class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
                     </div>

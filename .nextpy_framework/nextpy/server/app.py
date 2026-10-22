@@ -4,8 +4,10 @@ Handles routing, SSR, API routes, and static file serving using PSX for everythi
 """
 
 import os
+import re
 import sys
 import asyncio
+import hashlib
 import importlib.util
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
@@ -637,6 +639,96 @@ Allow: /
                 print(f"Error loading module from {file_path}: {e}")
             return None
         
+    @staticmethod
+    def _mark_internal_links(html_text: str) -> str:
+        """Add SPA navigation attributes to internal anchors.
+
+        Also strips HTMX navigation attributes so the client router is the
+        single navigation mechanism (prevents duplicate requests).
+        """
+        def _replace(match):
+            full_tag = match.group(0)
+            if 'data-nextpy-link' in full_tag:
+                return full_tag
+            href_match = re.search(r'href=["\']([^"\']*)["\']', full_tag)
+            if not href_match:
+                return full_tag
+            href = href_match.group(1)
+            if not (href.startswith('/') or href.startswith('#')):
+                return full_tag
+            target_match = re.search(r'(?<![-\w])target=["\']([^"\']*)["\']', full_tag)
+            if target_match and target_match.group(1) != '_self':
+                return full_tag
+
+            cleaned = re.sub(
+                r'\s(?:hx-get|hx-target|hx-swap|hx-push-url|hx-trigger|preload)=["\'][^"\']*["\']',
+                '',
+                full_tag,
+            )
+            return cleaned.replace(
+                '<a ',
+                '<a data-nextpy-link="true" data-nextpy-prefetch="true" ',
+                1,
+            )
+
+        return re.sub(r'<a\b[^>]*>', _replace, html_text)
+
+    @staticmethod
+    def _inject_inline_script(
+        html: str, script: str, name: str = "runtime", marker: Optional[str] = None
+    ) -> str:
+        """Insert an inline script before </body> instead of after </html>.
+
+        Injected scripts carry ``data-nextpy-runtime`` so the client router
+        never re-executes them during a full-page swap.
+        """
+        marker = marker or f'data-nextpy-runtime="{name}"'
+        if marker in html:
+            return html
+        tag = f'<script data-nextpy-runtime="{name}">{script}</script>'
+        index = html.lower().rfind('</body>')
+        if index != -1:
+            return html[:index] + tag + html[index:]
+        return html + tag
+
+    @staticmethod
+    def _inject_layout_signature(html: str, signature: str) -> str:
+        """Expose the layout signature so the client can request fragments."""
+        if 'nextpy-layout' in html:
+            return html
+        marker = f'<meta name="nextpy-layout" content="{signature}">'
+        lower = html.lower()
+        index = lower.find('</head>')
+        if index != -1:
+            return html[:index] + marker + html[index:]
+        return marker + html
+
+    @staticmethod
+    def _page_headers(cacheable: bool, html: str) -> Dict[str, str]:
+        etag = '"' + hashlib.md5(html.encode('utf-8')).hexdigest() + '"'
+        if cacheable:
+            return {
+                'Cache-Control': 'private, max-age=30, stale-while-revalidate=120',
+                'ETag': etag,
+                'X-NextPy-Cacheable': 'true',
+            }
+        return {
+            'Cache-Control': 'no-store',
+            'ETag': etag,
+            'X-NextPy-Cacheable': 'false',
+        }
+
+    @staticmethod
+    def _not_modified(request: Request, headers: Dict[str, str]) -> Optional[Response]:
+        etag = headers.get('ETag')
+        if not etag:
+            return None
+        if_none_match = request.headers.get('if-none-match', '')
+        candidates = {value.strip() for value in if_none_match.split(',')}
+        if etag in candidates or if_none_match.strip() == '*':
+            return Response(status_code=304, headers=headers)
+        return None
+
     async def _handle_request(self, request: Request, path: str) -> Response:
         """Handle a page request"""
         match = self.router.match(path)
@@ -659,7 +751,7 @@ Allow: /
                 "query": dict(request.query_params),
                 "request": request,
             }
-            
+
             module = self._load_module_from_file(route.file_path)
             if module:
                 try:
@@ -673,34 +765,44 @@ Allow: /
                 except Exception as e:
                     if self.debug:
                         print(f"Data fetching error for component route: {e}")
-            
-            html = self.router.render_route(route, context)
-            # Auto-add data-nextpy-link to internal <a> tags
-            import re
-            def _mark_internal_links(html_text):
-                def _replace_link(match):
-                    full_tag = match.group(0)
-                    href = match.group(1)
-                    if href.startswith('/') or href.startswith('#'):
-                        if 'data-nextpy-link' not in full_tag:
-                            return full_tag.replace('<a ', '<a data-nextpy-link="true" ', 1)
-                    return full_tag
-                return re.sub(r'<a\s+([^>]*?)href="([^"]*)"', _replace_link, html_text)
-            
-            if '<a ' in html:
-                html = _mark_internal_links(html)
-            if 'data-nextpy-crud' in html:
-                html = f"{html}<script>{CRUD_RUNTIME_SCRIPT}</script>"
-            if 'data-nextpy-link' in html:
-                html = f"{html}<script>{CLIENT_ROUTER_SCRIPT}</script>"
-            return HTMLResponse(
-                content=html,
-                headers={
-                    "Cache-Control": "no-cache, no-store, must-revalidate",
-                    "Pragma": "no-cache",
-                    "Expires": "0",
-                },
+
+            layout_sig = self.router.get_layout_signature(route)
+            want_fragment = (
+                request.headers.get("x-nextpy-fragment", "").lower() == "true"
+                and request.headers.get("x-nextpy-layout-sig", "") == layout_sig
             )
+            cacheable = self.router.is_cacheable(route, context)
+
+            html = self.router.render_route(
+                route, context, include_layout=not want_fragment
+            )
+
+            if '<a ' in html:
+                html = self._mark_internal_links(html)
+
+            if not want_fragment:
+                html = self._inject_layout_signature(html, layout_sig)
+                if 'data-nextpy-crud' in html:
+                    html = self._inject_inline_script(
+                        html, CRUD_RUNTIME_SCRIPT, 'crud'
+                    )
+                html = self._inject_inline_script(
+                    html, CLIENT_ROUTER_SCRIPT, 'router'
+                )
+
+            headers = self._page_headers(cacheable, html)
+            headers["X-NextPy-Layout-Sig"] = layout_sig
+            if want_fragment:
+                headers["X-NextPy-Fragment"] = "true"
+                title = context.get("title")
+                if title:
+                    headers["X-NextPy-Title"] = str(title)
+
+            not_modified = self._not_modified(request, headers)
+            if not_modified is not None:
+                return not_modified
+
+            return HTMLResponse(content=html, headers=headers)
             
         context = PageContext(
             params=params,
@@ -710,10 +812,12 @@ Allow: /
         
         try:
             props = {}
+            component_props = {"params": params}
             module = self._load_module_from_file(route.file_path)
             
             if module:
                 props = await execute_data_fetching(module, context)
+                component_props = {**props, "params": params}
                 
                 # Execute the page component to get JSX
                 content = ""
@@ -763,33 +867,26 @@ Allow: /
             )
             
             # Auto-add data-nextpy-link to internal <a> tags for client-side navigation
-            import re
-            host = request.headers.get('host', 'localhost')
-            def _mark_internal_links(html_text):
-                def _replace_link(match):
-                    full_tag = match.group(0)
-                    href = match.group(1)
-                    if href.startswith('/') or href.startswith('#'):
-                        if 'data-nextpy-link' not in full_tag:
-                            return full_tag.replace('<a ', '<a data-nextpy-link="true" ', 1)
-                    return full_tag
-                return re.sub(r'<a\s+([^>]*?)href="([^"]*)"', _replace_link, html_text)
-            
             if '<a ' in html:
-                html = _mark_internal_links(html)
-            
-            # Inject client-side router if internal links exist
-            if 'data-nextpy-link' in html:
-                html = f"{html}<script>{CLIENT_ROUTER_SCRIPT}</script>"
-            
-            return HTMLResponse(
-                content=html,
-                headers={
-                    "Cache-Control": "no-cache, no-store, must-revalidate",
-                    "Pragma": "no-cache",
-                    "Expires": "0",
-                },
+                html = self._mark_internal_links(html)
+
+            # Inject the client-side router on every full page so SPA
+            # navigation works even when the first page has no anchors.
+            html = self._inject_inline_script(
+                html, CLIENT_ROUTER_SCRIPT, 'router'
             )
+
+            cacheable = (
+                not request.cookies
+                and not request.headers.get('authorization')
+                and not (module is not None and hasattr(module, 'getServerSideProps'))
+            )
+            headers = self._page_headers(cacheable, html)
+            not_modified = self._not_modified(request, headers)
+            if not_modified is not None:
+                return not_modified
+
+            return HTMLResponse(content=html, headers=headers)
             
         except PageNotFoundError:
             return await self._render_404(request)
@@ -1486,6 +1583,8 @@ Allow: /
     def reload_routes(self) -> None:
         """Reload all routes (for hot reload)"""
         self._modules_cache.clear()
+        if hasattr(self.router, "invalidate_cache"):
+            self.router.invalidate_cache()
         if demo_router.should_serve_demo():
             self.router = Router(str(self.pages_dir), str(self.templates_dir))
             self.router.enable_demo_mode()

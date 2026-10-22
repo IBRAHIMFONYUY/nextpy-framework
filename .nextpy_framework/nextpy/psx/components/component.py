@@ -3,6 +3,7 @@
 # Complete component system with decorators, hooks, and optimized Virtual DOM
 """
 
+import os
 import time
 import threading
 import uuid
@@ -17,6 +18,8 @@ from dataclasses import dataclass, field
 from functools import wraps
 from ..vdom.vnode import VNode, create_element, render, update
 from ..core.parser import PSXElement, psx, render_psx
+
+_PSX_DEBUG = os.environ.get("NEXTPY_DEBUG") == "1"
 
 
 @dataclass
@@ -158,7 +161,8 @@ def component(func):
         # Create context with props and local variables (excluding internal ones)
         # IMPORTANT: Don't reset context - props already contains the full context
         context = props.copy() if props else {}
-        print(f"DEBUG: Props before context creation: {list(context.keys())}")
+        if _PSX_DEBUG:
+            if _PSX_DEBUG: print(f"DEBUG: Props before context creation: {list(context.keys())}")
         for key, value in component_locals.items():
             if not key.startswith('_') and key not in ['func', 'props', 'result', 'execution_result', 'execute_component', 'wrapper', 'execute_with_locals', 'component_locals', 'component_frame', 'frame', 'current_frame', 'original_globals']:
                 context[key] = value
@@ -169,7 +173,8 @@ def component(func):
             if key not in context and callable(value) and not key.startswith('_'):
                 context[key] = value
         
-        print(f"DEBUG: Context after creation: {list(context.keys())}")
+        if _PSX_DEBUG:
+            if _PSX_DEBUG: print(f"DEBUG: Context after creation: {list(context.keys())}")
         
         # FIX: Add component_id to context if not present (fallback mechanism)
         if '_component_id' not in context:
@@ -177,12 +182,14 @@ def component(func):
             global _current_component_id
             if _current_component_id:
                 context['_component_id'] = _current_component_id
-                print(f"DEBUG: Added component_id from module-level to context: {_current_component_id}")
+                if _PSX_DEBUG:
+                    if _PSX_DEBUG: print(f"DEBUG: Added component_id from module-level to context: {_current_component_id}")
             else:
                 # Generate a fallback component_id
                 import uuid
                 context['_component_id'] = f"psx_component_{uuid.uuid4().hex[:8]}"
-                print(f"DEBUG: Generated fallback component_id: {context['_component_id']}")
+                if _PSX_DEBUG:
+                    if _PSX_DEBUG: print(f"DEBUG: Generated fallback component_id: {context['_component_id']}")
         
         # CRITICAL FIX: Add useState hook values to context
         # This ensures variables like 'count' from useState are available in expressions
@@ -206,18 +213,22 @@ def component(func):
                     # FIX: Use actual extracted state variable name if available
                     if i < len(state_var_names):
                         context[state_var_names[i]] = hook_data['value']
-                        print(f"DEBUG: Added state variable {state_var_names[i]} = {hook_data['value']}")
+                        if _PSX_DEBUG:
+                            if _PSX_DEBUG: print(f"DEBUG: Added state variable {state_var_names[i]} = {hook_data['value']}")
                     else:
                         # Fallback to common names only if actual names not found
                         common_state_names = ['count', 'name', 'value', 'data', 'items', 'index', 'loading', 'error', 'success', 'user', 'message', 'text', 'visible', 'active', 'selected', 'theme']
                         if i < len(common_state_names):
                             context[common_state_names[i]] = hook_data['value']
-                            print(f"DEBUG: Fallback to common name {common_state_names[i]} = {hook_data['value']}")
+                            if _PSX_DEBUG:
+                                if _PSX_DEBUG: print(f"DEBUG: Fallback to common name {common_state_names[i]} = {hook_data['value']}")
         
         # Store context in component state for expression evaluation
         component_state.state.update(context)
-        print(f"DEBUG: Final context keys: {list(context.keys())}")
-        print(f"DEBUG: 'count' in context: {'count' in context}")
+        if _PSX_DEBUG:
+            if _PSX_DEBUG: print(f"DEBUG: Final context keys: {list(context.keys())}")
+        if _PSX_DEBUG:
+            if _PSX_DEBUG: print(f"DEBUG: 'count' in context: {'count' in context}")
         
         # Handle different return types
         if isinstance(result, PSXElement):
@@ -1570,17 +1581,17 @@ def _create_python_call_placeholder(handler_func: Callable, prefix: str = 'pytho
             lambda_src = ast.unparse(handler_func).strip()
             normalized = re.sub(r'\s+', ' ', lambda_src)
             digest = hashlib.sha256(normalized.encode('utf-8')).hexdigest()[:16]
-            print(f"DEBUG _create_python_call_placeholder: func_name={func_name}, handler_id={digest}")
+            if _PSX_DEBUG: print(f"DEBUG _create_python_call_placeholder: func_name={func_name}, handler_id={digest}")
             return f"{prefix}_lambda_{digest}"
         except Exception as e:
             # Fallback to UUID if AST parsing fails
             import uuid
             handler_id = uuid.uuid4().hex[:16]
-            print(f"DEBUG _create_python_call_placeholder: func_name={func_name}, handler_id={handler_id}")
+            if _PSX_DEBUG: print(f"DEBUG _create_python_call_placeholder: func_name={func_name}, handler_id={handler_id}")
             return f"{prefix}_lambda_{handler_id}"
     
     handler_id = abs(id(handler_func))
-    print(f"DEBUG _create_python_call_placeholder: func_name={func_name}, handler_id={handler_id}")
+    if _PSX_DEBUG: print(f"DEBUG _create_python_call_placeholder: func_name={func_name}, handler_id={handler_id}")
     return f"{prefix}_{func_name}"
 
 
@@ -2480,16 +2491,10 @@ def Link(props: Dict[str, Any]) -> PSXElement:
     if props.get('target') is not None:
         attrs['target'] = props['target']
     if not props.get('target'):
-        attrs.update({
-            'hx-get': href,
-            'hx-target': props.get('targetId', '#main-content'),
-            'hx-swap': props.get('swap', 'innerHTML'),
-            'hx-push-url': 'true',
-            'data-nextpy-link': 'true',
-        })
+        # Client-side router navigation. HTMX attributes are intentionally
+        # omitted so navigation issues exactly one request.
+        attrs['data-nextpy-link'] = 'true'
         if props.get('prefetch', True):
-            attrs['hx-trigger'] = 'mouseenter, click'
-            attrs['preload'] = 'true'
             attrs['data-nextpy-prefetch'] = 'true'
         if props.get('replace'):
             attrs['data-nextpy-replace'] = 'true'

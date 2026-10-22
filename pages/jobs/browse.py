@@ -1,39 +1,31 @@
 """
-JobHub — Browse / search jobs page. Uses useFetch + useCrudEvent.
+JobHub — Browse / search jobs page.
+
+Jobs are fetched during SSR so the first paint contains real results and
+GET filters (?search=&job_type=&experience_level=) work without relying on
+client-side list re-rendering.
 """
 
-from nextpy.psx import interactive_component, useFetch, useCrudEvent
+from nextpy.psx import interactive_component
+
+
+def job_type_label(jt):
+    labels = {"full_time": "Full-time", "part_time": "Part-time", "contract": "Contract", "internship": "Internship"}
+    return labels.get(jt, jt)
 
 
 @interactive_component
 def JobsBrowse(props=None):
     props = props or {}
-    search = props.get("search", "")
-    job_type = props.get("job_type", "")
-    experience_level = props.get("experience_level", "")
-
-    params = {}
-    if search: params["search"] = search
-    if job_type: params["job_type"] = job_type
-    if experience_level: params["experience_level"] = experience_level
-
-    import json
-    body = json.dumps({"action": "list_jobs", "params": params})
-
-    jobs_data = useFetch("/__nextpy/actions/execute", {
-        "method": "POST",
-        "headers": {"Content-Type": "application/json", "Accept": "application/json"},
-        "body": body,
-    })
-    jobs_key = jobs_data["_dataKey"]
-    jobs = jobs_data.get("data", [])
-    if isinstance(jobs, dict) and "data" in jobs:
-        jobs = jobs["data"]
+    search = props.get("search", "") or ""
+    job_type = props.get("job_type", "") or ""
+    experience_level = props.get("experience_level", "") or ""
+    jobs = props.get("jobs") or []
     if not isinstance(jobs, list):
         jobs = []
-
-    event = useCrudEvent(resource="jobs")
-    event_key = event["_eventKey"]
+    jobs = [dict(job) for job in jobs]
+    for job in jobs:
+        job["type_label"] = job_type_label(job.get("job_type", "full_time"))
 
     JOB_TYPES = [
         ("", "All Types"),
@@ -49,10 +41,6 @@ def JobsBrowse(props=None):
         ("senior", "Senior"),
         ("lead", "Lead"),
     ]
-
-    def job_type_label(jt):
-        labels = {"full_time": "Full-time", "part_time": "Part-time", "contract": "Contract", "internship": "Internship"}
-        return labels.get(jt, jt)
 
     job_type_options = "".join(
         f'<option value="{val}" {"selected" if val == job_type else ""}>{label}</option>'
@@ -74,7 +62,7 @@ def JobsBrowse(props=None):
                 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div class="sm:col-span-2">
                         <label class="block mb-1 text-sm font-medium text-gray-700">Search</label>
-                        <input name="search"  placeholder="Job title, company..."
+                        <input name="search" value={search} placeholder="Job title, company..."
                             class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
                     </div>
                     <div>
@@ -113,7 +101,7 @@ def JobsBrowse(props=None):
                             <div class="flex-1">
                                 <div class="flex flex-wrap items-center gap-2 mb-2">
                                     <span class="inline-block rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
-                                        {job_type_label(job.get("job_type", "full_time"))}
+                                        {job["type_label"]}
                                     </span>
                                     <span class="inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
                                         {job.get("experience_level", "mid").title()}
@@ -134,15 +122,54 @@ def JobsBrowse(props=None):
     )
 
 
-def getServerSideProps(context):
-    query_params = context.get("query", {})
+def _serialize_job(job):
     return {
-        "props": {
-            "search": query_params.get("search", ""),
-            "job_type": query_params.get("job_type", ""),
-            "experience_level": query_params.get("experience_level", ""),
-        }
+        "id": job.id,
+        "title": job.title,
+        "company": job.company,
+        "location": job.location or "",
+        "description": job.description or "",
+        "salary_min": job.salary_min,
+        "salary_max": job.salary_max,
+        "job_type": job.job_type or "full_time",
+        "experience_level": job.experience_level or "mid",
+        "employer_id": job.employer_id,
+        "is_active": job.is_active,
+        "created_at": job.created_at.isoformat() if job.created_at else None,
     }
+
+
+def getServerSideProps(context):
+    from nextpy.db import get_session, Job
+
+    query_params = context.get("query", {}) or {}
+    search = (query_params.get("search", "") or "").strip()
+    job_type = (query_params.get("job_type", "") or "").strip()
+    experience_level = (query_params.get("experience_level", "") or "").strip()
+
+    db = get_session()
+    try:
+        q = db.query(Job).filter(Job.is_active == True)
+        if search:
+            term = f"%{search}%"
+            q = q.filter(
+                (Job.title.ilike(term)) | (Job.company.ilike(term)) | (Job.description.ilike(term))
+            )
+        if job_type:
+            q = q.filter(Job.job_type == job_type)
+        if experience_level:
+            q = q.filter(Job.experience_level == experience_level)
+        jobs = q.order_by(Job.created_at.desc()).limit(50).all()
+        return {
+            "props": {
+                "search": search,
+                "job_type": job_type,
+                "experience_level": experience_level,
+                "jobs": [_serialize_job(j) for j in jobs],
+            }
+        }
+    finally:
+        db.close()
 
 
 default = JobsBrowse

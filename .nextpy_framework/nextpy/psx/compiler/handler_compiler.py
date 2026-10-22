@@ -3,12 +3,15 @@ NextPy PSX Handler Compiler - AST-based Handler Extraction and Compilation
 Replacing regex-based handler extraction with proper AST parsing
 """
 
+import os
 import ast
 import inspect
 import hashlib
 import re
 from typing import Dict, List, Any, Optional, Tuple, Callable
 from .actions import compile_handler_to_actions, ActionType
+
+_DEBUG = os.environ.get("NEXTPY_DEBUG") == "1"
 
 
 def _get_python_call_placeholder_from_lambda_code(lambda_code: str) -> str:
@@ -52,7 +55,7 @@ class HandlerCompiler(ast.NodeVisitor):
             # Compile handler assignments (create_onclick, etc.)
             self._compile_handler_assignments()
             
-            print(f"DEBUG: Final state_setter_map: {self.state_setter_map}")
+            if _DEBUG: print(f"DEBUG: Final state_setter_map: {self.state_setter_map}")
             return self.handlers
             
         except (OSError, SyntaxError, TypeError) as e:
@@ -93,7 +96,7 @@ class HandlerCompiler(ast.NodeVisitor):
                         if isinstance(state_var, ast.Name) and isinstance(setter_func, ast.Name):
                             # Map the setter function name to the state variable name
                             self.state_setter_map[setter_func.id] = state_var.id
-                            print(f"DEBUG: Tracked useState assignment: {setter_func.id} -> {state_var.id}")
+                            if _DEBUG: print(f"DEBUG: Tracked useState assignment: {setter_func.id} -> {state_var.id}")
             return
         
         if len(node.targets) != 1 or not isinstance(node.targets[0], ast.Name):
@@ -230,28 +233,28 @@ class HandlerCompiler(ast.NodeVisitor):
             state_setter_map = {}
             for state_var, setter_func in usestate_matches:
                 state_setter_map[setter_func] = state_var
-                print(f"DEBUG: Tracked useState from regex: {setter_func} -> {state_var}")
+                if _DEBUG: print(f"DEBUG: Tracked useState from regex: {setter_func} -> {state_var}")
             
             # Extract create_onclick handlers using regex
             # Pattern to match: handleClick = create_onclick(lambda e: setName(name.upper()))
             # Need to handle nested parentheses in lambda body using greedy match
             create_pattern = r'(\w+)\s*=\s*create_onclick\(\s*lambda\s+[^:]+:\s*(.+)\)'
             matches = re.findall(create_pattern, func_content)
-            print(f"DEBUG: Regex pattern: {create_pattern}")
-            print(f"DEBUG: Regex matches: {matches}")
+            if _DEBUG: print(f"DEBUG: Regex pattern: {create_pattern}")
+            if _DEBUG: print(f"DEBUG: Regex matches: {matches}")
             
             for handler_name, lambda_code in matches:
                 try:
                     # Clean up the lambda code - remove whitespace
                     clean_code = lambda_code.rstrip()
-                    print(f"DEBUG: Compiling handler {handler_name} with code: {clean_code}")
+                    if _DEBUG: print(f"DEBUG: Compiling handler {handler_name} with code: {clean_code}")
                     
                     # Generate placeholder key
                     placeholder = _get_python_call_placeholder_from_lambda_code(clean_code)
                     
                     # FIX: Pass state_setter_map to compile_handler_to_actions
                     actions = compile_handler_to_actions(clean_code, handler_name, state_setter_map)
-                    print(f"DEBUG: Compiled actions for {handler_name}: {actions}")
+                    if _DEBUG: print(f"DEBUG: Compiled actions for {handler_name}: {actions}")
                     if actions:
                         handlers[placeholder] = actions
                 except Exception as e:
@@ -301,7 +304,7 @@ class HandlerCompiler(ast.NodeVisitor):
                             actions = compile_handler_to_actions(body_code, handler_name, state_setter_map)
                             if actions:
                                 handlers[handler_name] = actions
-                                print(f"DEBUG: Extracted function handler: {handler_name} -> {len(actions)} actions")
+                                if _DEBUG: print(f"DEBUG: Extracted function handler: {handler_name} -> {len(actions)} actions")
                         except Exception as e:
                             print(f"Function handler compilation error for {handler_name}: {e}")
                 else:
@@ -405,7 +408,7 @@ class EnhancedHandlerExtractor:
             file_path = None
             if hasattr(func, '__module__'):
                 module_name = func.__module__
-                print(f"DEBUG: EnhancedHandlerExtractor looking for module: {module_name}")
+                if _DEBUG: print(f"DEBUG: EnhancedHandlerExtractor looking for module: {module_name}")
                 import sys
                 import os
                 import re
@@ -416,11 +419,11 @@ class EnhancedHandlerExtractor:
                     potential = mod.__original_file__
                     if os.path.exists(potential):
                         file_path = potential
-                        print(f"DEBUG: EnhancedHandlerExtractor found via __original_file__: {file_path}")
+                        if _DEBUG: print(f"DEBUG: EnhancedHandlerExtractor found via __original_file__: {file_path}")
                 
                 # Fallback: find the source file
+                pages_paths = []
                 if not file_path:
-                    pages_paths = []
                     for ext in ('.psx', '.py'):
                         pages_paths.extend([
                             os.path.join(os.getcwd(), 'pages', module_name + ext),
@@ -428,20 +431,20 @@ class EnhancedHandlerExtractor:
                         ])
                 
                 for potential_file in pages_paths:
-                    print(f"DEBUG: EnhancedHandlerExtractor checking pages path: {potential_file}")
+                    if _DEBUG: print(f"DEBUG: EnhancedHandlerExtractor checking pages path: {potential_file}")
                     if os.path.exists(potential_file):
                         file_path = potential_file
-                        print(f"DEBUG: EnhancedHandlerExtractor found PSX file in pages: {file_path}")
+                        if _DEBUG: print(f"DEBUG: EnhancedHandlerExtractor found PSX file in pages: {file_path}")
                         break
                 
                 # If not found in pages, try sys.path
                 if not file_path:
                     for path in sys.path:
                         potential_file = os.path.join(path, module_name.replace('.', '/') + '.psx')
-                        print(f"DEBUG: EnhancedHandlerExtractor checking sys.path: {potential_file}")
+                        if _DEBUG: print(f"DEBUG: EnhancedHandlerExtractor checking sys.path: {potential_file}")
                         if os.path.exists(potential_file):
                             file_path = potential_file
-                            print(f"DEBUG: EnhancedHandlerExtractor found PSX file in sys.path: {file_path}")
+                            if _DEBUG: print(f"DEBUG: EnhancedHandlerExtractor found PSX file in sys.path: {file_path}")
                             break
             
             # Try module.__original_file__ (set by JSX transformer before exec)
@@ -452,7 +455,7 @@ class EnhancedHandlerExtractor:
                     potential = mod.__original_file__
                     if os.path.exists(potential):
                         file_path = potential
-                        print(f"DEBUG: EnhancedHandlerExtractor found via __original_file__: {file_path}")
+                        if _DEBUG: print(f"DEBUG: EnhancedHandlerExtractor found via __original_file__: {file_path}")
             
             if not file_path:
                 # Try to get file from inspect
@@ -508,28 +511,28 @@ class EnhancedHandlerExtractor:
             state_setter_map = {}
             for state_var, setter_func in usestate_matches:
                 state_setter_map[setter_func] = state_var
-                print(f"DEBUG: Tracked useState from regex: {setter_func} -> {state_var}")
+                if _DEBUG: print(f"DEBUG: Tracked useState from regex: {setter_func} -> {state_var}")
             
             # Extract create_onclick handlers using regex
             # Pattern to match: handleClick = create_onclick(lambda e: setName(name.upper()))
             # Need to handle nested parentheses in lambda body using greedy match
             create_pattern = r'(\w+)\s*=\s*create_onclick\(\s*lambda\s+[^:]+:\s*(.+)\)'
             matches = re.findall(create_pattern, func_content)
-            print(f"DEBUG: Regex pattern: {create_pattern}")
-            print(f"DEBUG: Regex matches: {matches}")
+            if _DEBUG: print(f"DEBUG: Regex pattern: {create_pattern}")
+            if _DEBUG: print(f"DEBUG: Regex matches: {matches}")
             
             for handler_name, lambda_code in matches:
                 try:
                     # Clean up the lambda code - remove whitespace
                     clean_code = lambda_code.rstrip()
-                    print(f"DEBUG: Compiling handler {handler_name} with code: {clean_code}")
+                    if _DEBUG: print(f"DEBUG: Compiling handler {handler_name} with code: {clean_code}")
                     
                     # Generate placeholder key
                     placeholder = _get_python_call_placeholder_from_lambda_code(clean_code)
                     
                     # FIX: Pass state_setter_map to compile_handler_to_actions
                     actions = compile_handler_to_actions(clean_code, handler_name, state_setter_map)
-                    print(f"DEBUG: Compiled actions for {handler_name}: {actions}")
+                    if _DEBUG: print(f"DEBUG: Compiled actions for {handler_name}: {actions}")
                     if actions:
                         handlers[placeholder] = actions
                 except Exception as e:
@@ -578,7 +581,7 @@ class EnhancedHandlerExtractor:
                             actions = compile_handler_to_actions(body_code, handler_name, state_setter_map)
                             if actions:
                                 handlers[handler_name] = actions
-                                print(f"DEBUG: Extracted function handler (enhanced): {handler_name} -> {len(actions)} actions")
+                                if _DEBUG: print(f"DEBUG: Extracted function handler (enhanced): {handler_name} -> {len(actions)} actions")
                         except Exception as e:
                             print(f"Function handler compilation error for {handler_name}: {e}")
                 else:

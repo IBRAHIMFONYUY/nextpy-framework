@@ -3,7 +3,6 @@ Interactive Component Decorator for NextPy PSX - PRODUCTION VERSION
 Enables client-side interactivity with proper handler registration
 """
 
-from cgitb import handler
 import sys
 import inspect
 import re
@@ -533,6 +532,33 @@ def generate_handler_registration_script(
             if (handler) handler.call(component, e);
         });
 
+        // Delegate input events (text/password/textarea bindings)
+        document.addEventListener('input', function(e) {
+            const el = e.target.closest('[data-handler-input]');
+            if (!el) return;
+
+            const handlerName = el.getAttribute('data-handler-input');
+
+            let componentId = el.closest('[data-component-id]')?.getAttribute('data-component-id');
+            if (!componentId) {
+                componentId = document.body.getAttribute('data-component-id');
+            }
+            if (!componentId) {
+                const componentIds = Object.keys(window.nextpyComponents || {});
+                if (componentIds.length > 0) {
+                    componentId = componentIds[0];
+                }
+            }
+
+            if (!componentId) return;
+
+            const component = window.nextpyComponents?.[componentId];
+            if (!component) return;
+
+            const handler = component._handlers?.[handlerName];
+            if (handler) handler.call(component, e);
+        });
+
         // Delegate submit events
         document.addEventListener('submit', function(e) {
             const el = e.target.closest('[data-handler-submit]');
@@ -844,9 +870,6 @@ def interactive_component(func: Callable) -> Callable:
     
     @wraps(func)
     def wrapper(*args, **kwargs):
-        # First, get the component from the base decorator
-        base_component_result = base_component(func)(*args, **kwargs)
-        
         # Extract props if provided
         props = args[0] if args and isinstance(args[0], dict) else kwargs
         
@@ -951,8 +974,11 @@ def interactive_component(func: Callable) -> Callable:
             props = {}
         props['_component_id'] = component_id
         
-        # Execute the component function
-        base_component_result = func(props)
+        # Execute through the base decorator so props, local helpers, and
+        # module-level components are captured in ``_psx_context``. Calling
+        # the raw ``func`` here loses nested functions used inside {for}/{if}
+        # blocks (e.g. job_type_label) and breaks their evaluation.
+        base_component_result = base_component(func)(props)
         
         # FIX: Extract state early before rendering
         from .integration import get_component_hydrator
@@ -974,7 +1000,6 @@ def interactive_component(func: Callable) -> Callable:
                 
                 # FIX: Post-process HTML to add component_id to conditional elements
                 # This is a fallback mechanism to ensure conditional elements have the component_id
-                import re
                 def add_component_id_to_conditionals(html, component_id):
                     # Pattern to match conditional spans with empty component_id
                     # Handle both escaped and unescaped quotes
@@ -1069,10 +1094,13 @@ def interactive_component(func: Callable) -> Callable:
         
         
         # Generate scripts
-        full_script = engine.generate_hydration_script()
+        # Only emit this component's hydration script. Generating all
+        # contexts makes every component embed every earlier component,
+        # producing quadratic page size and leaking scripts across routes.
+        full_script = engine.generate_hydration_script(component_id)
         
         handler_script = generate_handler_registration_script(handlers, component_id, state_keys=state_keys, html=html)
-        hydration_script = hydrator.generate_hydration_script()
+        hydration_script = hydrator.generate_hydration_script(component_id)
         
         # Load JS action runtime script for executeNextPyActions
         try:
@@ -1087,6 +1115,10 @@ def interactive_component(func: Callable) -> Callable:
         # 3. Hydration script (initializes components)
         # 4. Handler registration script (uses executeNextPyActions)
         complete_script = f"{action_runtime_script}\n\n{full_script}\n\n{hydration_script}\n\n{handler_script}"
+        
+        # The script is self-contained now; drop the server-side context so
+        # repeated page renders do not accumulate every component ever seen.
+        engine.cleanup_component(component_id)
         
         # Create a wrapped result that includes hydration data
         class InteractiveComponentResult:

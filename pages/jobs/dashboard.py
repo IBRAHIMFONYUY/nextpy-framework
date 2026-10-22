@@ -1,44 +1,26 @@
 """
-JobHub - Dashboard page. Uses useFetch + useCrudEvent + callServerAction.
+JobHub - Dashboard page.
 Employer sees their posted jobs + applications. Job seeker sees their applications.
+
+The authenticated user and their data are resolved during SSR so the page
+never flashes "Please log in" after a successful login/registration.
 """
 
-from nextpy.psx import interactive_component, useState, callServerAction, useFetch, useCrudEvent
+from nextpy.psx import interactive_component, useState, callServerAction
 
 
 @interactive_component
 def DashboardPage(props=None):
-    me_data = useFetch("/__nextpy/actions/execute", {
-        "method": "POST",
-        "headers": {"Content-Type": "application/json", "Accept": "application/json"},
-        "body": '{"action":"get_me","params":{}}',
-    })
-    me = me_data.get("data") or {}
-    user = me.get("user") if isinstance(me, dict) else None
-
-    is_employer = user and user.get("role") == "employer"
-
-    jobs_data = useFetch("/__nextpy/actions/execute", {
-        "method": "POST",
-        "headers": {"Content-Type": "application/json", "Accept": "application/json"},
-        "body": '{"action":"get_my_jobs","params":{}}',
-    })
-    my_jobs = jobs_data.get("data", []) or []
-    if isinstance(my_jobs, dict) and "data" in my_jobs:
-        my_jobs = my_jobs["data"]
+    props = props or {}
+    user = props.get("user")
+    my_jobs = props.get("my_jobs") or []
+    my_apps = props.get("my_apps") or []
     if not isinstance(my_jobs, list):
         my_jobs = []
-
-    apps_data = useFetch("/__nextpy/actions/execute", {
-        "method": "POST",
-        "headers": {"Content-Type": "application/json", "Accept": "application/json"},
-        "body": '{"action":"get_my_applications","params":{}}',
-    })
-    my_apps = apps_data.get("data", []) or []
-    if isinstance(my_apps, dict) and "data" in my_apps:
-        my_apps = my_apps["data"]
     if not isinstance(my_apps, list):
         my_apps = []
+
+    is_employer = bool(user and user.get("role") == "employer")
 
     [confirming_delete, setConfirmingDelete] = useState(0)
     [deleting, setDeleting] = useState(False)
@@ -74,7 +56,7 @@ def DashboardPage(props=None):
                         </p>
                     </div>
 
-                    {if is_employer:
+                    {if user.get("role") == "employer":
                         <section>
                             <div class="flex items-center justify-between mb-6">
                                 <h2 class="text-xl font-semibold text-gray-900">My Job Listings</h2>
@@ -124,7 +106,7 @@ def DashboardPage(props=None):
                         </section>
                     }
 
-                    {if not is_employer:
+                    {if user.get("role") != "employer":
                         <section>
                             <h2 class="mb-6 text-xl font-semibold text-gray-900">My Applications</h2>
 
@@ -166,6 +148,96 @@ def DashboardPage(props=None):
             }
         </div>
     )
+
+
+def _job_to_dict(job, app_count=0):
+    return {
+        "id": job.id,
+        "title": job.title,
+        "company": job.company,
+        "location": job.location or "",
+        "description": job.description or "",
+        "job_type": job.job_type or "full_time",
+        "experience_level": job.experience_level or "mid",
+        "is_active": job.is_active,
+        "created_at": job.created_at.isoformat() if job.created_at else None,
+        "app_count": app_count,
+    }
+
+
+def _application_to_dict(app, job=None):
+    return {
+        "id": app.id,
+        "job_id": app.job_id,
+        "applicant_id": app.applicant_id,
+        "cover_letter": app.cover_letter or "",
+        "status": app.status or "pending",
+        "created_at": app.created_at.isoformat() if app.created_at else None,
+        "job": {
+            "id": job.id,
+            "title": job.title,
+            "company": job.company,
+        } if job else None,
+    }
+
+
+def getServerSideProps(context):
+    from nextpy.db import get_session, User, Job, Application
+    from nextpy.auth import get_user_id_from_request
+
+    request = context.get("request") or context.get("req")
+    user_id = get_user_id_from_request(request) if request else None
+    if user_id is None:
+        return {"props": {"user": None, "my_jobs": [], "my_apps": []}}
+
+    db = get_session()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user is None:
+            return {"props": {"user": None, "my_jobs": [], "my_apps": []}}
+
+        user_data = {
+            "id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "full_name": user.full_name or "",
+            "role": user.role or "job_seeker",
+        }
+
+        jobs = (
+            db.query(Job)
+            .filter(Job.employer_id == user.id)
+            .order_by(Job.created_at.desc())
+            .all()
+        )
+        my_jobs = [
+            _job_to_dict(
+                job,
+                db.query(Application).filter(Application.job_id == job.id).count(),
+            )
+            for job in jobs
+        ]
+
+        applications = (
+            db.query(Application)
+            .filter(Application.applicant_id == user.id)
+            .order_by(Application.created_at.desc())
+            .all()
+        )
+        my_apps = []
+        for app in applications:
+            job = db.query(Job).filter(Job.id == app.job_id).first() if app.job_id else None
+            my_apps.append(_application_to_dict(app, job))
+
+        return {
+            "props": {
+                "user": user_data,
+                "my_jobs": my_jobs,
+                "my_apps": my_apps,
+            }
+        }
+    finally:
+        db.close()
 
 
 default = DashboardPage

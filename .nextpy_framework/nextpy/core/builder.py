@@ -1,6 +1,6 @@
 """
-NextPy Builder - Static Site Generation (SSG)
-Builds static HTML files to the out/ directory
+NextPy Builder - Static Site Generation (SSG) with Build Optimization
+Builds static HTML files to the out/ directory with code splitting and tree shaking
 """
 
 import os
@@ -24,6 +24,7 @@ class Builder:
     """
     Static Site Generator for NextPy
     Builds all pages to static HTML in the out/ directory
+    with optional build optimization (tree shaking, code splitting, minification)
     """
     
     def __init__(
@@ -32,11 +33,20 @@ class Builder:
         templates_dir: str = "templates",
         public_dir: str = "public",
         out_dir: str = "out",
+        optimize: bool = True,
+        minify: bool = True,
+        tree_shaking: bool = True,
+        code_splitting: bool = True,
     ):
         self.pages_dir = Path(pages_dir)
         self.templates_dir = Path(templates_dir)
         self.public_dir = Path(public_dir)
         self.out_dir = Path(out_dir)
+        
+        self.optimize = optimize
+        self.minify = minify
+        self.tree_shaking = tree_shaking
+        self.code_splitting = code_splitting
         
         self.router = Router(pages_dir, templates_dir)
         self.renderer = Renderer(templates_dir, pages_dir, public_dir)
@@ -45,11 +55,12 @@ class Builder:
             "version": 1,
             "pages": {},
             "build_time": None,
+            "optimization": {},
         }
         
     async def build(self, clean: bool = True) -> Dict[str, Any]:
         """
-        Build all pages to static HTML
+        Build all pages to static HTML with optional optimization
         
         Args:
             clean: Whether to clean the output directory first
@@ -72,6 +83,9 @@ class Builder:
         await self._build_static_routes()
         
         await self._build_dynamic_routes()
+        
+        if self.optimize:
+            self._run_optimization()
         
         self._create_sitemap()
         
@@ -202,6 +216,88 @@ class Builder:
             return sys.modules.get(handler.__module__)
         return None
         
+    def _run_optimization(self) -> None:
+        """
+        Run build optimization.
+
+        - Tree shaking / code splitting: module dependency analysis over the
+          project (report-only; results stored in the build manifest).
+        - Minification: actually rewrites JS/CSS assets in the output dir.
+        """
+        try:
+            from nextpy.build.optimizer import BuildOptimizer, BundleConfig, Minifier
+
+            project_root = Path.cwd()
+            entry_points = []
+            for route in self.router.routes:
+                file_path = getattr(route, "file_path", None)
+                if not file_path or route.is_api:
+                    continue
+                try:
+                    entry_points.append(
+                        str(Path(file_path).resolve().relative_to(project_root))
+                    )
+                except ValueError:
+                    continue
+
+            config = BundleConfig(
+                entry_points=entry_points,
+                optimize=self.minify,
+                tree_shaking=self.tree_shaking,
+                code_splitting=self.code_splitting,
+            )
+            optimizer = BuildOptimizer(config=config)
+            optimizer.analyze_project(str(project_root))
+
+            opt_stats: Dict[str, Any] = {}
+
+            if self.tree_shaking:
+                removed = optimizer.perform_tree_shaking()
+                opt_stats["tree_shaking"] = {
+                    "entry_points": entry_points,
+                    "unused_modules": removed,
+                    "unused_count": len(removed),
+                    "note": "report-only; no files were deleted",
+                }
+
+            if self.code_splitting:
+                bundles = optimizer.perform_code_splitting()
+                opt_stats["code_splitting"] = {
+                    "chunk_count": len(bundles),
+                    "chunks": {k: len(v) for k, v in bundles.items()},
+                }
+
+            if self.minify:
+                opt_stats["minification"] = self._minify_output_assets(Minifier)
+
+            opt_stats["bundle_report"] = optimizer.generate_bundle_report()
+
+            self.build_manifest["optimization"] = opt_stats
+            print("  Optimization complete")
+
+        except ImportError:
+            print("  Warning: Build optimizer not available, skipping optimization")
+        except Exception as e:
+            print(f"  Warning: Optimization failed: {e}")
+
+    def _minify_output_assets(self, Minifier) -> Dict[str, int]:
+        """Minify JS/CSS assets in the output directory"""
+        savings = {"js_files": 0, "css_files": 0, "bytes_saved": 0}
+        for ext, minify_method in [("js", Minifier.minify_javascript), ("css", Minifier.minify_css)]:
+            for asset in self.out_dir.rglob(f"*.{ext}"):
+                try:
+                    original = asset.read_text()
+                    minified = minify_method(original)
+                    savings["bytes_saved"] += len(original) - len(minified)
+                    if ext == "js":
+                        savings["js_files"] += 1
+                    else:
+                        savings["css_files"] += 1
+                    asset.write_text(minified)
+                except Exception:
+                    continue
+        return savings
+
     def _create_sitemap(self) -> None:
         """Generate sitemap.xml"""
         pages = self.build_manifest["pages"]

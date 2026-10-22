@@ -16,6 +16,8 @@ import uvicorn
 import subprocess
 import shutil
 
+from nextpy import __version__
+
 try:
     from watchdog.observers import Observer
     from watchdog.events import FileSystemEventHandler
@@ -236,7 +238,7 @@ def _format_size(size_bytes: int) -> str:
 
 
 @click.group()
-@click.version_option(version="3.7.1", prog_name="NextPy")
+@click.version_option(version=__version__, prog_name="NextPy")
 def cli():
     """NextPy - The Python Web Framework"""
     pass
@@ -364,7 +366,11 @@ def dev(port: int, host: str, reload: bool, debug: bool):
 @cli.command()
 @click.option("--out", "-o", default="out", help="Output directory for static files")
 @click.option("--clean/--no-clean", default=True, help="Clean output directory first")
-def build(out: str, clean: bool):
+@click.option("--optimize/--no-optimize", default=True, help="Enable build optimization")
+@click.option("--minify/--no-minify", default=True, help="Minify JS/CSS assets")
+@click.option("--tree-shake/--no-tree-shake", default=True, help="Enable tree shaking")
+@click.option("--code-split/--no-code-split", default=True, help="Enable code splitting")
+def build(out: str, clean: bool, optimize: bool, minify: bool, tree_shake: bool, code_split: bool):
     """Build the project for production with enhanced feedback"""
     click.echo(click.style("\n  🔨 NextPy Static Build", fg="green", bold=True))
     click.echo(click.style("  ===================\n", fg="green"))
@@ -376,8 +382,17 @@ def build(out: str, clean: bool):
         if clean:
             click.echo(f"Cleaning output directory...")
 
+        if optimize:
+            click.echo(f"Optimization enabled: minify={minify}, tree_shake={tree_shake}, code_split={code_split}")
+
         click.echo(f"Initializing builder...")
-        builder = Builder(out_dir=out)
+        builder = Builder(
+            out_dir=out,
+            optimize=optimize,
+            minify=minify,
+            tree_shaking=tree_shake,
+            code_splitting=code_split,
+        )
 
         click.echo(f"Building static files...")
 
@@ -390,6 +405,7 @@ def build(out: str, clean: bool):
         pages_count = len(manifest.get("pages", {}))
         assets_count = len(manifest.get("assets", []))
         total_size = manifest.get("total_size", 0)
+        optimization = manifest.get("optimization", {})
 
         click.echo()
         click.echo(
@@ -398,6 +414,13 @@ def build(out: str, clean: bool):
         click.echo(f"Pages built: {pages_count}")
         click.echo(f"Assets processed: {assets_count}")
         click.echo(f"Total size: {_format_size(total_size)}")
+        if optimization:
+            ts = optimization.get("tree_shaking", {})
+            cs = optimization.get("code_splitting", {})
+            mn = optimization.get("minification", {})
+            click.echo(f"Tree shaking: {ts.get('unused_count', 0)} unused modules flagged (report only)")
+            click.echo(f"Code splitting: {cs.get('chunk_count', 0)} chunks")
+            click.echo(f"Minification: {mn.get('bytes_saved', 0)} bytes saved")
         click.echo(f"Output: {out}/")
         click.echo()
         click.echo(click.style(f"Ready for deployment!", fg="cyan", bold=True))
@@ -715,7 +738,7 @@ def export(out: str):
         click.echo(f"Exporting static files...")
 
         async def run_export():
-            manifest = await builder.export_static()
+            manifest = await builder.build(clean=True)
             return manifest
 
         manifest = asyncio.run(run_export())

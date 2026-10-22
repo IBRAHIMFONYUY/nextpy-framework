@@ -527,14 +527,10 @@ from nextpy.psx import component, useState
 @component
 def Counter():
     [count, setCount] = useState(0)
-
-    def handle_increment(e):
-        setCount(count + 1)
-
     return (
         <div>
             <p>Count: {count}</p>
-            <button onclick={handle_increment}>+</button>
+            <button create_onclick={lambda e: setCount(count + 1)}>+</button>
         </div>
     )
 ```
