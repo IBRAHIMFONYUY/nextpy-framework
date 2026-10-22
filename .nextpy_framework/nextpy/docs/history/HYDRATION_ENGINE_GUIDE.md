@@ -25,17 +25,20 @@ The **Hydration Engine** is a client-side runtime system that enables true inter
 ### 1. Using the Interactive Decorator
 
 ```python
-from nextpy.psx import component, useState, create_onclick
+from nextpy.psx import component, useState
 from nextpy.psx.hydration import interactive_component
 
 @interactive_component
 def Counter(props=None):
     [count, setCount] = useState(0)
-    
+
+    def handle_increment(e):
+        setCount(count + 1)
+
     return psx("""
         <div>
             <h1>Count: {count}</h1>
-            <button onclick={lambda e: setCount(count + 1)}>
+            <button onclick={handle_increment}>
                 Increment
             </button>
         </div>
@@ -92,8 +95,11 @@ def Component(props=None):
 Event handlers are automatically converted from Python to JavaScript:
 
 ```python
-# Python event handler
-onclick={lambda e: setCount(count + 1)}
+# Python event handler (named function)
+def handle_increment(e):
+    setCount(count + 1)
+
+onclick={handle_increment}
 
 # Converted to JavaScript
 state.set("count", count + 1)
@@ -257,13 +263,16 @@ def Form(props=None):
 @interactive_component
 def Component(props=None):
     [isOpen, setIsOpen] = useState(False)
-    
+
+    def handle_toggle(e):
+        setIsOpen(not isOpen)
+
     return psx("""
         {if isOpen:
             <div class="modal">Dropdown content</div>
         {/if}}
-        
-        <button onclick={lambda e: setIsOpen(not isOpen)}>
+
+        <button onclick={handle_toggle}>
             Toggle
         </button>
     """)
@@ -308,10 +317,13 @@ from nextpy.psx import useCallback
 @interactive_component
 def Component(props=None):
     [count, setCount] = useState(0)
-    
+
+    def handle_increment(e):
+        setCount(count + 1)
+
     # This handler is only created once
     handleIncrement = useCallback(
-        lambda e: setCount(count + 1),
+        handle_increment,
         [count]
     )
 ```

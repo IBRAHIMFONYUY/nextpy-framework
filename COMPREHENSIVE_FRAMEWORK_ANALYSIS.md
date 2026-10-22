@@ -484,18 +484,20 @@ npm install tailwindcss postcss autoprefixer
 **Using PSX (Recommended):**
 ```python
 # pages/index.py
-from nextpy.psx import component, useState, create_onclick
+from nextpy.psx import component, useState
 
 @component
 def HomePage():
     [count, setCount] = useState(0)
-    handle_click = create_onclick(lambda e: setCount(count + 1))
-    
+
+    def handle_increment(e):
+        setCount(count + 1)
+
     return (
         <div class="min-h-screen bg-gray-100">
             <h1 class="text-3xl font-bold">Welcome to NextPy</h1>
             <p class="text-xl">Count: {count}</p>
-            <button create_onclick={handle_click} class="px-4 py-2 bg-blue-500 text-white rounded">
+            <button onclick={handle_increment} class="px-4 py-2 bg-blue-500 text-white rounded">
                 Increment
             </button>
         </div>
@@ -525,10 +527,14 @@ from nextpy.psx import component, useState
 @component
 def Counter():
     [count, setCount] = useState(0)
+
+    def handle_increment(e):
+        setCount(count + 1)
+
     return (
         <div>
             <p>Count: {count}</p>
-            <button create_onclick={lambda e: setCount(count + 1)}>+</button>
+            <button onclick={handle_increment}>+</button>
         </div>
     )
 ```
