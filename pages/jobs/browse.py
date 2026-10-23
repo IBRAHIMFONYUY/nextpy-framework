@@ -137,7 +137,7 @@ def JobsBrowse(props=None):
 
             <div class="space-y-4">
                 {for job in jobs:
-                    <a href={f"/jobs/{job['id']}"}
+                    <a href="/jobs/{job['id']}"
                         class="block p-6 transition bg-white border border-gray-200 shadow-sm group rounded-xl hover:shadow-md hover:border-indigo-300">
                         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                             <div class="flex-1">
