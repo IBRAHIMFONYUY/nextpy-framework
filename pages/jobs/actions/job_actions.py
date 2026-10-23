@@ -137,8 +137,8 @@ async def update_job(
     company: str = "",
     location: str = "",
     description: str = "",
-    salary_min: int = 0,
-    salary_max: int = 0,
+    salary_min: str = "",
+    salary_max: str = "",
     job_type: str = "full_time",
     experience_level: str = "mid",
 ):
@@ -147,20 +147,39 @@ async def update_job(
     if user_id is None:
         return {"success": False, "error": "Not authenticated"}
 
+    title = (title or "").strip()
+    company = (company or "").strip()
+    description = (description or "").strip()
+    if not title or not company or not description:
+        return {"success": False, "error": "Title, company and description are required"}
+
+    try:
+        job_id = int(job_id)
+    except (ValueError, TypeError):
+        return {"success": False, "error": "Invalid job"}
+
+    try:
+        salary_min = int(salary_min) if str(salary_min).strip() else 0
+        salary_max = int(salary_max) if str(salary_max).strip() else 0
+    except (ValueError, TypeError):
+        return {"success": False, "error": "Salary must be a number"}
+
     db = get_session()
     try:
         job = db.query(Job).filter(Job.id == job_id, Job.employer_id == user_id).first()
         if not job:
             return {"success": False, "error": "Job not found or not yours"}
 
-        if title: job.title = title.strip()
-        if company: job.company = company.strip()
-        if location: job.location = location.strip()
-        if description: job.description = description.strip()
-        if salary_min: job.salary_min = max(salary_min, 0)
-        if salary_max: job.salary_max = max(salary_max, 0)
-        if job_type in ("full_time", "part_time", "contract", "internship"): job.job_type = job_type
-        if experience_level in ("entry", "mid", "senior", "lead"): job.experience_level = experience_level
+        job.title = title
+        job.company = company
+        job.location = (location or "").strip()
+        job.description = description
+        job.salary_min = max(salary_min, 0)
+        job.salary_max = max(salary_max, 0)
+        if job_type in ("full_time", "part_time", "contract", "internship"):
+            job.job_type = job_type
+        if experience_level in ("entry", "mid", "senior", "lead"):
+            job.experience_level = experience_level
 
         db.commit()
         db.refresh(job)

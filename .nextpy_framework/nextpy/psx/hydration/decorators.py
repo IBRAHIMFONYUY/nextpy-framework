@@ -254,6 +254,14 @@ def python_code_to_js(python_code: str, state_keys: Optional[List[str]] = None) 
         setter_name = match.group(1)  # "Count" from "setCount"
         expression = match.group(2)   # The argument
         state_key = setter_name[0].lower() + setter_name[1:]  # "count"
+
+        # Map the setter back to the actual useState variable. This handles
+        # setFullName -> full_name and setConfirmingDelete -> confirming_delete.
+        normalized_setter = setter_name.replace('_', '').lower()
+        for key in (state_keys or []):
+            if key == state_key or key.replace('_', '').lower() == normalized_setter:
+                state_key = key
+                break
         
         # SAFER: Only do basic state variable replacement
         # Do NOT try to parse full expressions with regex
@@ -298,7 +306,7 @@ def python_code_to_js(python_code: str, state_keys: Optional[List[str]] = None) 
     js_code = replace_state_variables(js_code, state_keys)
     
     # Pattern 5: Final cleanup and normalization
-    js_code = re.sub(r'\s+', ' ', js_code)  # Normalize whitespace
+    js_code = re.sub(r'[ \t]+', ' ', js_code)  # Normalize spaces, preserve newlines
     js_code = js_code.strip()
     
     return js_code
@@ -455,6 +463,36 @@ def generate_handler_registration_script(
     // Handler: {handler_name} (event: {event_type})
     component._handlers['{handler_name}'] = function(e) {{
         try {{
+            const triggerElement = e.__nextpyHandlerElement || e.currentTarget;
+            const bridgedEvent = {{
+                target: e.target,
+                currentTarget: triggerElement,
+                type: e.type,
+                key: e.key,
+                code: e.code,
+                detail: e.detail,
+                preventDefault: () => e.preventDefault(),
+                stopPropagation: () => e.stopPropagation()
+            }};
+            if (e.target && e.target.dataset) {{
+                bridgedEvent.targetDataset = {{ ...e.target.dataset }};
+            }}
+            if (triggerElement && triggerElement.dataset) {{
+                bridgedEvent.currentTargetDataset = {{ ...triggerElement.dataset }};
+            }}
+            if (e.target && e.target.value !== undefined) {{
+                bridgedEvent.value = e.target.value;
+            }}
+            if (component.state) {{
+                component.state.e = bridgedEvent;
+                component.state.event = bridgedEvent;
+            }}
+            const actionRuntime = window.NextPyActionRuntime;
+            const actionComponent = actionRuntime && actionRuntime.components && actionRuntime.components.get(componentId);
+            if (actionComponent && actionComponent.state) {{
+                actionComponent.state.e = bridgedEvent;
+                actionComponent.state.event = bridgedEvent;
+            }}
             {safe_js_body}
         }} catch (error) {{
             console.error('Error in handler {handler_name}:', error);
@@ -501,7 +539,7 @@ def generate_handler_registration_script(
 
             const handler = component._handlers?.[handlerName];
             console.log('Handler found:', handler);
-            if (handler) handler.call(component, e);
+            if (handler) { e.__nextpyHandlerElement = el; handler.call(component, e); }
         });
 
         // Delegate change events
@@ -529,7 +567,7 @@ def generate_handler_registration_script(
             if (!component) return;
 
             const handler = component._handlers?.[handlerName];
-            if (handler) handler.call(component, e);
+            if (handler) { e.__nextpyHandlerElement = el; handler.call(component, e); }
         });
 
         // Delegate input events (text/password/textarea bindings)
@@ -556,7 +594,7 @@ def generate_handler_registration_script(
             if (!component) return;
 
             const handler = component._handlers?.[handlerName];
-            if (handler) handler.call(component, e);
+            if (handler) { e.__nextpyHandlerElement = el; handler.call(component, e); }
         });
 
         // Delegate submit events
@@ -586,6 +624,7 @@ def generate_handler_registration_script(
             const handler = component._handlers?.[handlerName];
             if (handler) {
                 e.preventDefault();
+                e.__nextpyHandlerElement = el;
                 handler.call(component, e);
             }
         });
@@ -1057,6 +1096,14 @@ def interactive_component(func: Callable) -> Callable:
             except Exception as e:
                 state_keys = []
         
+        # Supplement state keys from the rendered context. inspect.getsource
+        # often fails for dynamically loaded pages, but the context still has
+        # the actual useState variable names (e.g. full_name, confirming_delete).
+        if hasattr(base_component_result, '_psx_context'):
+            for _key, _value in base_component_result._psx_context.items():
+                if not callable(_value) and not str(_key).startswith('_') and _key not in state_keys:
+                    state_keys.append(_key)
+
         # FIX: Extract lambda handlers from _psx_context (set by PSXRuntime during rendering)
         if hasattr(base_component_result, '_psx_context'):
             lambda_handlers = base_component_result._psx_context.get('_lambda_handlers', {})

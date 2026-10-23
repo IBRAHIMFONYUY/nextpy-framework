@@ -101,6 +101,15 @@ class HydrationEngine:
         }}
         
         set(key, value) {{
+            // Accept camelCase aliases from lambda setters even when useState
+            // declared a snake_case variable (setFullName -> full_name).
+            if (!(key in this.state)) {{
+                const normalized = String(key).replace(/_/g, '').toLowerCase();
+                const match = Object.keys(this.state).find(
+                    (candidate) => candidate.replace(/_/g, '').toLowerCase() === normalized
+                );
+                if (match) key = match;
+            }}
             const oldValue = this.state[key];
             this.state[key] = value;
 

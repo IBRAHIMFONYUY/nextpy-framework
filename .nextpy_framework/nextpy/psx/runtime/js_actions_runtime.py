@@ -708,14 +708,6 @@ class NextPyActionRuntime {
             }
         }
 
-        // Find DOM elements that depend on this state (legacy data-state-* attributes)
-        const elements = document.querySelectorAll(`[data-state-${key}]`);
-        elements.forEach(element => {
-            if (element.dataset.componentId === componentId) {
-                element.textContent = newValue;
-            }
-        });
-        
         // FIX: Re-evaluate ALL conditional elements for this component on ANY state change.
         // Conditions reference derived Python variables (user, is_employer, etc.) that
         // don't match state keys (_fetch_data_0, etc.), so we can't rely on the
@@ -735,6 +727,20 @@ class NextPyActionRuntime {
                 const condition = element.dataset.ifCondition;
                 if (condition) {
                     this._updateConditionalElement(element, componentId, condition);
+                }
+            }
+        });
+
+        // Find DOM elements that depend on this state (legacy data-state-* attributes).
+        // This must run after conditional content is (re)injected so state-driven text
+        // inside conditionals is not wiped by the template content.
+        const elements = document.querySelectorAll(`[data-state-${key}]`);
+        elements.forEach(element => {
+            if (element.dataset.componentId === componentId || !element.dataset.componentId) {
+                const text = (newValue === null || newValue === undefined) ? '' : String(newValue);
+                element.textContent = text;
+                if (element.hasAttribute('data-state-toggle')) {
+                    element.style.display = text ? '' : 'none';
                 }
             }
         });
@@ -780,8 +786,25 @@ class NextPyActionRuntime {
                 const raw = unescapeHtml(falseContent);
                 element.innerHTML = this._evaluatePSXContent(raw, fullState);
             }
+            this._applyStateBindings(element, componentId);
         } catch (error) {
             console.error('Conditional update error:', error);
+        }
+    }
+
+    _applyStateBindings(root, componentId) {
+        const component = this.components.get(componentId);
+        if (!component) return;
+        for (const [stateKey, stateValue] of Object.entries(component.state)) {
+            const nodes = root.querySelectorAll(`[data-state-${stateKey}]`);
+            if (!nodes.length) continue;
+            const text = (stateValue === null || stateValue === undefined) ? '' : String(stateValue);
+            nodes.forEach(node => {
+                node.textContent = text;
+                if (node.hasAttribute('data-state-toggle')) {
+                    node.style.display = text ? '' : 'none';
+                }
+            });
         }
     }
 
@@ -1399,6 +1422,12 @@ window.navigateTo = function(url) {
     } else {
         window.location.href = url;
     }
+};
+
+// Full navigation — used after auth changes so SSR layout (nav/auth state)
+// is refreshed along with the page.
+window.nextpyHardNavigate = function(url) {
+    window.location.href = url;
 };
 
 // SPA-style reload — re-fetches current page content without full reload

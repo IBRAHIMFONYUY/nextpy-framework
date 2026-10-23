@@ -73,6 +73,9 @@ CLIENT_ROUTER_SCRIPT = r"""
     var observedLinks = new Set();
     var observer = null;
     var navToken = 0;
+    // The URL currently rendered in the DOM. Location changes before popstate
+    // fires, so compare against this instead of window.location.
+    var renderedHref = window.location.pathname + window.location.search;
 
     function isInternal(url) {
         return url.origin === window.location.origin &&
@@ -188,6 +191,7 @@ CLIENT_ROUTER_SCRIPT = r"""
         } else if (opts.push !== false) {
             history.pushState({}, '', href);
         }
+        renderedHref = href;
         if (opts.scroll !== false) {
             var y = opts.restoreScroll ? (scrollPositions.get(href) || 0) : 0;
             window.scrollTo(0, y);
@@ -198,6 +202,10 @@ CLIENT_ROUTER_SCRIPT = r"""
 
     function applyEntry(entry, href, opts) {
         if (entry.fragment) {
+            // Fragments only contain page content, not the layout. Applying a
+            // cached fragment from another layout would keep the previous
+            // layout (e.g. docs sidebar) around an unrelated page.
+            if (!entry.sig || entry.sig !== layoutSig()) return false;
             var target = document.getElementById('nextpy-page');
             if (!target) return false;
             var holder = document.createElement('div');
@@ -233,9 +241,10 @@ CLIENT_ROUTER_SCRIPT = r"""
             return;
         }
 
-        // Same document: only the hash changed.
-        if (target.pathname === window.location.pathname &&
-            target.search === window.location.search) {
+        // Same rendered document: only the hash changed. Do not compare with
+        // window.location here; on popstate the URL has already changed while
+        // the DOM still shows the previous page.
+        if (target.pathname + target.search === renderedHref) {
             if (target.hash) {
                 var el = document.querySelector(target.hash);
                 if (el) el.scrollIntoView();
@@ -252,14 +261,21 @@ CLIENT_ROUTER_SCRIPT = r"""
         scrollPositions.set(currentUrl(), window.scrollY);
 
         var cached = cacheGet(href);
+        if (cached) {
+            var applied = applyEntry(cached, href, opts);
+            if (applied === false) {
+                // Cached fragment belongs to a different layout; discard it
+                // and fetch the page for the current layout.
+                cache.delete(href);
+                cached = null;
+            }
+        }
         if (cached && !cached.stale) {
-            applyEntry(cached, href, opts);
             return;
         }
 
         if (cached && cached.stale) {
             // Instant paint from cache, refresh in the background.
-            applyEntry(cached, href, opts);
             fetchPage(href, {fragment: cached.fragment})
                 .then(function (fresh) {
                     cacheSet(href, fresh);

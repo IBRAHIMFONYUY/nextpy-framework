@@ -275,7 +275,7 @@ class HandlerCompiler(ast.NodeVisitor):
             
             # Extract regular function definitions as handlers
             # Pattern: def handle_something(e): or def handle_something(event):
-            func_def_pattern = r'^(\s*)def\s+(\w+)\s*\(\s*\w+\s*\)\s*:'
+            func_def_pattern = r'^(\s*)def\s+(\w+)\s*\([^)]*\)\s*:'
             lines = func_content.split('\n')
             i = 0
             while i < len(lines):
