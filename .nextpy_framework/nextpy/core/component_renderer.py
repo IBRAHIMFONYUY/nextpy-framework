@@ -44,6 +44,7 @@ class ComponentRenderer:
         }
         self.render_cache = {}
         self.render_cache_timeout = 60  # 1 minute for rendered content
+        self.revalidate_cache: Dict[str, Optional[int]] = {}
         
     def _is_cache_valid(self, file_path: Path, cache_entry: Dict[str, Any]) -> bool:
         """Check if cache entry is still valid"""
@@ -64,6 +65,19 @@ class ComponentRenderer:
                 
         return True
         
+    def get_revalidate(self, file_path: Path) -> Optional[int]:
+        """Return the ISR revalidate interval for a page, if declared."""
+        key = str(file_path)
+        if key in self.revalidate_cache:
+            return self.revalidate_cache[key]
+        try:
+            module = self.load_component_module(file_path)
+            value = getattr(module, "revalidate", None)
+            self.revalidate_cache[key] = int(value) if value is not None else None
+            return self.revalidate_cache[key]
+        except Exception:
+            return None
+
     def _get_cache_key(self, file_path: Path, context: Dict[str, Any] = None) -> str:
         """Generate a stable cache key, ignoring request-scoped objects."""
         stable: Dict[str, Any] = {}
@@ -187,14 +201,14 @@ class ComponentRenderer:
             page_props = {}
             
             # getServerSideProps (runs on every request)
-            if hasattr(module, 'getServerSideProps'):
+            if not context.get('__nextpy_props_loaded') and hasattr(module, 'getServerSideProps'):
                 if callable(module.getServerSideProps):
                     result = module.getServerSideProps(context)
                     if isinstance(result, dict) and 'props' in result:
                         page_props.update(result['props'])
             
             # getStaticProps (runs at build time)
-            elif hasattr(module, 'getStaticProps'):
+            elif not context.get('__nextpy_props_loaded') and hasattr(module, 'getStaticProps'):
                 if callable(module.getStaticProps):
                     static_props_key = self._static_props_key(file_path, context)
                     static_cache_entry = self.cache.get(static_props_key)
@@ -205,10 +219,16 @@ class ComponentRenderer:
                         result = module.getStaticProps(context)
                         if isinstance(result, dict) and 'props' in result:
                             page_props.update(result['props'])
+                            revalidate = result.get('revalidate')
+                            if revalidate is None:
+                                revalidate = getattr(module, 'revalidate', None)
+                            if revalidate is not None:
+                                self.revalidate_cache[str(file_path)] = int(revalidate)
                             self.cache[static_props_key] = {
                                 'props': result['props'],
                                 'timestamp': time.time(),
-                                'file_mtime': file_path.stat().st_mtime if file_path.exists() else 0
+                                'file_mtime': file_path.stat().st_mtime if file_path.exists() else 0,
+                                'revalidate': revalidate,
                             }
             
             # Get the main component
@@ -276,14 +296,14 @@ class ComponentRenderer:
             page_props = {}
             
             # getServerSideProps (runs on every request)
-            if hasattr(module, 'getServerSideProps'):
+            if not context.get('__nextpy_props_loaded') and hasattr(module, 'getServerSideProps'):
                 if callable(module.getServerSideProps):
                     result = module.getServerSideProps(context)
                     if isinstance(result, dict) and 'props' in result:
                         page_props.update(result['props'])
             
             # getStaticProps (runs at build time)
-            elif hasattr(module, 'getStaticProps'):
+            elif not context.get('__nextpy_props_loaded') and hasattr(module, 'getStaticProps'):
                 if callable(module.getStaticProps):
                     # Check if we have cached static props
                     static_props_key = self._static_props_key(file_path, context)
@@ -295,11 +315,17 @@ class ComponentRenderer:
                         result = module.getStaticProps(context)
                         if isinstance(result, dict) and 'props' in result:
                             page_props.update(result['props'])
+                            revalidate = result.get('revalidate')
+                            if revalidate is None:
+                                revalidate = getattr(module, 'revalidate', None)
+                            if revalidate is not None:
+                                self.revalidate_cache[str(file_path)] = int(revalidate)
                             # Cache static props
                             self.cache[static_props_key] = {
                                 'props': result['props'],
                                 'timestamp': time.time(),
-                                'file_mtime': file_path.stat().st_mtime if file_path.exists() else 0
+                                'file_mtime': file_path.stat().st_mtime if file_path.exists() else 0,
+                                'revalidate': revalidate,
                             }
             
             # Get the main component

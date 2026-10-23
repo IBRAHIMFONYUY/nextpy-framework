@@ -7,6 +7,7 @@ client-side list re-rendering.
 """
 
 from nextpy.psx import interactive_component
+from urllib.parse import urlencode
 
 
 def job_type_label(jt):
@@ -20,12 +21,21 @@ def JobsBrowse(props=None):
     search = props.get("search", "") or ""
     job_type = props.get("job_type", "") or ""
     experience_level = props.get("experience_level", "") or ""
+    per_page = int(props.get("per_page") or 6)
+    if per_page < 1:
+        per_page = 6
+    if per_page > 50:
+        per_page = 50
     jobs = props.get("jobs") or []
+    pagination = props.get("pagination") or {}
+    page = int(pagination.get("page") or 1)
+    total = int(pagination.get("total") or len(jobs))
     if not isinstance(jobs, list):
         jobs = []
     jobs = [dict(job) for job in jobs]
     for job in jobs:
         job["type_label"] = job_type_label(job.get("job_type", "full_time"))
+        job["location"] = job.get("location") or "Remote"
 
     JOB_TYPES = [
         ("", "All Types"),
@@ -51,11 +61,43 @@ def JobsBrowse(props=None):
         for val, label in LEVELS
     )
 
+    def page_url(target_page):
+        params = {"page": target_page}
+        if search:
+            params["search"] = search
+        if job_type:
+            params["job_type"] = job_type
+        if experience_level:
+            params["experience_level"] = experience_level
+        if per_page != 6:
+            params["per_page"] = per_page
+        return "/jobs/browse?" + urlencode(params)
+
+    prev_url = page_url(max(1, page - 1))
+    next_url = page_url(page + 1)
+    page_count = int(pagination.get("pages") or 0)
+    has_prev = pagination.get("has_prev")
+    has_next = pagination.get("has_next")
+    prev_html = (
+        f'<a href="{prev_url}" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Previous</a>'
+        if has_prev else "<span></span>"
+    )
+    next_html = (
+        f'<a href="{next_url}" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Next</a>'
+        if has_next else "<span></span>"
+    )
+    pagination_html = (
+        '<div class="flex items-center justify-between pt-4 mt-8 border-t border-gray-200">'
+        + prev_html
+        + f'<span class="text-sm text-gray-500">Page {page} of {page_count}</span>'
+        + next_html
+        + "</div>"
+    ) if page_count > 1 else ""
     return (
         <div>
             <div class="mb-8">
                 <h1 class="text-3xl font-bold text-gray-900">Browse Jobs</h1>
-                <p class="mt-1 text-gray-600">{len(jobs)} positions available</p>
+                <p class="mt-1 text-gray-600">{total} positions available</p>
             </div>
 
             <form method="GET" action="/jobs/browse" class="p-6 mb-8 bg-white border border-gray-200 shadow-sm rounded-xl">
@@ -112,12 +154,14 @@ def JobsBrowse(props=None):
                                 <p class="mt-2 text-sm text-gray-500 line-clamp-2">{job.get("description", "")[:150]}</p>
                             </div>
                             <div class="flex flex-col items-end gap-2 text-sm text-gray-500 sm:min-w-[140px]">
-                                <span>{job.get("location") or "Remote"}</span>
+                                <span>{job["location"]}</span>
                             </div>
                         </div>
                     </a>
                 }
             </div>
+
+            {pagination_html}
         </div>
     )
 
@@ -140,36 +184,45 @@ def _serialize_job(job):
 
 
 def getServerSideProps(context):
-    from nextpy.db import get_session, Job
+    from nextpy.db import get_session, Job, apply_filters, paginate
 
     query_params = context.get("query", {}) or {}
     search = (query_params.get("search", "") or "").strip()
     job_type = (query_params.get("job_type", "") or "").strip()
     experience_level = (query_params.get("experience_level", "") or "").strip()
+    try:
+        page = max(1, int(query_params.get("page", 1) or 1))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = min(50, max(1, int(query_params.get("per_page", 6) or 6)))
+    except (TypeError, ValueError):
+        per_page = 6
 
     db = get_session()
     try:
-        q = db.query(Job).filter(Job.is_active == True)
-        if search:
-            term = f"%{search}%"
-            q = q.filter(
-                (Job.title.ilike(term)) | (Job.company.ilike(term)) | (Job.description.ilike(term))
-            )
-        if job_type:
-            q = q.filter(Job.job_type == job_type)
-        if experience_level:
-            q = q.filter(Job.experience_level == experience_level)
-        jobs = q.order_by(Job.created_at.desc()).limit(50).all()
+        query = apply_filters(
+            db.query(Job),
+            Job,
+            {"is_active": True, "job_type": job_type, "experience_level": experience_level},
+            allowed=("is_active", "job_type", "experience_level"),
+            search=search,
+            search_fields=("title", "company", "description"),
+        )
+        result = paginate(query.order_by(Job.created_at.desc()), page, per_page)
         return {
             "props": {
                 "search": search,
                 "job_type": job_type,
                 "experience_level": experience_level,
-                "jobs": [_serialize_job(j) for j in jobs],
+                "per_page": per_page,
+                "jobs": [_serialize_job(j) for j in result.items],
+                "pagination": result.to_dict(),
             }
         }
     finally:
         db.close()
 
 
+streaming = True
 default = JobsBrowse

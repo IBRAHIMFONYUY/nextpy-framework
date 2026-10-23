@@ -207,6 +207,8 @@ class ActionCompiler:
             return self._compile_attribute(node)
         elif isinstance(node, ast.Lambda):
             return self._compile_lambda(node)
+        elif isinstance(node, ast.IfExp):
+            return self._compile_conditional(node)
         
         return None
 
@@ -660,6 +662,21 @@ class ActionCompiler:
             data={
                 "args": args,
                 "body": body.to_dict() if body else None
+            }
+        )
+
+    def _compile_conditional(self, node: ast.IfExp) -> Action:
+        """Compile Python's inline ``A if cond else B`` expression."""
+        condition = self._compile_expression(node.test)
+        then_value = self._compile_expression(node.body)
+        else_value = self._compile_expression(node.orelse)
+
+        return Action(
+            type=ActionType.CONDITIONAL,
+            data={
+                "condition": condition.to_dict() if condition else None,
+                "then": then_value.to_dict() if then_value else None,
+                "else": else_value.to_dict() if else_value else None,
             }
         )
     

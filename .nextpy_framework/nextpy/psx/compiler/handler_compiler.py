@@ -59,7 +59,8 @@ class HandlerCompiler(ast.NodeVisitor):
             return self.handlers
             
         except (OSError, SyntaxError, TypeError) as e:
-            print(f"Handler extraction error: {e}")
+            if _DEBUG:
+                print(f"Handler extraction error: {e}")
             # Try direct file-based extraction for PSX files
             return self._extract_from_psx_file(func)
     
@@ -139,7 +140,12 @@ class HandlerCompiler(ast.NodeVisitor):
                         # Extract the lambda argument
                         if node.args and isinstance(node.args[0], ast.Lambda):
                             lambda_node = node.args[0]
-                            lambda_code = ast.unparse(lambda_node.body)
+                            # The runtime hashes the *full* lambda source (including
+                            # ``lambda e:``), so keep the placeholder generation in
+                            # sync.  Hashing only the body produced a second,
+                            # unmatchable handler key and forced the fragile
+                            # Python-to-JS fallback.
+                            lambda_code = ast.unparse(lambda_node).strip()
                             
                             # Generate placeholder key
                             placeholder = _get_python_call_placeholder_from_lambda_code(lambda_code)
@@ -392,7 +398,8 @@ class EnhancedHandlerExtractor:
                                     if actions:
                                         handlers[placeholder] = actions
         except Exception as e:
-            print(f"Create handler extraction error: {e}")
+            if _DEBUG:
+                print(f"Create handler extraction error: {e}")
             # Try direct file-based extraction
             file_handlers = self._extract_from_psx_file(component_func)
             handlers.update(file_handlers)

@@ -20,7 +20,7 @@ from .components.component import (
     useImperativeHandle, useLayoutEffect, useDebugValue, useTransition,
     useDeferredValue, useId,
     # Custom Hooks
-    useCounter, useToggle, useLocalStorage, useFetch, useCrudEvent, useDebounce,
+    useCounter, useToggle, useLocalStorage, useFetch, useAction, useCrudEvent, useDebounce,
     useInterval, usePrevious, useAsync, useMediaQuery, useGeolocation, usePerformance,
     # Server action bridge
     callServerAction,
@@ -878,7 +878,7 @@ __all__ = [
     'useDebugValue', 'useTransition', 'useDeferredValue', 'useId',
     
     # Custom Hooks
-    'useCounter', 'useToggle', 'useLocalStorage', 'useFetch', 'useCrudEvent', 'useDebounce',
+    'useCounter', 'useToggle', 'useLocalStorage', 'useFetch', 'useAction', 'useCrudEvent', 'useDebounce',
     'useInterval', 'usePrevious', 'useAsync', 'useMediaQuery', 'useGeolocation', 'usePerformance',
     
     # Event Handlers

@@ -21,6 +21,8 @@ class HydrationContext:
     data_bindings: Dict[str, str] = field(default_factory=dict)  # {elementId: {prop: binding}}
     mount_actions: List[Dict[str, Any]] = field(default_factory=list)
     registered_functions: Dict[str, Any] = field(default_factory=dict)
+    derived_expressions: Dict[str, str] = field(default_factory=dict)
+    client_effects: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class HydrationEngine:
@@ -60,6 +62,8 @@ class HydrationEngine:
             use_effects=component_data.get('effects', []),
             mount_actions=component_data.get('mount_actions', []),
             registered_functions=component_data.get('registered_functions', {}),
+            derived_expressions=component_data.get('derived_expressions', {}),
+            client_effects=component_data.get('client_effects', []),
         )
         
         self.contexts[component_id] = context
@@ -77,7 +81,35 @@ class HydrationEngine:
             return f"""
 (function() {{
     'use strict';
-    
+
+    // Shared conservative HTML sanitizer for client-side innerHTML updates.
+    if (!window.nextpySanitizeHTML) {{
+        window.nextpySanitizeHTML = function(html) {{
+            const template = document.createElement('template');
+            template.innerHTML = String(html == null ? '' : html);
+            const blocked = 'script,iframe,object,embed,link,meta,base,svg,math';
+            template.content.querySelectorAll(blocked).forEach(node => node.remove());
+            const walker = document.createTreeWalker(
+                template.content, NodeFilter.SHOW_ELEMENT, null
+            );
+            const nodes = [];
+            while (walker.nextNode()) nodes.push(walker.currentNode);
+            nodes.forEach(node => {{
+                Array.from(node.attributes).forEach(attr => {{
+                    const name = attr.name.toLowerCase();
+                    const value = String(attr.value || '').trim().toLowerCase();
+                    const dangerousUrl = /^(javascript|vbscript|data:text\\/html|data:image\\/svg\\+xml):/.test(value);
+                    if (name.startsWith('on') || name === 'srcdoc' ||
+                        ((name === 'href' || name === 'src' || name === 'xlink:href' ||
+                          name === 'formaction' || name === 'action') && dangerousUrl)) {{
+                        node.removeAttribute(attr.name);
+                    }}
+                }});
+            }});
+            return template.innerHTML;
+        }};
+    }}
+
     // Component: {context.component_name}
     const componentId = '{component_id}';
     
@@ -121,6 +153,14 @@ class HydrationEngine:
                 const actionComponent = runtime && runtime.components && this.component && runtime.components.get(this.component.id);
                 if (actionComponent) {{
                     actionComponent.state[key] = value;
+                    // Re-evaluate conditionals, attribute bindings and derived
+                    // expressions through the shared action runtime.  Without
+                    // this bridge legacy ``create_on*`` handlers updated only
+                    // ``data-bind`` text while ``data-if-condition`` blocks
+                    // stayed frozen at their SSR state.
+                    if (typeof runtime._triggerComponentUpdate === 'function' && !runtime._hydrationSyncDepth) {{
+                        runtime._triggerComponentUpdate(this.component.id, key, value, oldValue);
+                    }}
                 }}
             }} catch (error) {{}}
             
@@ -179,6 +219,12 @@ class HydrationEngine:
             // Register with global action runtime so _executeVariable resolves state
             if (window.NextPyActionRuntime) {{
                 window.NextPyActionRuntime.registerComponent(id, {{ ...initialState }});
+                const _derivedExpressions = {json.dumps(context.derived_expressions)};
+                const _runtimeComponent = window.NextPyActionRuntime.components.get(id);
+                if (_runtimeComponent) {{
+                    _runtimeComponent.derivedExpressions = _derivedExpressions;
+                    _runtimeComponent.effects = {json.dumps(context.client_effects)};
+                }}
                 // FIX: Rebuild dependency map after DOM is ready
                 setTimeout(() => {{
                     window.NextPyActionRuntime.rebuildDependencyMap(id);
@@ -242,12 +288,16 @@ class HydrationEngine:
                 if (property === 'innerHTML') {{
                     // Safe innerHTML with basic sanitization
                     if (typeof value === 'string') {{
-                        element.innerHTML = value.replace(/<script[^>]*>.*?<\\/script>/gi, '');
+                        element.innerHTML = window.nextpySanitizeHTML(value);
+                    }} else if (value !== null && typeof value === 'object') {{
+                        element.innerHTML = window.nextpySanitizeHTML(JSON.stringify(value));
                     }} else {{
-                        element.innerHTML = String(value);
+                        element.innerHTML = window.nextpySanitizeHTML(value === null || value === undefined ? '' : String(value));
                     }}
                 }} else if (property === 'textContent') {{
-                    element.textContent = String(value);
+                    element.textContent = value !== null && typeof value === 'object'
+                        ? JSON.stringify(value)
+                        : (value === null || value === undefined ? '' : String(value));
                 }} else if (property === 'value') {{
                     // Special handling for input value to ensure it updates
                     element.value = String(value);
@@ -403,13 +453,15 @@ class HydrationEngine:
 
                 try {{
                     if (property === 'textContent') {{
-                        el.textContent = String(value);
+                        el.textContent = value !== null && typeof value === 'object'
+                            ? JSON.stringify(value)
+                            : (value === null || value === undefined ? '' : String(value));
                     }} else if (property === 'innerHTML') {{
                         // For innerHTML, convert arrays/objects to JSON for proper display
-                        if (Array.isArray(value) || typeof value === 'object') {{
-                            el.innerHTML = JSON.stringify(value);
+                        if (Array.isArray(value) || (value !== null && typeof value === 'object')) {{
+                            el.innerHTML = window.nextpySanitizeHTML(JSON.stringify(value));
                         }} else {{
-                            el.innerHTML = String(value);
+                            el.innerHTML = window.nextpySanitizeHTML(value === null || value === undefined ? '' : String(value));
                         }}
                     }} else if (property in el) {{
                         el[property] = value;

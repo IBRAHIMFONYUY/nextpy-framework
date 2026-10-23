@@ -32,6 +32,7 @@ class ComponentState:
     hook_index: int = 0
     cleanup_functions: List[Callable] = field(default_factory=list)
     mount_actions: List[Dict[str, Any]] = field(default_factory=list)
+    registered_functions: Dict[str, Any] = field(default_factory=dict)
 
 
 # Thread-local storage for component state
@@ -53,13 +54,23 @@ def get_current_component() -> ComponentState:
 
 
 def reset_component_state():
-    """Reset component state for new render"""
+    """Reset per-render state before a component function runs.
+
+    The hook list is thread-local and shared by every component rendered on
+    the same thread.  Keeping the old list meant a component could reuse a
+    hook slot created by a *different* component (for example a ``useState``
+    dict being read by ``useEffect``), which raised ``KeyError: deps_hash``.
+    Clearing the slots gives every component invocation its own hook order.
+    """
     if hasattr(_component_state, 'current'):
         thread_id = threading.get_ident()
         if thread_id in _component_state.current:
             state = _component_state.current[thread_id]
+            state.hooks.clear()
             state.hook_index = 0
             state.cleanup_functions.clear()
+            state.mount_actions.clear()
+            state.registered_functions.clear()
 
 
 class PSXComponent:
@@ -859,6 +870,59 @@ class CustomHooks:
             "loading": loading,
             "error": error,
             "refetch": refetch_action,
+            "_dataKey": data_key,
+            "_loadingKey": loading_key,
+            "_errorKey": error_key,
+        }
+
+    @staticmethod
+    def use_action(
+        action_name: str,
+        params: Optional[Dict[str, Any]] = None,
+        *,
+        immediate: bool = False,
+    ) -> Dict[str, Any]:
+        """Run a server action with loading/data/error state.
+
+        By default the action is lazy: call the returned ``run`` action from an
+        event handler.  Set ``immediate=True`` to execute on mount.
+        """
+        component = get_current_component()
+        data_key = f"_action_data_{component.hook_index}"
+        loading_key = f"_action_loading_{component.hook_index}"
+        error_key = f"_action_error_{component.hook_index}"
+        func_key = f"_action_run_{component.hook_index}"
+
+        data, _ = PSXHooks.use_state(None)
+        loading, _ = PSXHooks.use_state(bool(immediate))
+        error, _ = PSXHooks.use_state(None)
+
+        action = {
+            "type": "CALL_SERVER_ACTION",
+            "data": {
+                "action": action_name,
+                "params": params or {},
+                "dataKey": data_key,
+                "loadingKey": loading_key,
+                "errorKey": error_key,
+            },
+        }
+
+        if not hasattr(component, "mount_actions"):
+            component.mount_actions = []
+        if immediate:
+            component.mount_actions.append(action)
+
+        if not hasattr(component, "registered_functions"):
+            component.registered_functions = {}
+        component.registered_functions[func_key] = action
+
+        return {
+            "data": data,
+            "loading": loading,
+            "error": error,
+            "run": {"type": "CALL_FUNCTION", "function": func_key},
+            "action": action,
             "_dataKey": data_key,
             "_loadingKey": loading_key,
             "_errorKey": error_key,
@@ -2093,6 +2157,10 @@ def useFetch(url: str, options: Dict[str, Any] = None) -> Dict[str, Any]:
     """useFetch custom hook"""
     return CustomHooks.use_fetch(url, options)
 
+def useAction(action_name: str, params: Dict[str, Any] = None, *, immediate: bool = False) -> Dict[str, Any]:
+    """Run a server action with loading/data/error state."""
+    return CustomHooks.use_action(action_name, params, immediate=immediate)
+
 def useCrudEvent(resource: Optional[str] = None) -> Dict[str, Any]:
     """useCrudEvent custom hook - subscribe to CRUD events"""
     return CustomHooks.use_crud_event(resource)
@@ -2677,6 +2745,7 @@ __all__ = [
     'Row', 'Col', 'Form', 'Input', 'Button', 'Navbar', 'NavItem', 'Card', 'List',
     'Conditional', 'Loop', 'ErrorBoundary', 'Suspense',
     'useState', 'useEffect', 'PSXHooks',
+    'useAction',
     'map_list', 'conditional', 'and_condition', 'or_condition',
     'EventHandlers', 'ComponentRegistry', 'component_registry',
     'register_component', 'ChildrenComponent',

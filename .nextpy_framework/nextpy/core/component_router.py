@@ -9,9 +9,10 @@ import json
 import time
 import hashlib
 import importlib.util
+import threading
 from collections import OrderedDict
 from pathlib import Path
-from typing import Dict, List, Optional, Callable, Any, Tuple
+from typing import AsyncIterator, Dict, List, Optional, Callable, Any, Tuple
 from dataclasses import dataclass, field
 from pydantic import BaseModel
 
@@ -90,7 +91,10 @@ class ComponentRouter:
         except Exception:
             return False
 
-        if module is not None and hasattr(module, "getServerSideProps"):
+        if module is not None and (
+            hasattr(module, "getServerSideProps")
+            or hasattr(module, "get_server_side_props")
+        ):
             return False
         return True
 
@@ -116,37 +120,101 @@ class ComponentRouter:
                 continue
         return deps
 
-    def _cache_get(self, key: str, route: Route) -> Optional[str]:
+    def _cache_lookup(self, key: str, route: Route) -> Tuple[Optional[str], bool]:
+        """Return ``(html, stale)`` without deleting stale ISR entries."""
         entry = self._page_cache.get(key)
         if not entry:
-            return None
-
-        if time.time() - entry["timestamp"] > self._cache_ttl:
-            self._page_cache.pop(key, None)
-            return None
+            return None, False
 
         # Invalidate when the page or any layout changed on disk.
         for path, mtime in entry["deps"]:
             try:
                 if Path(path).stat().st_mtime != mtime:
                     self._page_cache.pop(key, None)
-                    return None
+                    return None, False
             except OSError:
                 self._page_cache.pop(key, None)
-                return None
+                return None, False
 
+        age = time.time() - entry["timestamp"]
+        revalidate = entry.get("revalidate")
+        ttl = self._cache_ttl if revalidate is None else float(revalidate)
+        stale = age > ttl
         self._page_cache.move_to_end(key)
-        return entry["html"]
+        return entry["html"], stale
 
-    def _cache_set(self, key: str, route: Route, html: str) -> None:
+    def _cache_get(self, key: str, route: Route) -> Optional[str]:
+        html, stale = self._cache_lookup(key, route)
+        return None if stale else html
+
+    def _cache_set(
+        self,
+        key: str,
+        route: Route,
+        html: str,
+        revalidate: Optional[int] = None,
+    ) -> None:
         self._page_cache[key] = {
             "html": html,
             "timestamp": time.time(),
             "deps": self._page_dependencies(route),
+            "revalidate": revalidate,
+            "refreshing": False,
         }
         self._page_cache.move_to_end(key)
         while len(self._page_cache) > self._cache_max:
             self._page_cache.popitem(last=False)
+
+    def get_revalidate(self, route: Route) -> Optional[int]:
+        """Return the page's ISR interval (``None`` means use global TTL)."""
+        renderer = getattr(route, "renderer", None)
+        if renderer is not None and hasattr(renderer, "get_revalidate"):
+            try:
+                value = renderer.get_revalidate(route.file_path)
+                if value is not None:
+                    return int(value)
+            except Exception:
+                pass
+        try:
+            module = route.renderer.load_component_module(route.file_path)
+            value = getattr(module, "revalidate", None)
+            return int(value) if value is not None else None
+        except Exception:
+            return None
+
+    def _schedule_refresh(
+        self,
+        key: str,
+        route: Route,
+        context: Dict[str, Any],
+        include_layout: bool,
+        revalidate: Optional[int],
+    ) -> None:
+        """Refresh a stale ISR entry in the background (stale-while-revalidate)."""
+        entry = self._page_cache.get(key)
+        if entry is None or entry.get("refreshing"):
+            return
+        entry["refreshing"] = True
+        safe_context = {
+            name: value for name, value in context.items()
+            if name not in ("request", "response", "req")
+        }
+
+        def _refresh() -> None:
+            try:
+                html = self._render_component_route(route, safe_context, include_layout)
+                if not self._is_error_html(html):
+                    self._cache_set(key, route, html, revalidate)
+            finally:
+                current = self._page_cache.get(key)
+                if current is not None:
+                    current["refreshing"] = False
+
+        threading.Thread(
+            target=_refresh,
+            name=f"nextpy-isr-{hashlib.md5(key.encode()).hexdigest()[:8]}",
+            daemon=True,
+        ).start()
 
     def get_layout_signature(self, route: Route) -> str:
         """Stable signature of a route's layout chain (path + mtime)."""
@@ -178,7 +246,8 @@ class ComponentRouter:
         extensions = ["*.py", "*.py.jsx", "*.psx"]
         for ext in extensions:
             for file_path in self.pages_dir.rglob(ext):
-                if file_path.name.startswith("_"):
+                relative_parts = file_path.relative_to(self.pages_dir).parts
+                if any(part.startswith("_") or part == "actions" for part in relative_parts):
                     continue
                 
                 # Skip special files - they're handled separately
@@ -712,24 +781,82 @@ class ComponentRouter:
         if isinstance(route, ComponentRoute) and route.use_components:
             cacheable = self.is_cacheable(route, context)
             cache_key = None
+            revalidate = self.get_revalidate(route)
             if cacheable:
                 mode = "full" if include_layout else "frag"
                 cache_key = self._route_cache_key(route, context) + "|" + mode
-                cached = self._cache_get(cache_key, route)
+                cached, stale = self._cache_lookup(cache_key, route)
                 if cached is not None:
+                    if stale:
+                        self._schedule_refresh(
+                            cache_key, route, context, include_layout, revalidate
+                        )
                     return cached
 
             html = self._render_component_route(route, context, include_layout)
 
-            # Never cache error placeholders; they should be retried next time.
-            if cache_key is not None and not html.lstrip().startswith("<h1>Error rendering route:"):
-                self._cache_set(cache_key, route, html)
+            # Never cache error pages; they should be retried next time.
+            if cache_key is not None and not self._is_error_html(html):
+                resolved_revalidate = self.get_revalidate(route)
+                if resolved_revalidate is not None:
+                    revalidate = resolved_revalidate
+                self._cache_set(cache_key, route, html, revalidate)
             return html
 
         elif route.handler and callable(route.handler):
             return route.handler(context)
         else:
             return f"<h1>Route {route.path} has no handler</h1>"
+
+    async def render_route_stream(
+        self,
+        route: Route,
+        context: Dict[str, Any] = None,
+        include_layout: bool = True,
+    ) -> AsyncIterator[str]:
+        """Render a route as a stream of HTML chunks.
+
+        A page can define ``streaming = True`` for chunked output, or provide
+        its own ``stream(context)`` generator for true data streaming.
+        """
+        from .streaming import stream_route
+
+        context = context or {}
+        module = None
+        if isinstance(route, ComponentRoute):
+            try:
+                module = route.renderer.load_component_module(route.file_path)
+            except Exception:
+                module = None
+        if module is not None and hasattr(module, "stream"):
+            async for chunk in stream_route(module, context, ""):
+                yield chunk
+            return
+
+        html = self.render_route(route, context, include_layout)
+        async for chunk in stream_route(module, context, html):
+            yield chunk
+
+    @staticmethod
+    def _is_full_document(element: Any) -> bool:
+        """Return True when a rendered layout is a complete HTML document."""
+        ast = getattr(element, "_ast_node", None)
+        tag = getattr(ast, "tag", None)
+        if tag == "html":
+            return True
+        html = getattr(element, "html", None)
+        if isinstance(html, str):
+            return html.lstrip().lower().startswith("<html")
+        return False
+
+    @staticmethod
+    def _is_error_html(html: str) -> bool:
+        stripped = html.lstrip()
+        return (
+            stripped.startswith("<h1>Error rendering route:")
+            or "data-nextpy-error-overlay=\"true\"" in stripped
+            or "data-nextpy-error=\"true\"" in stripped
+        )
 
     def _render_component_route(
         self,
@@ -817,6 +944,12 @@ class ComponentRouter:
                                 page_element = layout_func(children=children_element, **layout_context)
                                 if debug:
                                     if _DEBUG: print(f"DEBUG: After layout, element type: {type(page_element)}")
+                                # A nested layout may already provide the full document
+                                # (e.g. /jobs). In that case the root layout must not
+                                # wrap it again, otherwise the nested <html>/<body>
+                                # document is emitted inside the root document.
+                                if self._is_full_document(page_element) and layout_path != route.layout_chain[0]:
+                                    break
                             except Exception as e:
                                 print(f"Warning: Failed to apply layout {layout_path}: {e}")
 
@@ -830,6 +963,13 @@ class ComponentRouter:
             import traceback
             traceback.print_exc()
 
+            if debug:
+                from ..server.debug import render_debug_error_html
+                return render_debug_error_html(
+                    e,
+                    request_path=str(getattr(route, "path", "") or ""),
+                )
+
             # Try to render error boundary if available
             if hasattr(route, 'special_chains') and route.special_chains.get('error'):
                 error_chain = route.special_chains['error']
@@ -842,7 +982,7 @@ class ComponentRouter:
                     except Exception as error_error:
                         print(f"ERROR: Failed to render error boundary: {error_error}")
 
-            return f"<h1>Error rendering route: {e}</h1>"
+            return '<h1 data-nextpy-error="true">Internal Server Error</h1>' 
     
     def handle_api_route(self, route: Route, request_data: Dict[str, Any]) -> Dict[str, Any]:
         """Handle API route requests"""

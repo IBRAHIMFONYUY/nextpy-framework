@@ -203,7 +203,8 @@ def _job_to_dict(job, app_count=0):
     }
 
 
-def _application_to_dict(app, job=None):
+def _application_to_dict(app):
+    job = getattr(app, "job", None)
     return {
         "id": app.id,
         "job_id": app.job_id,
@@ -220,7 +221,7 @@ def _application_to_dict(app, job=None):
 
 
 def getServerSideProps(context):
-    from nextpy.db import get_session, User, Job, Application
+    from nextpy.db import get_session, User, Job, Application, count_by
     from nextpy.auth import get_user_id_from_request
 
     request = context.get("request") or context.get("req")
@@ -248,13 +249,11 @@ def getServerSideProps(context):
             .order_by(Job.created_at.desc())
             .all()
         )
-        my_jobs = [
-            _job_to_dict(
-                job,
-                db.query(Application).filter(Application.job_id == job.id).count(),
-            )
-            for job in jobs
-        ]
+        job_ids = [job.id for job in jobs]
+        counts = count_by(
+            db, Application, "job_id", {"job_id": job_ids} if job_ids else None
+        )
+        my_jobs = [_job_to_dict(job, counts.get(job.id, 0)) for job in jobs]
 
         applications = (
             db.query(Application)
@@ -262,10 +261,7 @@ def getServerSideProps(context):
             .order_by(Application.created_at.desc())
             .all()
         )
-        my_apps = []
-        for app in applications:
-            job = db.query(Job).filter(Job.id == app.job_id).first() if app.job_id else None
-            my_apps.append(_application_to_dict(app, job))
+        my_apps = [_application_to_dict(app) for app in applications]
 
         return {
             "props": {
