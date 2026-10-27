@@ -69,5 +69,4 @@ def DocumentationPage():
         </>
     )
 
-
 default = DocumentationPage

@@ -62,7 +62,13 @@ class HandlerCompiler(ast.NodeVisitor):
             if _DEBUG:
                 print(f"Handler extraction error: {e}")
             # Try direct file-based extraction for PSX files
-            return self._extract_from_psx_file(func)
+            try:
+                return self._extract_from_psx_file(func)
+            except Exception as e2:
+                if _DEBUG:
+                    print(f"PSX file extraction error: {e2}")
+                # Return empty handlers dict instead of failing
+                return {}
     
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         """Visit function definition"""
@@ -430,12 +436,11 @@ class EnhancedHandlerExtractor:
                 
                 # Fallback: find the source file
                 pages_paths = []
-                if not file_path:
-                    for ext in ('.psx', '.py'):
-                        pages_paths.extend([
-                            os.path.join(os.getcwd(), 'pages', module_name + ext),
-                            os.path.join(os.getcwd(), '..', 'pages', module_name + ext),
-                        ])
+                for ext in ('.psx', '.py'):
+                    pages_paths.extend([
+                        os.path.join(os.getcwd(), 'pages', module_name + ext),
+                        os.path.join(os.getcwd(), '..', 'pages', module_name + ext),
+                    ])
                 
                 for potential_file in pages_paths:
                     if _DEBUG: print(f"DEBUG: EnhancedHandlerExtractor checking pages path: {potential_file}")

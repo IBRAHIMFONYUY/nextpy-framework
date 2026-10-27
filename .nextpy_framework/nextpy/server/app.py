@@ -976,7 +976,6 @@ Allow: /
                 content = ""
                 if hasattr(module, 'default'):
                     component = module.default
-                    component_props = {**props, "params": params}
                     jsx_element = component(component_props)
                     
                     # Convert JSX/PSX to HTML

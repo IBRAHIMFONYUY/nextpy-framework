@@ -247,7 +247,18 @@ def _init_project_db():
     from nextpy.config import settings
     from nextpy.db import init_db
 
-    return init_db(settings["database_url"])
+    # Ensure database URL is absolute path for consistency
+    db_url = settings["database_url"]
+    if db_url.startswith("sqlite:///"):
+        db_path = db_url.replace("sqlite:///", "")
+        if not os.path.isabs(db_path):
+            # Make it relative to the project directory
+            project_dir = Path.cwd()
+            abs_path = str(project_dir / db_path)
+            db_url = f"sqlite:///{abs_path}"
+            settings["database_url"] = db_url
+
+    return init_db(db_url)
 
 
 def _format_size(size_bytes: int) -> str:
@@ -295,6 +306,19 @@ def dev(port: int, host: str, reload: bool, debug: bool):
     settings["debug"] = debug
     settings["nextpy_debug"] = debug
     settings["development"] = True
+
+    # Initialize database before starting server
+    from nextpy.db import init_db
+    import os as _os
+    db_url = settings["database_url"]
+    if db_url.startswith("sqlite:///"):
+        db_path = db_url.replace("sqlite:///", "")
+        if not _os.path.isabs(db_path):
+            project_dir = Path.cwd()
+            abs_path = str(project_dir / db_path)
+            db_url = f"sqlite:///{abs_path}"
+            settings["database_url"] = db_url
+    init_db(db_url)
 
     main_module = find_main_module()
     project_dir = Path.cwd()
@@ -1256,6 +1280,7 @@ def _create_project_structure(
         "pages/blog",
         "pages/api",
         "pages/api/users",
+        "pages/actions",
         "components",
         "components/ui",
         "components/layout",
@@ -1843,6 +1868,7 @@ __all__ = ["AppUser", "User"]
     (project_dir / "main.py").write_text('''"""NextPy application entry point."""
 
 import sys
+import os
 from pathlib import Path
 
 # Support running from a source checkout that vendors the framework.
@@ -1858,7 +1884,23 @@ from nextpy.db import User, init_db
 # Importing models registers them on nextpy.db.Base.
 import models  # noqa: F401
 
-init_db(settings["database_url"])
+# Import server actions to register them
+try:
+    from pages.actions import *  # noqa: F401
+except ImportError:
+    pass  # No server actions yet
+
+# Ensure database URL is absolute path for consistency
+db_url = settings["database_url"]
+if db_url.startswith("sqlite:///"):
+    db_path = db_url.replace("sqlite:///", "")
+    if not os.path.isabs(db_path):
+        # Make it relative to the project directory
+        project_dir = Path(__file__).parent
+        abs_path = str(project_dir / db_path)
+        db_url = f"sqlite:///{abs_path}"
+
+init_db(db_url)
 
 admin_site = AdminSite()
 admin_site.register(User)
@@ -2109,6 +2151,21 @@ def use_auth(request):
     )
     click.echo("  Created: hooks/use_auth.py")
 
+    # Create server actions placeholder
+    (project_dir / "pages/actions" / "__init__.py").write_text('''"""Server actions for this NextPy app.
+
+Server actions allow you to call Python functions from client-side components.
+All server actions are automatically registered when imported here.
+
+Example:
+    from nextpy.server_actions import server_action
+
+    @server_action()
+    async def my_action(data: str):
+        return {"result": f"Processed: {data}"}
+""')
+    click.echo("  Created: pages/actions/__init__.py")
+
     # Create middleware example
     (project_dir / "middleware" / "cors.py").write_text('''"""CORS middleware example"""
 
@@ -2132,8 +2189,14 @@ def add_cors_middleware(app):
     (project_dir / "tests" / "test_api.py").write_text('''"""API tests example"""
 
 import pytest
-from fastapi.testclient import TestClient
+import sys
+from pathlib import Path
+
+# Add project to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from main import app
+from fastapi.testclient import TestClient
 
 client = TestClient(app)
 
@@ -2320,13 +2383,15 @@ NEXTPY_DEBUG=true
 HOST=0.0.0.0
 PORT=8000
 
-# Database
-DATABASE_URL=sqlite:///./app.db
+# Database (uses absolute path to ensure consistency)
+DATABASE_URL=sqlite:///{str(project_dir / "app.db")}
 
 # Secrets (generated for this project)
 SECRET_KEY={_secret_key}
 JWT_SECRET={_jwt_secret}
 SESSION_SECRET={_session_secret}
+JWT_ALGORITHM=HS256
+JWT_EXPIRATION_HOURS=24
 
 # Security
 CSRF_PROTECTION=true

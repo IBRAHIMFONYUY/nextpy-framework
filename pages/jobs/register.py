@@ -44,36 +44,28 @@ def RegisterPage(props=None):
             </div>
             <div class="p-8 bg-white border border-gray-200 shadow-sm rounded-xl">
                 <div data-state-error data-state-toggle style="display: none" class="p-3 mb-4 text-sm text-red-700 rounded-lg bg-red-50"></div>
+                
                 <form onsubmit={handle_register} class="space-y-5">
-                    <div>
+                    
                         <label class="block mb-2 text-sm font-medium text-gray-700">I am a...</label>
                         <div class="grid grid-cols-2 gap-2">
-                            {if role == "job_seeker":
+                           
+                                {/* Job Seeker Button */}
                                 <button type="button" onclick={lambda e: setRole("job_seeker")}
-                                    class="rounded-lg border-2 border-indigo-600 bg-indigo-50 px-4 py-2.5 text-center text-sm font-medium text-indigo-700">
+                                    class={"rounded-lg border-2 px-4 py-2.5 text-center text-sm font-medium border-indigo-600 bg-indigo-50 text-indigo-700" if role == "job_seeker" else "rounded-lg border-2 px-4 py-2.5 text-center text-sm font-medium border-gray-200 bg-white text-gray-600"}>
                                     Job Seeker
                                 </button>
-                            }
-                            {if role != "job_seeker":
-                                <button type="button" onclick={lambda e: setRole("job_seeker")}
-                                    class="rounded-lg border-2 border-gray-200 bg-white px-4 py-2.5 text-center text-sm font-medium text-gray-600">
-                                    Job Seeker
-                                </button>
-                            }
-                            {if role == "employer":
+
+                                {/* Employer Button */}
                                 <button type="button" onclick={lambda e: setRole("employer")}
-                                    class="rounded-lg border-2 border-indigo-600 bg-indigo-50 px-4 py-2.5 text-center text-sm font-medium text-indigo-700">
+                                    class={"rounded-lg border-2 px-4 py-2.5 text-center text-sm font-medium border-indigo-600 bg-indigo-50 text-indigo-700" if role == "employer" else "rounded-lg border-2 px-4 py-2.5 text-center text-sm font-medium border-gray-200 bg-white text-gray-600"}>
                                     Employer
                                 </button>
-                            }
-                            {if role != "employer":
-                                <button type="button" onclick={lambda e: setRole("employer")}
-                                    class="rounded-lg border-2 border-gray-200 bg-white px-4 py-2.5 text-center text-sm font-medium text-gray-600">
-                                    Employer
-                                </button>
-                            }
+                             
                         </div>
-                    </div>
+
+                        
+                    
                     <div>
                         <label class="block mb-1 text-sm font-medium text-gray-700">Full name</label>
                         <input type="text" value={full_name} oninput={lambda e: setFullName(e.target.value)}
