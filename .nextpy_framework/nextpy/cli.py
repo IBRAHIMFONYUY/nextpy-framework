@@ -2151,8 +2151,8 @@ def use_auth(request):
     )
     click.echo("  Created: hooks/use_auth.py")
 
-    # Create server actions placeholder
-    (project_dir / "pages/actions" / "__init__.py").write_text('''"""Server actions for this NextPy app.
+    (project_dir / "pages/actions" / "__init__.py").write_text('''
+"""Server actions for this NextPy app.
 
 Server actions allow you to call Python functions from client-side components.
 All server actions are automatically registered when imported here.
@@ -2163,9 +2163,10 @@ Example:
     @server_action()
     async def my_action(data: str):
         return {"result": f"Processed: {data}"}
-""')
+"""''')
     click.echo("  Created: pages/actions/__init__.py")
 
+    
     # Create middleware example
     (project_dir / "middleware" / "cors.py").write_text('''"""CORS middleware example"""
 
@@ -2401,6 +2402,7 @@ CORS_ORIGINS=
 # NextPy Settings
 NEXTPY_DEBUG_ICON=true
 NEXTPY_HOT_RELOAD=true
+NEXTPY_HMR=true
 NEXTPY_LOG_LEVEL=info
 """)
     click.echo("  Created: .env")

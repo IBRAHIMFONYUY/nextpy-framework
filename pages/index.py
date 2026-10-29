@@ -269,7 +269,7 @@ def Home(props=None):
 def getServerSideProps(context):
     return {
         "props": {
-            "title": "NextPy - The Python Framework",
+            "title": "NextPy by RahimStudios - The Python Web Framework",
             "description": "NextPy is a modern Python web framework that combines the power of FastAPI with the elegance of server‑side rendering and file‑based routing."
         }
     }
