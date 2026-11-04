@@ -241,24 +241,25 @@ def _init_project_db():
     """Load .env, register project models, initialize SQLAlchemy."""
     _prepare_project()
     try:
-        import models  # noqa: F401  (registers app tables on nextpy.db.Base)
+        import nextpy.db  # noqa: F401  (registers app tables on nextpy.db.Base)
     except ImportError:
         pass
     from nextpy.config import settings
     from nextpy.db import init_db
 
     # Ensure database URL is absolute path for consistency
-    db_url = settings["database_url"]
+    db_url = settings.get("database_url", "sqlite:///app.db")
     if db_url.startswith("sqlite:///"):
         db_path = db_url.replace("sqlite:///", "")
         if not os.path.isabs(db_path):
-            # Make it relative to the project directory
-            project_dir = Path.cwd()
-            abs_path = str(project_dir / db_path)
+            # Resolve relative to the actual project root context
+            project_dir = Path.cwd().resolve()
+            abs_path = os.path.abspath(project_dir / db_path)
             db_url = f"sqlite:///{abs_path}"
             settings["database_url"] = db_url
 
     return init_db(db_url)
+
 
 
 def _format_size(size_bytes: int) -> str:
@@ -307,18 +308,22 @@ def dev(port: int, host: str, reload: bool, debug: bool):
     settings["nextpy_debug"] = debug
     settings["development"] = True
 
-    # Initialize database before starting server
+    # Initialize database cleanly with explicit path maps before starting server
     from nextpy.db import init_db
-    import os as _os
-    db_url = settings["database_url"]
+    db_url = settings.get("database_url", "sqlite:///app.db")
     if db_url.startswith("sqlite:///"):
         db_path = db_url.replace("sqlite:///", "")
-        if not _os.path.isabs(db_path):
-            project_dir = Path.cwd()
-            abs_path = str(project_dir / db_path)
+        if not os.path.isabs(db_path):
+            project_dir = Path.cwd().resolve()
+            abs_path = os.path.abspath(project_dir / db_path)
             db_url = f"sqlite:///{abs_path}"
             settings["database_url"] = db_url
+            
     init_db(db_url)
+
+    main_module = find_main_module()
+    project_dir = Path.cwd()
+    os.chdir(project_dir)
 
     main_module = find_main_module()
     project_dir = Path.cwd()
@@ -1865,7 +1870,9 @@ __all__ = ["AppUser", "User"]
 
     # Create the application entry point.  init_db() is called here, after all
     # models have been imported, so SQLAlchemy knows every table.
-    (project_dir / "main.py").write_text('''"""NextPy application entry point."""
+    (project_dir / "main.py").write_text('''
+
+"""NextPy application entry point."""
 
 import sys
 import os
@@ -1890,21 +1897,10 @@ try:
 except ImportError:
     pass  # No server actions yet
 
-# Ensure database URL is absolute path for consistency
-db_url = settings["database_url"]
-if db_url.startswith("sqlite:///"):
-    db_path = db_url.replace("sqlite:///", "")
-    if not os.path.isabs(db_path):
-        # Make it relative to the project directory
-        project_dir = Path(__file__).parent
-        abs_path = str(project_dir / db_path)
-        db_url = f"sqlite:///{abs_path}"
-
-init_db(db_url)
-
 admin_site = AdminSite()
 admin_site.register(User)
 
+# Define the app instance cleanly so Uvicorn can import it
 app = nx.create_app(
     pages_dir="pages",
     templates_dir="templates",
@@ -1917,12 +1913,24 @@ app = nx.create_app(
 if __name__ == "__main__":
     import uvicorn
 
+    # Ensure database URL is absolute path ONLY when executed directly
+    db_url = settings["database_url"]
+    if db_url.startswith("sqlite:///"):
+        db_path = db_url.replace("sqlite:///", "")
+        if not os.path.isabs(db_path):
+            project_dir = Path(__file__).parent
+            abs_path = str(project_dir / db_path)
+            db_url = f"sqlite:///{abs_path}"
+
+    init_db(db_url)
+
     uvicorn.run(
         "main:app",
         host=settings["host"],
         port=settings["port"],
         reload=settings["development"],
     )
+
 ''')
     click.echo("  Created: main.py")
 
@@ -2370,11 +2378,11 @@ Thumbs.db
     click.echo("  Created: .gitignore")
 
 
-    # Create .env file for development.  Secrets are generated per project so
-    # new apps never ship with the framework's placeholder secrets.
+    # create .env file with generated secrets
     _secret_key = secrets.token_urlsafe(48)
     _jwt_secret = secrets.token_urlsafe(48)
     _session_secret = secrets.token_urlsafe(48)
+
     (project_dir / ".env").write_text(f"""# NextPy Development Environment
 DEVELOPMENT=true
 DEBUG=true
@@ -2384,8 +2392,8 @@ NEXTPY_DEBUG=true
 HOST=0.0.0.0
 PORT=8000
 
-# Database (uses absolute path to ensure consistency)
-DATABASE_URL=sqlite:///{str(project_dir / "app.db")}
+# Database Configuration 
+DATABASE_URL=sqlite:///nextpy.db
 
 # Secrets (generated for this project)
 SECRET_KEY={_secret_key}
@@ -2405,6 +2413,7 @@ NEXTPY_HOT_RELOAD=true
 NEXTPY_HMR=true
 NEXTPY_LOG_LEVEL=info
 """)
+
     click.echo("  Created: .env")
 
     # Install Node.js dependencies

@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: nextpy-framework
-Version: 5.0.0
+Version: 5.1.4
 Summary: The Python Web Framework introducing file-based routing, SSR, and SSG and more
 Author: RahimStudios
 License: MIT
@@ -32,6 +32,7 @@ Requires-Dist: uvicorn>=0.38.0
 Requires-Dist: watchdog>=6.0.0
 Requires-Dist: python-dotenv>=1.2.1
 Requires-Dist: sqlalchemy>=2.0.44
+Requires-Dist: pyjwt>=2.8.0
 Provides-Extra: dev
 Requires-Dist: pytest>=7.0; extra == "dev"
 Requires-Dist: pytest-asyncio>=0.21.0; extra == "dev"
