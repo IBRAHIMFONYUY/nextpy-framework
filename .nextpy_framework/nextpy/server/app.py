@@ -8,6 +8,7 @@ import re
 import sys
 import asyncio
 import hashlib
+from asyncio import Queue as AsyncQueue
 import importlib.util
 import types
 from pathlib import Path
@@ -48,6 +49,36 @@ from nextpy.server_actions import ServerAction
 
 
 _api_app: Optional[FastAPI] = None
+
+# ---------------------------------------------------------------------------
+# Browser Hot-Module Reload (HMR) — SSE-based, works with uvicorn --reload
+# ---------------------------------------------------------------------------
+# A set of per-connection asyncio Queues.  Each connected browser tab gets its
+# own Queue; the server pushes a sentinel into every queue when files change.
+_hmr_clients: set = set()
+
+
+def _hmr_signal_all() -> None:
+    """Push a reload signal to every SSE-connected browser.
+
+    Safe to call from a synchronous context (watchdog thread) because it only
+    schedules a coroutine on the running event loop.
+    """
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.call_soon_threadsafe(_hmr_signal_all_sync)
+    except RuntimeError:
+        pass  # No running loop — server is shutting down
+
+
+def _hmr_signal_all_sync() -> None:
+    """Called from the event loop thread; notify every SSE queue."""
+    for q in list(_hmr_clients):
+        try:
+            q.put_nowait("reload")
+        except Exception:
+            pass
 
 
 def get_api_app() -> FastAPI:
@@ -259,6 +290,51 @@ class NextPyApp:
                 await websocket.close(code=1008)
                 return
             await handle_websocket(websocket)
+
+        # ------------------------------------------------------------------ #
+        # SSE-based HMR endpoint — only active in development mode.           #
+        # The browser connects once; the server pushes a "reload" event when  #
+        # any watched file changes.  EventSource auto-reconnects after the    #
+        # uvicorn worker restarts, so the page refreshes the moment the new   #
+        # server is ready.                                                    #
+        # ------------------------------------------------------------------ #
+        @self.app.get("/__nextpy/hmr")
+        async def hmr_sse(request: Request):
+            """Server-Sent Events endpoint for browser hot-reload."""
+            if os.environ.get("DEVELOPMENT") != "true":
+                return Response(status_code=404)
+
+            queue: AsyncQueue = AsyncQueue()
+            _hmr_clients.add(queue)
+
+            async def event_stream():
+                try:
+                    # Send an initial "connected" ping so the browser knows
+                    # the SSE channel is live.
+                    yield "data: connected\n\n"
+                    while True:
+                        # Wait for a reload signal (up to 25 s, then send a
+                        # keep-alive comment so proxies don't close the stream).
+                        try:
+                            msg = await asyncio.wait_for(queue.get(), timeout=25)
+                            yield f"data: {msg}\n\n"
+                        except asyncio.TimeoutError:
+                            # Keep-alive comment — not an event, browsers ignore it.
+                            yield ": ping\n\n"
+                except asyncio.CancelledError:
+                    pass
+                finally:
+                    _hmr_clients.discard(queue)
+
+            return StreamingResponse(
+                event_stream(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "X-Accel-Buffering": "no",   # Disable Nginx buffering
+                    "Connection": "keep-alive",
+                },
+            )
     
     def _load_project_api(self) -> None:
         """Load project API modules before mounting the native API router.
@@ -783,6 +859,41 @@ Allow: /
             return html[:index] + tag + html[index:]
         return html + tag
 
+        # Locate this block inside your nextpy/server/app.py file:
+    # HMR client script — injected into every dev-mode HTML page.
+    # Uses EventSource (SSE) so it auto-reconnects after server restarts.
+    _HMR_SCRIPT: str = (
+        "(function(){"
+        "  if(window.__nextpyHmr)return;"
+        "  window.__nextpyHmr=true;"
+        "  var _reconnectDelay=500;"
+        "  function connect(){"
+        #  🛠️ FIXED: Swapped hardcoded pathing string for window location context bindings
+        "    var es=new EventSource(window.location.origin + '/__nextpy/hmr');"
+        "    es.onmessage=function(e){"
+        "      if(e.data==='reload'){"
+        "        console.log('[NextPy HMR] Server changed — reloading...');"
+        "        window.location.reload();"
+        "      }"
+        "    };"
+        "    es.onerror=function(){"
+        "      es.close();"
+        "      setTimeout(connect,_reconnectDelay);"
+        "      _reconnectDelay=Math.min(_reconnectDelay*1.5,5000);"
+        "    };"
+        "    es.onopen=function(){_reconnectDelay=500;};"
+        "  }"
+        "  connect();"
+        "})()"
+    )
+
+
+    def _inject_hmr(self, html: str) -> str:
+        """Inject the HMR script into a full-page HTML response (dev only)."""
+        if os.environ.get("DEVELOPMENT") != "true":
+            return html
+        return self._inject_inline_script(html, self._HMR_SCRIPT, "hmr")
+
     @staticmethod
     def _inject_layout_signature(html: str, signature: str) -> str:
         """Expose the layout signature so the client can request fragments."""
@@ -893,6 +1004,7 @@ Allow: /
                     stream_html = self._inject_inline_script(
                         stream_html, CLIENT_ROUTER_SCRIPT, 'router'
                     )
+                    stream_html = self._inject_hmr(stream_html)
 
                     async def _stream_body():
                         for chunk in chunk_html(stream_html):
@@ -930,6 +1042,7 @@ Allow: /
                 html = self._inject_inline_script(
                     html, CLIENT_ROUTER_SCRIPT, 'router'
                 )
+                html = self._inject_hmr(html)
 
             is_error_html = (
                 'data-nextpy-error-overlay="true"' in html
@@ -1027,6 +1140,7 @@ Allow: /
             html = self._inject_inline_script(
                 html, CLIENT_ROUTER_SCRIPT, 'router'
             )
+            html = self._inject_hmr(html)
 
             cacheable = (
                 not request.cookies

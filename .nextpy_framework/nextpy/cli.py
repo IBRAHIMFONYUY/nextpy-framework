@@ -169,7 +169,18 @@ class HotReloadHandler:
                     self._debounce_reload(event.src_path)
 
     def _trigger_reload(self):
-        """Trigger the reload callback"""
+        """Broadcast an HMR signal to all SSE-connected browsers, then
+        invoke the server reload callback (which restarts uvicorn)."""
+        # Notify every browser tab listening on /__nextpy/hmr so the browser
+        # starts polling for the new server before uvicorn has finished
+        # restarting.  The SSE client script reconnects automatically and
+        # reloads the page the moment the server is responsive again.
+        try:
+            from nextpy.server.app import _hmr_signal_all
+            _hmr_signal_all()
+        except Exception:
+            pass  # HMR notification is best-effort
+
         if self.reload_callback:
             self.reload_callback()
 
