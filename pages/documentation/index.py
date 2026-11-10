@@ -3,15 +3,15 @@ from nextpy.psx import component, Link, register_component, interactive_componen
 @component
 def DocumentationPage():
     return (
-        <div class="flex flex-col xl:flex-row items-start justify-between gap-12 w-full max-w-6xl mx-auto px-4">
+        <div class="flex flex-col xl:flex-row items-start justify-between gap-2 w-full max-w-6xl mx-auto">
                 <DocsScrollSpy />
 
             
             <!-- MAIN CONTENT AREA -->
-            <article class="flex-1 min-w-0 max-w-4xl antialiased text-zinc-300 selection:bg-blue-500/20 selection:text-blue-300 space-y-16 pb-24 pt-6">
+            <article class="flex-1 min-w-0 max-w-4xl antialiased text-zinc-300 selection:bg-blue-500/20 selection:text-blue-300 space-y-12 pb-24 pt-6">
 
                 <!-- Top Breadcrumb & Actions -->
-                <div class="flex items-center justify-between border-b border-zinc-800/50 pb-6">
+                <div class="flex items-center justify-between border-b border-zinc-800/50 pb-4">
                     <div class="flex items-center gap-2 text-sm font-medium text-zinc-400">
                         <span>Documentations</span>
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
@@ -37,23 +37,31 @@ def DocumentationPage():
                 </div>
 
                 <!-- Page Header -->
-                <header id="header" class="mb-12">
-                    <h1 class="text-4xl sm:text-5xl font-bold tracking-tight text-white mb-6">
-                        Welcome to NextPy!
+                <header id="what-is-nextpy" class="mb-12">
+                    <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
+                        Welcome to NextPy
                     </h1>
-                    <p class="text-lg leading-relaxed text-zinc-400">
-                        NextPy is a flexible, highly optimized Python framework for building full-stack web applications. By utilizing pre-compiled structures, it unifies user interfaces, routing patterns, and data persistence models under a single clean execution layer.
+                    <p class="leading-relaxed text-zinc-400">
+                        NextPy is a highly optimized Python framework for building modern full-stack web applications.
+                        By utilizing pre-compiled structures, it unifies user interfaces, routing patterns, and data persistence models under a single clean execution layer.
                     </p>
                 </header>
 
                 <!-- Section: What is NextPy -->
-                <div id="what-is-nextpy" class="space-y-6 pt-8 border-t border-zinc-800/50">
+                <div id="" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">
                         What is NextPy?
                     </h2>
                     <div class="space-y-4 text-base leading-7 text-zinc-400">
                         <p>
                             <strong class="text-zinc-200 font-semibold">NextPy bridges the division between Python computation speed and JavaScript-style reactive interfaces.</strong> It abstracts complex configurations away entirely, allowing you to focus on logic orchestration rather than asset scaffolding.
+                        </p>
+                        <p>
+                            Rather than requiring developers to assemble several independent technologies to build a full-stack application, NextPy provides an integrated architecture.
+
+Its inspiration comes from the developer experience of Next.js, but NextPy is built around Python.
+
+The central idea: Bring the developer experience of modern full-stack frameworks to the Python ecosystem.
                         </p>
                         <p>
                             Whether you are structuring isolated microservice routers, building distributed application networks, or crafting real-time AI dashboards, NextPy handles asset optimization, server-side generation workflows, and code delivery pipelines out of the box.
@@ -113,16 +121,6 @@ def DocumentationPage():
                         </a>
 
                     </div>
-                </div>
-
-                <!-- Section: App Router and Pages Router -->
-                <div id="architecture" class="space-y-6 pt-8 border-t border-zinc-800/50">
-                    <h2 class="text-2xl font-semibold text-white tracking-tight">
-                        App Router and Pages Router
-                    </h2>
-                    <p class="text-base leading-7 text-zinc-400">
-                        NextPy provides two distinct routing architectures depending on your project's complexity and needs. The <strong>App Router</strong> is the recommended approach for new applications, leveraging React Server Components and nested layouts. The <strong>Pages Router</strong> remains available for legacy support and simpler single-page applications.
-                    </p>
                 </div>
 
                 <!-- Section: Version Handling -->
@@ -218,13 +216,12 @@ def DocumentationPage():
             </article>
 
             <!-- RIGHT SIDEBAR -->
-            <aside class="hidden xl:block w-64 shrink-0 sticky top-24 pt-6 pb-24 h-[calc(100vh-6rem)] overflow-y-auto">
+            <aside class="hidden xl:block w-64 shrink-0 sticky top-24 pt-4 pl-8 pb-24 h-[calc(100vh-6rem)] overflow-y-auto">
                 <div class="text-sm">
                     <h4 class="font-semibold text-white mb-4 tracking-wide">On this page</h4>
                     <ul class="space-y-3 font-medium text-zinc-400 border-l border-zinc-800/50">
                         <li><a href="#what-is-nextpy" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">What is NextPy?</a></li>
                         <li><a href="#how-to-use" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">How to use the docs</a></li>
-                        <li><a href="#architecture" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">App Router and Pages Router</a></li>
                         <li><a href="#version-handling" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Version handling</a></li>
                         <li><a href="#prerequisites" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Pre-requisite knowledge</a></li>
                         <li><a href="#accessibility" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Accessibility</a></li>

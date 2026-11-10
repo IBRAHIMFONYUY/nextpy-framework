@@ -1598,6 +1598,7 @@ module.exports = {
         _create_psx_homepage(project_dir)
         _create_psx_about_page(project_dir)
         _create_psx_examples(project_dir)
+        _create_framework_showcase(project_dir)
         _create_vscode_settings(project_dir)
     else:
         _create_traditional_homepage(project_dir)
@@ -1965,19 +1966,20 @@ app = nx.create_app(
     admin_site=admin_site,
 )
 
+# Initialize the database at import time so it also runs inside uvicorn's
+# reload worker (which imports ``main:app`` rather than executing __main__).
+db_url = settings["database_url"]
+if db_url.startswith("sqlite:///"):
+    db_path = db_url.replace("sqlite:///", "")
+    if not os.path.isabs(db_path):
+        project_dir = Path(__file__).parent
+        abs_path = str(project_dir / db_path)
+        db_url = f"sqlite:///{abs_path}"
+
+init_db(db_url)
+
 if __name__ == "__main__":
     import uvicorn
-
-    # Ensure database URL is absolute path ONLY when executed directly
-    db_url = settings["database_url"]
-    if db_url.startswith("sqlite:///"):
-        db_path = db_url.replace("sqlite:///", "")
-        if not os.path.isabs(db_path):
-            project_dir = Path(__file__).parent
-            abs_path = str(project_dir / db_path)
-            db_url = f"sqlite:///{abs_path}"
-
-    init_db(db_url)
 
     uvicorn.run(
         "main:app",
@@ -2098,7 +2100,7 @@ default = BlogIndex
 
     # Blog post dynamic route
     (project_dir / "pages" / "blog" / "[slug].py").write_text('''
-    """Dynamic blog post page – accessed via /blog/{slug}"""
+"""Dynamic blog post page – accessed via /blog/{slug}"""
 
 from nextpy.psx import interactive_component
 
@@ -2162,7 +2164,9 @@ def getServerSideProps(context):
         },
     }
 
-    post = posts.get(slug, {})
+    post = posts.get(slug)
+    if post is None:
+        return {"not_found": True}
     return {"props": {"post": post}}
 
 default = BlogPost
@@ -2217,17 +2221,100 @@ def use_auth(request):
     (project_dir / "pages/actions" / "__init__.py").write_text('''
 """Server actions for this NextPy app.
 
-Server actions allow you to call Python functions from client-side components.
-All server actions are automatically registered when imported here.
+Server actions let client-side components call Python functions without
+writing API routes.  Every function decorated with ``@server_action`` is
+registered automatically when ``main.py`` runs
+``from pages.actions import *``.  Call them from PSX components with::
 
-Example:
-    from nextpy.server_actions import server_action
+    callServerAction("greet", {"name": "World"})
 
-    @server_action()
-    async def my_action(data: str):
-        return {"result": f"Processed: {data}"}
-"""''')
-    click.echo("  Created: pages/actions/__init__.py")
+The result lands in the ``_server_result`` state variable (loading in
+``_server_loading``, errors in ``_server_error``).
+"""
+
+import time
+
+import nextpy as nx
+from nextpy.server_actions import server_action, ServerActionError, ValidationError
+from nextpy.websocket import manager as ws_manager
+
+# In-memory demo stores — swap for nextpy.db models in a real app.
+_notes = []
+_task_log = []
+
+
+@server_action()
+def greet(name: str = "world"):
+    """Simple action: returns a greeting."""
+    name = (name or "").strip() or "world"
+    return {"op": "greet", "message": f"Hello, {name}!"}
+
+
+@server_action()
+def add_note(content: str = ""):
+    """Add a note to the in-memory store."""
+    content = (content or "").strip()
+    if not content:
+        raise ValidationError("content", "Note cannot be empty")
+    note = {"id": len(_notes) + 1, "content": content, "created_at": time.time()}
+    _notes.append(note)
+    return {"op": "add_note", "note": note}
+
+
+@server_action()
+def list_notes():
+    """Return all stored notes."""
+    return {"op": "list_notes", "notes": list(_notes)}
+
+
+@server_action()
+def clear_notes():
+    """Delete all notes."""
+    _notes.clear()
+    return {"op": "clear_notes"}
+
+
+@server_action()
+async def broadcast_demo(message: str = "Hello from NextPy!"):
+    """Publish an event to every client subscribed to the 'demo' channel.
+
+    Pairs with ``pages/live.py`` — open two browser tabs to see
+    real-time fan-out through the framework WebSocket endpoint.
+    """
+    await ws_manager.publish("demo", {
+        "type": "DEMO_EVENT",
+        "payload": {"message": message, "timestamp": time.time()},
+    })
+    return {"op": "broadcast", "published": True, "channel": "demo"}
+
+
+def _background_work(item: str) -> str:
+    """Runs on the background queue — never blocks the HTTP request."""
+    time.sleep(1)
+    result = f"processed:{item}"
+    _task_log.append({"item": item, "result": result, "at": time.time()})
+    return result
+
+
+@server_action()
+def run_background_demo(item: str = "demo"):
+    """Enqueue work on the background task queue and return immediately."""
+    from nextpy import enqueue
+    enqueue(_background_work, item)
+    return {"op": "bg", "queued": True, "item": item}
+
+
+@server_action()
+def get_task_log():
+    """Return completed background-task results."""
+    tasks = [f"{t['item']} -> {t['result']}" for t in _task_log]
+    return {"op": "task_log", "tasks": tasks}
+
+
+# Auth actions (register / login / logout / get_me) — cookie sessions.
+from . import auth_actions  # noqa: F401,E402
+''')
+    click.echo("  Created: pages/actions/__init__.py (server actions)")
 
     
     # Create middleware example
@@ -2803,6 +2890,773 @@ def Examples(props=None):
 default = Examples
 ''')
     click.echo("  Created: pages/examples.py (PSX examples)")
+
+
+def _create_framework_showcase(project_dir: Path):
+    """Generate demo pages covering every major framework capability.
+
+    These are working examples, not stubs — a freshly created app can
+    exercise server actions, cookie auth, SSG/ISR, WebSockets, background
+    tasks, and PSX animations out of the box.
+    """
+    click.echo("  Creating framework showcase pages...")
+
+    (project_dir / "pages" / "actions" / "auth_actions.py").write_text('''"""Authentication server actions — register, login, logout, get_me.
+
+All use cookie-based sessions backed by ``nextpy.db.User``.  The ``request``
+and ``response`` parameters are injected automatically by the action runtime.
+"""
+
+from fastapi import Request, Response
+from nextpy.db import get_session, User
+from nextpy.auth import (
+    hash_password, verify_password,
+    set_session_cookie, get_user_id_from_request,
+    clear_session_cookie, delete_session, COOKIE_NAME,
+)
+from nextpy.server_actions import server_action
+
+
+def _user_dict(user) -> dict:
+    return {
+        "id": user.id,
+        "email": user.email,
+        "username": user.username,
+        "full_name": user.full_name or "",
+        "role": user.role or "user",
+    }
+
+
+def _rotate_session(request: Request, response: Response, user_id: int) -> None:
+    """Replace any existing session with a fresh one on login/register."""
+    old_session_id = request.cookies.get(COOKIE_NAME)
+    if old_session_id:
+        delete_session(old_session_id)
+    set_session_cookie(response, user_id, secure=request.url.scheme == "https")
+
+
+@server_action()
+async def register(
+    request: Request,
+    response: Response,
+    email: str = "",
+    username: str = "",
+    full_name: str = "",
+    password: str = "",
+):
+    """Register a new user account."""
+    email = (email or "").strip().lower()
+    username = (username or "").strip()
+    full_name = (full_name or "").strip()
+    password = password or ""
+
+    if not email or not username or not password:
+        return {"success": False, "error": "Email, username and password are required"}
+    if len(password) < 6:
+        return {"success": False, "error": "Password must be at least 6 characters"}
+
+    db = get_session()
+    try:
+        if db.query(User).filter(User.email == email).first():
+            return {"success": False, "error": "Email already registered"}
+        if db.query(User).filter(User.username == username).first():
+            return {"success": False, "error": "Username already taken"}
+
+        user = User(
+            email=email,
+            username=username,
+            full_name=full_name,
+            hashed_password=hash_password(password),
+            role="user",
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        _rotate_session(request, response, user.id)
+        return {"success": True, "user": _user_dict(user), "message": "Account created"}
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "error": str(e)}
+    finally:
+        db.close()
+
+
+@server_action()
+async def login(
+    request: Request,
+    response: Response,
+    email: str = "",
+    password: str = "",
+):
+    """Log in an existing user."""
+    email = (email or "").strip().lower()
+    password = password or ""
+
+    if not email or not password:
+        return {"success": False, "error": "Email and password are required"}
+
+    db = get_session()
+    try:
+        user = db.query(User).filter(User.email == email).first()
+        if user is None or not verify_password(password, user.hashed_password):
+            return {"success": False, "error": "Invalid email or password"}
+
+        _rotate_session(request, response, user.id)
+        return {"success": True, "user": _user_dict(user), "message": "Logged in"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+    finally:
+        db.close()
+
+
+@server_action()
+async def logout(request: Request, response: Response):
+    """Log out the current user by clearing the session cookie."""
+    session_id = request.cookies.get(COOKIE_NAME, "")
+    if session_id:
+        clear_session_cookie(response, session_id, secure=request.url.scheme == "https")
+    else:
+        response.delete_cookie(COOKIE_NAME, path="/")
+    return {"success": True, "message": "Logged out"}
+
+
+@server_action()
+async def get_me(request: Request):
+    """Get the currently authenticated user, or null."""
+    user_id = get_user_id_from_request(request)
+    if user_id is None:
+        return {"user": None}
+
+    db = get_session()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        return {"user": _user_dict(user) if user else None}
+    finally:
+        db.close()
+''')
+    click.echo("  Created: pages/actions/auth_actions.py")
+
+    (project_dir / "pages" / "login.py").write_text('''"""Login page — cookie-session auth via the ``login`` server action."""
+
+from nextpy.psx import component, interactive_component, useState, useEffect, callServerAction, Motion
+
+
+@interactive_component
+def LoginPage(props=None):
+    [email, setEmail] = useState("")
+    [password, setPassword] = useState("")
+    [error, setError] = useState("")
+    [_server_result, _setServerResult] = useState(None)
+    [_server_loading, _setServerLoading] = useState(False)
+
+    def handle_login(e):
+        setError("")
+        callServerAction("login", {"email": email, "password": password})
+
+    def handle_result():
+        if _server_result:
+            if _server_result.get("success"):
+                window.nextpyHardNavigate("/account")
+            else:
+                setError(_server_result.get("error", "Login failed"))
+
+    useEffect(handle_result, [_server_result])
+
+    input_cls = "w-full rounded-xl border border-gray-300 bg-gray-50/50 px-4 py-3 text-gray-900 placeholder-gray-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+
+    return (
+        <div class="flex min-h-[70vh] items-center justify-center px-4 py-12">
+            <Motion
+                initial={{"opacity": 0, "transform": "translateY(24px)"}}
+                animate={{"opacity": 1, "transform": "translateY(0px)"}}
+                transition={{"duration": 0.5, "easing": "ease-out"}}
+                className="w-full max-w-md"
+            >
+                <div class="mb-8 text-center">
+                    <h1 class="text-3xl font-bold tracking-tight text-gray-900">Welcome back</h1>
+                    <p class="mt-2 text-gray-500">Log in to your account</p>
+                </div>
+
+                <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-xl shadow-gray-900/5">
+                    <div data-state-error data-state-toggle style="display: none" class="mb-5 p-3 text-sm text-red-700 rounded-lg bg-red-50"></div>
+
+                    <form onsubmit={handle_login} class="space-y-5">
+                        <div>
+                            <label class="mb-1.5 block text-sm font-semibold text-gray-700">Email</label>
+                            <input type="email" value={email} oninput={lambda e: setEmail(e.target.value)}
+                                required placeholder="you@example.com" autocomplete="email" class={input_cls} />
+                        </div>
+                        <div>
+                            <label class="mb-1.5 block text-sm font-semibold text-gray-700">Password</label>
+                            <input type="password" value={password} oninput={lambda e: setPassword(e.target.value)}
+                                required placeholder="Your password" autocomplete="current-password" class={input_cls} />
+                        </div>
+                        <button type="submit" disabled={_server_loading}
+                            class="w-full rounded-xl bg-indigo-600 px-4 py-3.5 font-semibold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60">
+                            {"Signing in..." if _server_loading else "Sign in"}
+                        </button>
+                    </form>
+
+                    <p class="mt-6 text-center text-sm text-gray-500">
+                        No account?{" "}
+                        <a href="/register" class="font-semibold text-indigo-600 transition hover:text-indigo-500">Sign up</a>
+                    </p>
+                </div>
+            </Motion>
+        </div>
+    )
+
+
+default = LoginPage
+''')
+    click.echo("  Created: pages/login.py")
+
+    (project_dir / "pages" / "register.py").write_text('''"""Registration page — creates an account via the ``register`` server action."""
+
+from nextpy.psx import component, interactive_component, useState, useEffect, callServerAction, Motion
+
+
+@interactive_component
+def RegisterPage(props=None):
+    [email, setEmail] = useState("")
+    [username, setUsername] = useState("")
+    [fullName, setFullName] = useState("")
+    [password, setPassword] = useState("")
+    [error, setError] = useState("")
+    [_server_result, _setServerResult] = useState(None)
+    [_server_loading, _setServerLoading] = useState(False)
+
+    def handle_register(e):
+        setError("")
+        callServerAction("register", {
+            "email": email,
+            "username": username,
+            "full_name": fullName,
+            "password": password,
+        })
+
+    def handle_result():
+        if _server_result:
+            if _server_result.get("success"):
+                window.nextpyHardNavigate("/account")
+            else:
+                setError(_server_result.get("error", "Registration failed"))
+
+    useEffect(handle_result, [_server_result])
+
+    input_cls = "w-full rounded-xl border border-gray-300 bg-gray-50/50 px-4 py-3 text-gray-900 placeholder-gray-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+
+    return (
+        <div class="flex min-h-[70vh] items-center justify-center px-4 py-12">
+            <Motion
+                initial={{"opacity": 0, "transform": "translateY(24px)"}}
+                animate={{"opacity": 1, "transform": "translateY(0px)"}}
+                transition={{"duration": 0.5, "easing": "ease-out"}}
+                className="w-full max-w-md"
+            >
+                <div class="mb-8 text-center">
+                    <h1 class="text-3xl font-bold tracking-tight text-gray-900">Create account</h1>
+                    <p class="mt-2 text-gray-500">Get started with NextPy</p>
+                </div>
+
+                <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-xl shadow-gray-900/5">
+                    <div data-state-error data-state-toggle style="display: none" class="mb-5 p-3 text-sm text-red-700 rounded-lg bg-red-50"></div>
+
+                    <form onsubmit={handle_register} class="space-y-4">
+                        <input type="text" value={fullName} oninput={lambda e: setFullName(e.target.value)}
+                            placeholder="Full name" class={input_cls} />
+                        <input type="text" value={username} oninput={lambda e: setUsername(e.target.value)}
+                            required placeholder="Username" autocomplete="username" class={input_cls} />
+                        <input type="email" value={email} oninput={lambda e: setEmail(e.target.value)}
+                            required placeholder="you@example.com" autocomplete="email" class={input_cls} />
+                        <input type="password" value={password} oninput={lambda e: setPassword(e.target.value)}
+                            required placeholder="Password (min 6 chars)" autocomplete="new-password" class={input_cls} />
+                        <button type="submit" disabled={_server_loading}
+                            class="w-full rounded-xl bg-indigo-600 px-4 py-3.5 font-semibold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60">
+                            {"Creating account..." if _server_loading else "Sign up"}
+                        </button>
+                    </form>
+
+                    <p class="mt-6 text-center text-sm text-gray-500">
+                        Already have an account?{" "}
+                        <a href="/login" class="font-semibold text-indigo-600 transition hover:text-indigo-500">Log in</a>
+                    </p>
+                </div>
+            </Motion>
+        </div>
+    )
+
+
+default = RegisterPage
+''')
+    click.echo("  Created: pages/register.py")
+
+    (project_dir / "pages" / "account.py").write_text('''"""Protected account page — SSR auth guard + logout server action."""
+
+from nextpy.psx import component, interactive_component, useState, useEffect, callServerAction, Motion
+
+
+@interactive_component
+def AccountPage(props=None):
+    user = props.get("user") if props else None
+    [_server_result, _setServerResult] = useState(None)
+
+    def handle_logout():
+        callServerAction("logout", {})
+
+    def handle_result():
+        if _server_result and _server_result.get("success"):
+            window.nextpyHardNavigate("/login")
+
+    useEffect(handle_result, [_server_result])
+
+    if not user:
+        return (
+            <div class="flex min-h-[60vh] items-center justify-center px-4">
+                <div class="text-center">
+                    <h1 class="text-2xl font-bold text-gray-900">Not signed in</h1>
+                    <a href="/login" class="mt-4 inline-block rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white hover:bg-indigo-700">
+                        Go to login
+                    </a>
+                </div>
+            </div>
+        )
+
+    return (
+        <div class="mx-auto max-w-2xl px-4 py-16">
+            <Motion
+                initial={{"opacity": 0, "transform": "translateY(20px)"}}
+                animate={{"opacity": 1, "transform": "translateY(0px)"}}
+                transition={{"duration": 0.5, "easing": "ease-out"}}
+            >
+                <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-xl">
+                    <h1 class="text-3xl font-bold text-gray-900">Account</h1>
+                    <dl class="mt-6 space-y-3 text-gray-700">
+                        <div class="flex justify-between border-b border-gray-100 pb-3">
+                            <dt class="font-medium text-gray-500">Name</dt>
+                            <dd>{user.get("full_name") or user.get("username")}</dd>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-100 pb-3">
+                            <dt class="font-medium text-gray-500">Username</dt>
+                            <dd>{user.get("username")}</dd>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-100 pb-3">
+                            <dt class="font-medium text-gray-500">Email</dt>
+                            <dd>{user.get("email")}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="font-medium text-gray-500">Role</dt>
+                            <dd>{user.get("role")}</dd>
+                        </div>
+                    </dl>
+                    <button onclick={handle_logout}
+                        class="mt-8 w-full rounded-xl border border-red-200 px-4 py-3 font-semibold text-red-600 transition hover:bg-red-50">
+                        Log out
+                    </button>
+                </div>
+            </Motion>
+        </div>
+    )
+
+
+def getServerSideProps(context):
+    """SSR auth guard: resolve the session cookie on every request."""
+    from nextpy.auth import get_user_id_from_request
+    from nextpy.db import get_session, User
+
+    request = context.get("request") or context.get("req")
+    user_id = get_user_id_from_request(request) if request else None
+    if user_id is None:
+        return {"redirect": {"destination": "/login", "permanent": False}}
+
+    db = get_session()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user is None:
+            return {"redirect": {"destination": "/login", "permanent": False}}
+        return {
+            "props": {
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "username": user.username,
+                    "full_name": user.full_name or "",
+                    "role": user.role or "user",
+                }
+            }
+        }
+    finally:
+        db.close()
+
+
+default = AccountPage
+''')
+    click.echo("  Created: pages/account.py (protected)")
+
+    (project_dir / "pages" / "showcase.py").write_text('''"""Framework showcase — server actions, notes CRUD, animations, refs.
+
+Demonstrates the interactive PSX stack: useState, callServerAction,
+Motion entrance animations, AnimatePresence exits, and data-psx-ref.
+"""
+
+from nextpy.psx import component, interactive_component, useState, useEffect, callServerAction, Motion, AnimatePresence
+
+
+@interactive_component
+def Showcase(props=None):
+    [count, setCount] = useState(0)
+    [name, setName] = useState("World")
+    [noteText, setNoteText] = useState("")
+    [notes, setNotes] = useState([])
+    [taskLog, setTaskLog] = useState([])
+    [panelOpen, setPanelOpen] = useState(True)
+    [greeting, setGreeting] = useState("")
+    [refStatus, setRefStatus] = useState("not checked")
+    [_server_result, _setServerResult] = useState(None)
+    [_server_loading, _setServerLoading] = useState(False)
+
+    def handle_result():
+        if not _server_result:
+            return
+        op = _server_result.get("op")
+        if op == "greet":
+            setGreeting(_server_result.get("message", ""))
+        elif op == "add_note":
+            setNoteText("")
+            callServerAction("list_notes", {})
+        elif op == "list_notes":
+            setNotes(list(_server_result.get("notes", [])))
+        elif op == "clear_notes":
+            setNotes([])
+        elif op == "bg":
+            callServerAction("get_task_log", {})
+        elif op == "task_log":
+            setTaskLog(list(_server_result.get("tasks", [])))
+
+    useEffect(handle_result, [_server_result])
+
+    def check_ref():
+        el = window.nextpy.getRef(window.nextpy._componentId, "showcase_card")
+        setRefStatus("found" if el else "missing")
+
+    input_cls = "w-full rounded-xl border border-gray-300 bg-gray-50/50 px-4 py-3 text-gray-900 placeholder-gray-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+    btn_cls = "rounded-xl bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-60"
+
+    return (
+        <div class="mx-auto max-w-4xl px-4 py-16">
+            <h1 class="mb-2 text-4xl font-extrabold tracking-tight text-gray-900">Framework Showcase</h1>
+            <p class="mb-12 text-lg text-gray-500">Every major NextPy capability, working.</p>
+
+            {/* Server actions */}
+            <section class="mb-10 rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+                <h2 class="mb-4 text-xl font-bold text-gray-900">Server Actions</h2>
+                <div class="flex flex-wrap items-center gap-4">
+                    <input value={name} oninput={lambda e: setName(e.target.value)} placeholder="Your name"
+                        class={input_cls + " max-w-xs"} />
+                    <button onclick={lambda e: callServerAction("greet", {"name": name})} class={btn_cls}>
+                        {"Working..." if _server_loading else "Greet me"}
+                    </button>
+                    <button onclick={lambda e: callServerAction("list_notes", {})} class={btn_cls + " bg-gray-700 hover:bg-gray-800"}>
+                        Refresh notes
+                    </button>
+                </div>
+                {if greeting:
+                    <p class="mt-4 rounded-lg bg-indigo-50 px-4 py-3 font-medium text-indigo-700">{greeting}</p>
+                }
+
+                <div class="mt-6 flex gap-3">
+                    <input value={noteText} oninput={lambda e: setNoteText(e.target.value)} placeholder="Write a note..."
+                        class={input_cls} />
+                    <button onclick={lambda e: callServerAction("add_note", {"content": noteText})} class={btn_cls}>
+                        Add note
+                    </button>
+                    <button onclick={lambda e: callServerAction("clear_notes", {})} class={btn_cls + " bg-red-600 hover:bg-red-700"}>
+                        Clear
+                    </button>
+                </div>
+                <ul class="mt-4 space-y-2">
+                    {for note in notes:
+                        <li class="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-2 text-sm text-gray-700">
+                            <span>{note["content"]}</span>
+                            <span class="text-xs text-gray-400">#{note["id"]}</span>
+                        </li>
+                    }
+                </ul>
+            </section>
+
+            {/* Background tasks */}
+            <section class="mb-10 rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+                <h2 class="mb-4 text-xl font-bold text-gray-900">Background Tasks</h2>
+                <p class="mb-4 text-sm text-gray-500">Enqueued via <code class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs">nextpy.enqueue</code> — the request returns instantly.</p>
+                <button onclick={lambda e: callServerAction("run_background_demo", {"item": "report-" + str(count)})} class={btn_cls}>
+                    Run background task
+                </button>
+                <ul class="mt-4 space-y-2">
+                    {for line in taskLog:
+                        <li class="rounded-lg border border-gray-100 bg-gray-50 px-4 py-2 font-mono text-xs text-gray-600">{line}</li>
+                    }
+                </ul>
+            </section>
+
+            {/* Local state + animations */}
+            <section class="mb-10 rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+                <h2 class="mb-4 text-xl font-bold text-gray-900">State & Animations</h2>
+                <div class="flex items-center gap-6">
+                    <button onclick={lambda e: setCount(count + 1)} class={btn_cls}>
+                        Count: {count}
+                    </button>
+                    <button onclick={lambda e: setPanelOpen(not panelOpen)} class={btn_cls + " bg-gray-700 hover:bg-gray-800"}>
+                        {"Close panel" if panelOpen else "Open panel"}
+                    </button>
+                </div>
+                <Motion
+                    initial={{"opacity": 0, "transform": "translateY(20px) scale(0.95)"}}
+                    animate={{"opacity": 1, "transform": "translateY(0px) scale(1)"}}
+                    transition={{"duration": 0.4, "easing": "ease-out"}}
+                    className="mt-6 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 p-6 text-white"
+                >
+                    <p class="font-semibold">This card animated in with the Web Animations API.</p>
+                </Motion>
+                <AnimatePresence>
+                    {if panelOpen:
+                        <Motion
+                            initial={{"opacity": 0, "transform": "scale(0.9)"}}
+                            animate={{"opacity": 1, "transform": "scale(1)"}}
+                            exit={{"opacity": 0, "transform": "scale(0.9) translateY(-8px)"}}
+                            transition={{"duration": 0.3}}
+                            className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-800"
+                        >
+                            <p class="font-semibold">AnimatePresence exit animation</p>
+                            <p class="mt-1 text-sm">Closing the panel plays the exit animation before removal.</p>
+                        </Motion>
+                    }
+                </AnimatePresence>
+            </section>
+
+            {/* Refs */}
+            <section class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+                <h2 class="mb-4 text-xl font-bold text-gray-900">Refs</h2>
+                <div ref="showcase_card" class="mb-4 rounded-xl border-2 border-dashed border-indigo-300 p-6 text-center text-indigo-500">
+                    <code class="font-mono text-sm">ref="showcase_card"</code>
+                </div>
+                <button onclick={check_ref} class={btn_cls}>Check ref ({refStatus})</button>
+            </section>
+        </div>
+    )
+
+
+default = Showcase
+''')
+    click.echo("  Created: pages/showcase.py")
+
+    (project_dir / "pages" / "catalog.py").write_text('''"""Static catalog page — getStaticProps / ISR revalidation demo."""
+
+from nextpy import get_static_props
+from nextpy.core.data_fetching import PropsResult
+from nextpy.psx import component
+
+ITEMS = [
+    {"id": "astro", "name": "Astro Lamp", "price": 49.0},
+    {"id": "nova", "name": "Nova Chair", "price": 199.0},
+    {"id": "comet", "name": "Comet Desk", "price": 349.0},
+]
+
+
+@component
+def Catalog(props=None):
+    props = props or {}
+    items = props.get("items", [])
+
+    return (
+        <div class="mx-auto max-w-4xl px-4 py-16">
+            <h1 class="mb-2 text-4xl font-extrabold text-gray-900">Catalog</h1>
+            <p class="mb-10 text-gray-500">Rendered at build time with <code class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-sm">getStaticProps</code> + ISR.</p>
+            <div class="grid gap-6 sm:grid-cols-3">
+                {for item in items:
+                    <a href="/catalog/{item['id']}" class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-lg">
+                        <h2 class="text-lg font-bold text-gray-900">{item["name"]}</h2>
+                        <p class="mt-2 text-indigo-600 font-semibold">${item["price"]}</p>
+                    </a>
+                }
+            </div>
+        </div>
+    )
+
+
+@get_static_props
+async def getStaticProps(context):
+    # Revalidate every 60s — stale pages are served while a fresh copy
+    # is generated in the background (Incremental Static Regeneration).
+    return PropsResult(props={"items": ITEMS}, revalidate=60)
+
+
+default = Catalog
+''')
+    click.echo("  Created: pages/catalog.py")
+
+    (project_dir / "pages" / "catalog").mkdir(exist_ok=True)
+    (project_dir / "pages" / "catalog" / "[item].py").write_text('''"""Dynamic SSG page — getStaticPaths + getStaticProps demo.
+
+Every item in ITEMS is pre-rendered at build time; unknown ids 404.
+"""
+
+from nextpy import get_static_paths, get_static_props
+from nextpy.core.data_fetching import PropsResult, StaticPathsResult
+from nextpy.psx import component
+
+ITEMS = {
+    "astro": {"id": "astro", "name": "Astro Lamp", "price": 49.0, "description": "A warm lamp for late-night stargazing sessions."},
+    "nova": {"id": "nova", "name": "Nova Chair", "price": 199.0, "description": "Sculptural seating with a galaxy-grade finish."},
+    "comet": {"id": "comet", "name": "Comet Desk", "price": 349.0, "description": "A floating desk that tracks your orbit."},
+}
+
+
+@component
+def CatalogItem(props=None):
+    props = props or {}
+    item = props.get("item")
+
+    if not item:
+        return (
+            <div class="flex min-h-[50vh] items-center justify-center">
+                <div class="text-center">
+                    <h1 class="text-3xl font-bold text-gray-900">Item not found</h1>
+                    <a href="/catalog" class="mt-4 inline-block text-indigo-600 hover:underline">Back to catalog</a>
+                </div>
+            </div>
+        )
+
+    return (
+        <div class="mx-auto max-w-2xl px-4 py-16">
+            <a href="/catalog" class="text-sm font-medium text-indigo-600 hover:underline">&larr; All items</a>
+            <h1 class="mt-4 text-4xl font-extrabold text-gray-900">{item["name"]}</h1>
+            <p class="mt-2 text-2xl font-semibold text-indigo-600">${item["price"]}</p>
+            <p class="mt-6 text-lg text-gray-600">{item["description"]}</p>
+            <div class="mt-8 rounded-xl bg-gray-50 p-4 font-mono text-xs text-gray-500">
+                Pre-rendered by getStaticPaths + getStaticProps at build time
+            </div>
+        </div>
+    )
+
+
+@get_static_paths
+async def getStaticPaths():
+    return StaticPathsResult(
+        paths=[{"params": {"item": item_id}} for item_id in ITEMS.keys()],
+        fallback=False,
+    )
+
+
+@get_static_props
+async def getStaticProps(context):
+    item_id = context.get("params", {}).get("item", "")
+    item = ITEMS.get(item_id)
+    if item is None:
+        return PropsResult(not_found=True)
+    return PropsResult(props={"item": item})
+
+
+default = CatalogItem
+''')
+    click.echo("  Created: pages/catalog/[item].py")
+
+    (project_dir / "pages" / "live.py").write_text('''"""Real-time demo — WebSocket pub/sub through ``nextpy.websocket.manager``.
+
+The page subscribes to the ``demo`` channel; the "Broadcast" button runs
+the ``broadcast_demo`` server action which publishes to every connected
+client.  Open this page in two tabs to see live fan-out.  The socket
+client lives in ``public/js/live-feed.js``.
+"""
+
+from nextpy.psx import component, interactive_component, useState, callServerAction
+
+
+@interactive_component
+def LivePage(props=None):
+    [_server_result, _setServerResult] = useState(None)
+    [_server_loading, _setServerLoading] = useState(False)
+
+    def broadcast():
+        callServerAction("broadcast_demo", {"message": "Live update from NextPy!"})
+
+    return (
+        <div class="mx-auto max-w-2xl px-4 py-16">
+            <h1 class="mb-2 text-4xl font-extrabold text-gray-900">Live Feed</h1>
+            <p class="mb-8 text-gray-500">
+                Server actions publish to the <code class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-sm">demo</code> channel;
+                this page subscribes over the <code class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-sm">/ws</code> WebSocket.
+            </p>
+
+            <button onclick={broadcast} disabled={_server_loading}
+                class="mb-8 rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60">
+                {"Broadcasting..." if _server_loading else "Broadcast to all clients"}
+            </button>
+
+            <div id="live-feed" class="space-y-2">
+                <div class="rounded-lg border border-dashed border-gray-300 p-4 text-center text-sm text-gray-400">
+                    Waiting for events...
+                </div>
+            </div>
+
+            <script src="/js/live-feed.js"></script>
+        </div>
+    )
+
+
+default = LivePage
+''')
+    click.echo("  Created: pages/live.py")
+
+    (project_dir / "public" / "js").mkdir(parents=True, exist_ok=True)
+    (project_dir / "public" / "js" / "live-feed.js").write_text('''/* NextPy live-feed client — subscribes to the "demo" WebSocket channel
+   and appends DEMO_EVENT payloads to #live-feed. Plain browser JS so it
+   works without any framework hydration. */
+(function () {
+    var feed = document.getElementById('live-feed');
+    if (!feed) return;
+
+    var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    var socket;
+    var retryDelay = 1000;
+
+    function addEvent(ev) {
+        var first = feed.querySelector('.border-dashed');
+        if (first) first.remove();
+        var row = document.createElement('div');
+        row.className = 'rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-900';
+        var msg = (ev && ev.payload && ev.payload.message) || JSON.stringify(ev);
+        var ts = ev && ev.payload && ev.payload.timestamp
+            ? new Date(ev.payload.timestamp * 1000).toLocaleTimeString()
+            : '';
+        row.innerHTML = '<span class="font-medium">' + msg + '</span>' +
+            (ts ? ' <span class="ml-2 text-xs text-indigo-400">' + ts + '</span>' : '');
+        feed.prepend(row);
+        while (feed.children.length > 50) feed.removeChild(feed.lastChild);
+    }
+
+    function connect() {
+        socket = new WebSocket(protocol + '//' + window.location.host + '/ws');
+        socket.addEventListener('open', function () {
+            retryDelay = 1000;
+            socket.send(JSON.stringify({ type: 'subscribe', channel: 'demo' }));
+        });
+        socket.addEventListener('close', function () {
+            setTimeout(connect, retryDelay);
+            retryDelay = Math.min(retryDelay * 2, 30000);
+        });
+        socket.addEventListener('message', function (event) {
+            try {
+                var msg = JSON.parse(event.data);
+                if (msg && msg.type === 'DEMO_EVENT') addEvent(msg);
+            } catch (e) { /* ignore malformed frames */ }
+        });
+    }
+
+    connect();
+})();
+''')
+    click.echo("  Created: public/js/live-feed.js")
 
 
 def _create_vscode_settings(project_dir: Path):

@@ -62,17 +62,17 @@ def Layout(children, **props):
                     {/* Main Layout Grid Container */}
                     <div class="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
                         {/* REMOVED items-start so the sidebar stretches to full height */}
-                        <div class="flex justify-between gap-8">
+                        <div class="flex justify-between gap-2">
                             
                             {/* 1. Left Sidebar Navigation Area (Fixed Width) */}
-                            <aside class="hidden lg:block w-[280px] shrink-0 border-r border-zinc-800/50">
-                                <div class="sticky top-16 h-[calc(100vh-4rem)] py-12 pr-6 overflow-y-auto scrollbar-none">
+                            <aside class="hidden lg:block w-[280px] shrink-0">
+                                <div class="sticky top-16 h-[calc(100vh-4rem)] py-12 pr-12 overflow-y-auto scrollbar-none">
                                     <EnhancedSidebar />
                                 </div>
                             </aside>
 
                             {/* 2. Main Content Area (Children handle their own max-w constraints) */}
-                            <main class="flex-1 min-w-0 py-10">
+                            <main class="flex min-w-0 py-6">
                                 {children}
                             </main>
 

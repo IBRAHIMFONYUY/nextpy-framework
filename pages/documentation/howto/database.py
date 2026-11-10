@@ -1,43 +1,55 @@
-from nextpy.psx import register_component, component, psx, interactive_component, useState, useEffect
+from nextpy.psx import register_component, component, psx, interactive_component, useState, useEffect, Link
 
 
 @component
 def DatabaseGuide():
     return psx("""
         <div class="mx-auto max-w-6xl">
-        <div class="grid gap-12 lg:grid-cols-[1fr_260px]">
-        <article class="min-w-0">
+        <div class="flex flex-col xl:flex-row items-start justify-between gap-2 w-full">
+        <article class="flex-1 min-w-0 max-w-4xl antialiased text-zinc-300 selection:bg-blue-500/20 selection:text-blue-300 pb-24 pt-6">
         <DocsScrollSpy />
-            <div class="mb-8 pb-6 border-b border-gray-800">
-                <div class="flex items-center gap-3 mb-4">
-                    <span class="px-2 py-1 text-xs font-medium border rounded bg-green-500/20 text-green-400 border-green-500">
-                        How-to Guide
-                    </span>
-                    <span class="px-2 py-1 text-xs font-medium border rounded bg-yellow-500/20 text-yellow-400 border-yellow-500">
-                        Intermediate
-                    </span>
-                    <span class="px-2 py-1 text-xs font-medium border rounded bg-gray-700 text-gray-300 border-gray-600">
-                        NextPy 5.0.0
-                    </span>
+                        <!-- Top Breadcrumb & Actions -->
+            <div class="flex items-center justify-between border-b border-zinc-800/50 pb-4">
+                <div class="flex items-center gap-2 text-sm font-medium text-zinc-400">
+                    <span>Documentation</span>
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    <span class="text-white">Database Integration</span>
                 </div>
-                
-                <h1 class="text-4xl font-bold text-white">
+                <div class="relative flex items-center rounded-md border border-zinc-800 bg-zinc-950 overflow-hidden">
+                    <button class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-zinc-300 hover:bg-zinc-900 transition-colors border-r border-zinc-800"
+                        onclick="navigator.clipboard.writeText(document.querySelector('article').innerText);var l=this.querySelector('.cp-label');l.textContent='Copied';setTimeout(()=>l.textContent='Copy page',1500)">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                        <span class="cp-label">Copy page</span>
+                    </button>
+                    <button class="px-2 py-1.5 text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300 transition-colors"
+                        onclick="var m=this.parentElement.querySelector('.copy-menu');m.style.display=m.style.display==='none'?'block':'none'">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div class="copy-menu absolute right-0 top-full mt-1 w-44 rounded-lg border border-zinc-800 bg-zinc-900 shadow-xl z-50 py-1" style="display:none">
+                        <button class="w-full text-left px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800" onclick="navigator.clipboard.writeText(document.querySelector('article').innerText);this.closest('.copy-menu').style.display='none'">Copy page</button>
+                        <button class="w-full text-left px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800" onclick="navigator.clipboard.writeText(window.location.href);this.closest('.copy-menu').style.display='none'">Copy link</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page Header -->
+            <header class="mb-12">
+                <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                     Database Integration
                 </h1>
-                
-                <p class="mt-4 text-lg text-gray-400">
+                <p class="leading-relaxed text-zinc-400">
                     Learn how to integrate databases into your NextPy application using SQLAlchemy and perform CRUD operations.
                 </p>
-            </div>
+            </header>
             
-            <div class="my-6 p-4 border border-gray-700 bg-gray-800 rounded-lg">
+            <div class="my-6 p-4 border border-zinc-700 bg-zinc-800 rounded-lg">
                 <div class="flex items-start gap-3">
-                    <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-zinc-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                     </svg>
                     <div class="flex-1">
-                        <h4 class="font-semibold text-gray-200">Prerequisites</h4>
-                        <ul class="mt-2 space-y-1 text-sm text-gray-400">
+                        <h4 class="font-semibold text-zinc-200">Prerequisites</h4>
+                        <ul class="mt-2 space-y-1 text-sm text-zinc-400">
                             <li class="flex items-center gap-2">
                                 <svg class="w-3 h-3 text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -61,14 +73,14 @@ def DatabaseGuide():
                 </div>
             </div>
             
-            <section id="overview" class="my-12 scroll-mt-20">
-                <h2 class="text-3xl font-bold text-white mb-6">
+            <section id="overview" class="my-12 pt-8 border-t border-zinc-800/50 scroll-mt-20">
+                <h2 class="text-2xl font-semibold text-white tracking-tight mb-6">
                     What You'll Learn
                 </h2>
-                <p class="text-gray-300 mb-4">
+                <p class="text-zinc-300 mb-4">
                     This guide covers:
                 </p>
-                <ul class="list-disc list-inside space-y-2 text-gray-300 ml-4">
+                <ul class="list-disc list-inside space-y-2 text-zinc-300 ml-4">
                     <li>Setting up SQLAlchemy with NextPy</li>
                     <li>Creating database models</li>
                     <li>Database migrations</li>
@@ -78,17 +90,17 @@ def DatabaseGuide():
                 </ul>
             </section>
             
-            <section id="setup" class="my-12 scroll-mt-20">
-                <h2 class="text-3xl font-bold text-white mb-6">
+            <section id="setup" class="my-12 pt-8 border-t border-zinc-800/50 scroll-mt-20">
+                <h2 class="text-2xl font-semibold text-white tracking-tight mb-6">
                     Step 1: Database Setup
                 </h2>
-                <p class="text-gray-300 mb-4">
+                <p class="text-zinc-300 mb-4">
                     Install the required dependencies:
                 </p>
                 
-                <div class="my-6 overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
-                    <div class="flex items-center justify-between px-4 py-2 border-b border-gray-700 bg-gray-800">
-                        <span class="px-2 py-0.5 text-xs font-medium text-gray-300 uppercase bg-gray-700 rounded">
+                <div class="my-6 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900">
+                    <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-800">
+                        <span class="px-2 py-0.5 text-xs font-medium text-zinc-300 uppercase bg-zinc-700 rounded">
                             bash
                         </span>
                     </div>
@@ -97,14 +109,14 @@ def DatabaseGuide():
                     </pre>
                 </div>
                 
-                <p class="text-gray-300 mb-4 mt-6">
+                <p class="text-zinc-300 mb-4 mt-6">
                     Configure database connection in main.py:
                 </p>
                 
-                <div class="my-6 overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
-                    <div class="flex items-center justify-between px-4 py-2 border-b border-gray-700 bg-gray-800">
-                        <span class="text-sm text-gray-400 font-mono">main.py</span>
-                        <span class="px-2 py-0.5 text-xs font-medium text-gray-300 uppercase bg-gray-700 rounded">
+                <div class="my-6 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900">
+                    <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-800">
+                        <span class="text-sm text-zinc-400 font-mono">main.py</span>
+                        <span class="px-2 py-0.5 text-xs font-medium text-zinc-300 uppercase bg-zinc-700 rounded">
                             python
                         </span>
                     </div>
@@ -131,18 +143,18 @@ def get_db():
                 </div>
             </section>
             
-            <section id="models" class="my-12 scroll-mt-20">
-                <h2 class="text-3xl font-bold text-white mb-6">
+            <section id="models" class="my-12 pt-8 border-t border-zinc-800/50 scroll-mt-20">
+                <h2 class="text-2xl font-semibold text-white tracking-tight mb-6">
                     Step 2: Create Models
                 </h2>
-                <p class="text-gray-300 mb-4">
+                <p class="text-zinc-300 mb-4">
                     Create database models using SQLAlchemy:
                 </p>
                 
-                <div class="my-6 overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
-                    <div class="flex items-center justify-between px-4 py-2 border-b border-gray-700 bg-gray-800">
-                        <span class="text-sm text-gray-400 font-mono">models/user.py</span>
-                        <span class="px-2 py-0.5 text-xs font-medium text-gray-300 uppercase bg-gray-700 rounded">
+                <div class="my-6 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900">
+                    <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-800">
+                        <span class="text-sm text-zinc-400 font-mono">models/user.py</span>
+                        <span class="px-2 py-0.5 text-xs font-medium text-zinc-300 uppercase bg-zinc-700 rounded">
                             python
                         </span>
                     </div>
@@ -171,7 +183,7 @@ class User(Base):
                         </svg>
                         <div class="flex-1">
                             <h4 class="font-semibold text-purple-400">Tip</h4>
-                            <div class="mt-1 text-sm text-gray-300">
+                            <div class="mt-1 text-sm text-zinc-300">
                                 Use index=True on columns that you'll frequently query or filter by. This improves query performance.
                             </div>
                         </div>
@@ -179,18 +191,18 @@ class User(Base):
                 </div>
             </section>
             
-            <section id="migrations" class="my-12 scroll-mt-20">
-                <h2 class="text-3xl font-bold text-white mb-6">
+            <section id="migrations" class="my-12 pt-8 border-t border-zinc-800/50 scroll-mt-20">
+                <h2 class="text-2xl font-semibold text-white tracking-tight mb-6">
                     Step 3: Create Tables
                 </h2>
-                <p class="text-gray-300 mb-4">
+                <p class="text-zinc-300 mb-4">
                     Create database tables from your models:
                 </p>
                 
-                <div class="my-6 overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
-                    <div class="flex items-center justify-between px-4 py-2 border-b border-gray-700 bg-gray-800">
-                        <span class="text-sm text-gray-400 font-mono">models/__init__.py</span>
-                        <span class="px-2 py-0.5 text-xs font-medium text-gray-300 uppercase bg-gray-700 rounded">
+                <div class="my-6 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900">
+                    <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-800">
+                        <span class="text-sm text-zinc-400 font-mono">models/__init__.py</span>
+                        <span class="px-2 py-0.5 text-xs font-medium text-zinc-300 uppercase bg-zinc-700 rounded">
                             python
                         </span>
                     </div>
@@ -210,7 +222,7 @@ Base.metadata.create_all(bind=engine)</code>
                         </svg>
                         <div class="flex-1">
                             <h4 class="font-semibold text-yellow-400">Production Note</h4>
-                            <div class="mt-1 text-sm text-gray-300">
+                            <div class="mt-1 text-sm text-zinc-300">
                                 For production, use Alembic for database migrations instead of creating tables directly. This allows you to version and rollback schema changes.
                             </div>
                         </div>
@@ -218,18 +230,18 @@ Base.metadata.create_all(bind=engine)</code>
                 </div>
             </section>
             
-            <section id="crud" class="my-12 scroll-mt-20">
-                <h2 class="text-3xl font-bold text-white mb-6">
+            <section id="crud" class="my-12 pt-8 border-t border-zinc-800/50 scroll-mt-20">
+                <h2 class="text-2xl font-semibold text-white tracking-tight mb-6">
                     Step 4: CRUD Operations
                 </h2>
-                <p class="text-gray-300 mb-4">
+                <p class="text-zinc-300 mb-4">
                     Perform Create, Read, Update, and Delete operations:
                 </p>
                 
-                <div class="my-6 overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
-                    <div class="flex items-center justify-between px-4 py-2 border-b border-gray-700 bg-gray-800">
-                        <span class="text-sm text-gray-400 font-mono">CRUD operations</span>
-                        <span class="px-2 py-0.5 text-xs font-medium text-gray-300 uppercase bg-gray-700 rounded">
+                <div class="my-6 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900">
+                    <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-800">
+                        <span class="text-sm text-zinc-400 font-mono">CRUD operations</span>
+                        <span class="px-2 py-0.5 text-xs font-medium text-zinc-300 uppercase bg-zinc-700 rounded">
                             python
                         </span>
                     </div>
@@ -278,18 +290,18 @@ def delete_user(user_id):
                 </div>
             </section>
             
-            <section id="relationships" class="my-12 scroll-mt-20">
-                <h2 class="text-3xl font-bold text-white mb-6">
+            <section id="relationships" class="my-12 pt-8 border-t border-zinc-800/50 scroll-mt-20">
+                <h2 class="text-2xl font-semibold text-white tracking-tight mb-6">
                     Step 5: Model Relationships
                 </h2>
-                <p class="text-gray-300 mb-4">
+                <p class="text-zinc-300 mb-4">
                     Create relationships between models:
                 </p>
                 
-                <div class="my-6 overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
-                    <div class="flex items-center justify-between px-4 py-2 border-b border-gray-700 bg-gray-800">
-                        <span class="text-sm text-gray-400 font-mono">models/post.py</span>
-                        <span class="px-2 py-0.5 text-xs font-medium text-gray-300 uppercase bg-gray-700 rounded">
+                <div class="my-6 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900">
+                    <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-800">
+                        <span class="text-sm text-zinc-400 font-mono">models/post.py</span>
+                        <span class="px-2 py-0.5 text-xs font-medium text-zinc-300 uppercase bg-zinc-700 rounded">
                             python
                         </span>
                     </div>
@@ -324,10 +336,10 @@ class User(Base):
                     </pre>
                 </div>
                 
-                <div class="my-6 overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
-                    <div class="flex items-center justify-between px-4 py-2 border-b border-gray-700 bg-gray-800">
-                        <span class="text-sm text-gray-400 font-mono">Using relationships</span>
-                        <span class="px-2 py-0.5 text-xs font-medium text-gray-300 uppercase bg-gray-700 rounded">
+                <div class="my-6 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900">
+                    <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-800">
+                        <span class="text-sm text-zinc-400 font-mono">Using relationships</span>
+                        <span class="px-2 py-0.5 text-xs font-medium text-zinc-300 uppercase bg-zinc-700 rounded">
                             python
                         </span>
                     </div>
@@ -344,18 +356,18 @@ print(post.user.full_name)</code>
                 </div>
             </section>
             
-            <section id="queries" class="my-12 scroll-mt-20">
-                <h2 class="text-3xl font-bold text-white mb-6">
+            <section id="queries" class="my-12 pt-8 border-t border-zinc-800/50 scroll-mt-20">
+                <h2 class="text-2xl font-semibold text-white tracking-tight mb-6">
                     Step 6: Advanced Queries
                 </h2>
-                <p class="text-gray-300 mb-4">
+                <p class="text-zinc-300 mb-4">
                     Use advanced query features:
                 </p>
                 
-                <div class="my-6 overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
-                    <div class="flex items-center justify-between px-4 py-2 border-b border-gray-700 bg-gray-800">
-                        <span class="text-sm text-gray-400 font-mono">Advanced queries</span>
-                        <span class="px-2 py-0.5 text-xs font-medium text-gray-300 uppercase bg-gray-700 rounded">
+                <div class="my-6 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900">
+                    <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-800">
+                        <span class="text-sm text-zinc-400 font-mono">Advanced queries</span>
+                        <span class="px-2 py-0.5 text-xs font-medium text-zinc-300 uppercase bg-zinc-700 rounded">
                             python
                         </span>
                     </div>
@@ -387,11 +399,11 @@ results = db.query(User, Post).join(Post).all()</code>
                 </div>
             </section>
             
-            <section id="best-practices" class="my-12 scroll-mt-20">
-                <h2 class="text-3xl font-bold text-white mb-6">
+            <section id="best-practices" class="my-12 pt-8 border-t border-zinc-800/50 scroll-mt-20">
+                <h2 class="text-2xl font-semibold text-white tracking-tight mb-6">
                     Best Practices
                 </h2>
-                <ul class="space-y-3 text-gray-300">
+                <ul class="space-y-3 text-zinc-300">
                     <li class="flex items-start gap-3">
                         <svg class="mt-1 w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -431,14 +443,14 @@ results = db.query(User, Post).join(Post).all()</code>
                 </ul>
             </section>
             
-            <section id="summary" class="my-12 scroll-mt-20">
-                <h2 class="text-3xl font-bold text-white mb-6">
+            <section id="summary" class="my-12 pt-8 border-t border-zinc-800/50 scroll-mt-20">
+                <h2 class="text-2xl font-semibold text-white tracking-tight mb-6">
                     Summary
                 </h2>
-                <p class="text-gray-300 mb-4">
+                <p class="text-zinc-300 mb-4">
                     You've learned how to:
                 </p>
-                <ul class="list-disc list-inside space-y-2 text-gray-300 ml-4">
+                <ul class="list-disc list-inside space-y-2 text-zinc-300 ml-4">
                     <li>✅ Set up SQLAlchemy with NextPy</li>
                     <li>✅ Create database models</li>
                     <li>✅ Perform CRUD operations</li>
@@ -447,9 +459,30 @@ results = db.query(User, Post).join(Post).all()</code>
                     <li>✅ Follow database best practices</li>
                 </ul>
             </section>
+            <!-- Footer Pagination -->
+            <footer class="py-12 flex items-center justify-between gap-6 border-t border-zinc-800/50 mt-12">
+                <div class="w-1/2">
+                    <Link href="/documentation/howto/auth" class="group block p-5 rounded-xl border border-zinc-800/60 bg-zinc-950/20 hover:border-zinc-700 hover:bg-zinc-900/20 transition-all">
+                        <span class="block text-xs font-medium text-zinc-500 tracking-wide uppercase mb-1">Previous</span>
+                        <span class="text-base font-bold text-white group-hover:text-blue-400 flex items-center gap-1 transition-colors">
+                            <svg class="w-4 h-4 text-zinc-500 group-hover:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                            Implement Authentication
+                        </span>
+                    </Link>
+                </div>
+                <div class="w-1/2 text-right">
+                    <Link href="/documentation/howto/api" class="group block p-5 rounded-xl border border-zinc-800/60 bg-zinc-950/20 hover:border-zinc-700 hover:bg-zinc-900/20 transition-all">
+                        <span class="block text-xs font-medium text-zinc-500 tracking-wide uppercase mb-1">Next</span>
+                        <span class="text-base font-bold text-white group-hover:text-blue-400 flex items-center justify-end gap-1 transition-colors">
+                            API Development
+                            <svg class="w-4 h-4 text-zinc-500 group-hover:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                        </span>
+                    </Link>
+                </div>
+            </footer>
         </article>
-        <aside class="hidden lg:block">
-            <div class="sticky top-24 text-sm">
+        <aside class="hidden xl:block w-64 shrink-0 sticky top-24 pt-4 pl-8 pb-24 h-[calc(100vh-6rem)] overflow-y-auto">
+            <div class="text-sm">
                 <h4 class="font-semibold text-white mb-4 tracking-wide">On this page</h4>
                 <ul class="space-y-3 font-medium text-zinc-400 border-l border-zinc-800/50">
                         <li><a href="#overview" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">What You'll Learn</a></li>

@@ -35,16 +35,16 @@ def Installation():
     ])
 
     return (
-        <div class="flex flex-col xl:flex-row items-start justify-between gap-12 w-full max-w-6xl mx-auto">
+        <div class="flex flex-col xl:flex-row items-start justify-between gap-2 w-full max-w-6xl mx-auto">
                 <DocsScrollSpy />
 
             
             <!-- MAIN CONTENT AREA -->
             <!-- Strict max-w-4xl for optimal line length (approx 75-85 chars) -->
-            <article class="flex-1 min-w-0 max-w-4xl antialiased text-zinc-300 selection:bg-blue-500/20 selection:text-blue-300 space-y-16 pb-24 pt-6">
+            <article class="flex-1 min-w-0 max-w-4xl antialiased text-zinc-300 selection:bg-blue-500/20 selection:text-blue-300 space-y-12 pb-24 pt-6">
 
                 <!-- Top Breadcrumb & Actions -->
-                <div class="flex items-center justify-between border-b border-zinc-800/50 pb-6">
+                <div class="flex items-center justify-between border-b border-zinc-800/50 pb-4">
                     <div class="flex items-center gap-2 text-sm font-medium text-zinc-400">
                         <span>Documentation</span>
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
@@ -73,10 +73,10 @@ def Installation():
 
                 <!-- Page Header -->
                 <header id="header" class="mb-12">
-                    <h1 class="text-4xl sm:text-5xl font-bold tracking-tight text-white mb-6">
+                    <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                         Installation
                     </h1>
-                    <p class="text-lg leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-400">
                         Create a new NextPy app and run it locally.
                     </p>
                 </header>
@@ -372,7 +372,7 @@ def Installation():
             </article>
 
             <!-- RIGHT SIDEBAR (ON THIS PAGE) -->
-            <aside class="hidden xl:block w-64 shrink-0 sticky top-24 pt-6 pb-24 h-[calc(100vh-6rem)] overflow-y-auto scrollbar-none">
+            <aside class="hidden xl:block w-64 shrink-0 sticky top-24 pt-4 pl-8 pb-24 h-[calc(100vh-6rem)] overflow-y-auto">
                 <div class="text-sm">
                     <h4 class="font-semibold text-white mb-4 tracking-wide">On this page</h4>
                     

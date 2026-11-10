@@ -1049,6 +1049,13 @@ Allow: /
                     context["__nextpy_props_loaded"] = True
                     if page_revalidate is not None and hasattr(route, "renderer"):
                         route.renderer.revalidate_cache[str(route.file_path)] = int(page_revalidate)
+                except PageNotFoundError:
+                    return await self._render_404(request)
+                except RedirectError as e:
+                    return RedirectResponse(
+                        url=e.destination,
+                        status_code=308 if e.permanent else 307,
+                    )
                 except Exception as e:
                     if self.debug:
                         print(f"Data fetching error for component route: {e}")
