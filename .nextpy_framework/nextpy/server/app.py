@@ -8,6 +8,8 @@ import re
 import sys
 import asyncio
 import hashlib
+import threading
+import time
 from asyncio import Queue as AsyncQueue
 import importlib.util
 import types
@@ -57,19 +59,33 @@ _api_app: Optional[FastAPI] = None
 # own Queue; the server pushes a sentinel into every queue when files change.
 _hmr_clients: set = set()
 
+# The server's running event loop, captured once an SSE client connects (or a
+# request is served).  File-watcher threads cannot rely on
+# asyncio.get_event_loop() — it raises RuntimeError off the main thread — so we
+# stash the loop here and schedule notifications with call_soon_threadsafe.
+_hmr_loop: Optional[asyncio.AbstractEventLoop] = None
+
 
 def _hmr_signal_all() -> None:
     """Push a reload signal to every SSE-connected browser.
 
-    Safe to call from a synchronous context (watchdog thread) because it only
-    schedules a coroutine on the running event loop.
+    Safe to call from any thread (watchdog, polling watcher, request handler):
+    it only schedules a coroutine on the captured running event loop.
     """
+    loop = _hmr_loop
+    if loop is None or not loop.is_running():
+        try:
+            candidate = asyncio.get_event_loop()
+            if candidate.is_running():
+                loop = candidate
+        except RuntimeError:
+            loop = None
+    if loop is None:
+        return
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            loop.call_soon_threadsafe(_hmr_signal_all_sync)
+        loop.call_soon_threadsafe(_hmr_signal_all_sync)
     except RuntimeError:
-        pass  # No running loop — server is shutting down
+        pass  # Loop closed — server is shutting down
 
 
 def _hmr_signal_all_sync() -> None:
@@ -160,7 +176,69 @@ class NextPyApp:
         except Exception as e:
             if self.debug:
                 print(f"Tailwind check/build failed: {e}")
-        
+
+        self._start_hmr_watcher()
+
+    # ------------------------------------------------------------------ #
+    # Dev-mode file watcher → SSE HMR
+    # ------------------------------------------------------------------ #
+    # Page modules already hot-swap per request via the renderer's mtime
+    # check, but browsers only learn about changes through the /__nextpy/hmr
+    # SSE channel.  This lightweight polling watcher (no watchdog dependency)
+    # notifies connected tabs whenever source files change so they reload
+    # automatically — matching the server's own reload behavior.
+    _HMR_WATCH_INTERVAL = 0.4
+    _HMR_WATCH_DEBOUNCE = 0.6
+
+    @staticmethod
+    def _hmr_snapshot(root: Path) -> Dict[str, float]:
+        """Map of relative file path → mtime for watchable files under root."""
+        snap: Dict[str, float] = {}
+        if not root.exists():
+            return snap
+        for path in root.rglob("*"):
+            if not path.is_file():
+                continue
+            parts = path.relative_to(root).parts
+            if any(p.startswith(".") or p == "__pycache__" for p in parts):
+                continue
+            try:
+                snap[str(path.relative_to(root))] = path.stat().st_mtime
+            except OSError:
+                continue
+        return snap
+
+    def _hmr_watch_loop(self, roots: list) -> None:
+        snapshots = [self._hmr_snapshot(r) for r in roots]
+        last_signal = 0.0
+        while True:
+            time.sleep(self._HMR_WATCH_INTERVAL)
+            changed = False
+            for i, root in enumerate(roots):
+                current = self._hmr_snapshot(root)
+                if current != snapshots[i]:
+                    snapshots[i] = current
+                    changed = True
+            now = time.monotonic()
+            if changed and now - last_signal >= self._HMR_WATCH_DEBOUNCE:
+                last_signal = now
+                _hmr_signal_all()
+
+    def _start_hmr_watcher(self) -> None:
+        """Start the dev-mode file watcher that drives browser reloads."""
+        if os.environ.get("DEVELOPMENT") != "true":
+            return
+        roots = [p for p in (self.pages_dir, self.templates_dir) if p.exists()]
+        if not roots:
+            return
+        thread = threading.Thread(
+            target=self._hmr_watch_loop,
+            args=(roots,),
+            name="nextpy-hmr-watcher",
+            daemon=True,
+        )
+        thread.start()
+
     def _setup_middleware(self) -> None:
         """Configure middleware with secure defaults."""
         cors_env = os.getenv("CORS_ORIGINS", "").strip()
@@ -303,6 +381,9 @@ class NextPyApp:
             """Server-Sent Events endpoint for browser hot-reload."""
             if os.environ.get("DEVELOPMENT") != "true":
                 return Response(status_code=404)
+
+            global _hmr_loop
+            _hmr_loop = asyncio.get_running_loop()
 
             queue: AsyncQueue = AsyncQueue()
             _hmr_clients.add(queue)
