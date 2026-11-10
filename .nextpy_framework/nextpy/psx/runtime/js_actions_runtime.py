@@ -1113,7 +1113,17 @@ class NextPyActionRuntime {
                 } else if (spec === 'style') {
                     element.setAttribute('style', String(value));
                 } else if (spec.startsWith('attr-')) {
-                    element.setAttribute(spec.slice(5), String(value));
+                    const attrName = spec.slice(5);
+                    const booleanAttrs = ['disabled', 'checked', 'readonly', 'required', 'multiple', 'selected', 'autofocus', 'hidden', 'open'];
+                    if (booleanAttrs.includes(attrName)) {
+                        if (value) {
+                            element.setAttribute(attrName, '');
+                        } else {
+                            element.removeAttribute(attrName);
+                        }
+                    } else {
+                        element.setAttribute(attrName, String(value));
+                    }
                 }
             } catch (error) {
                 console.warn('Attribute binding update failed:', bindName, error);
@@ -1561,7 +1571,17 @@ class NextPyActionRuntime {
                 } else if (spec === 'style') {
                     element.setAttribute('style', String(value));
                 } else if (spec.startsWith('attr-')) {
-                    element.setAttribute(spec.slice(5), String(value));
+                    const attrName = spec.slice(5);
+                    const booleanAttrs = ['disabled', 'checked', 'readonly', 'required', 'multiple', 'selected', 'autofocus', 'hidden', 'open'];
+                    if (booleanAttrs.includes(attrName)) {
+                        if (value) {
+                            element.setAttribute(attrName, '');
+                        } else {
+                            element.removeAttribute(attrName);
+                        }
+                    } else {
+                        element.setAttribute(attrName, String(value));
+                    }
                 }
             } catch (error) {
                 console.warn('Attribute binding update failed:', bindName, error);
@@ -1765,7 +1785,15 @@ class NextPyActionRuntime {
         
         // 9. Handle == and != (already JS compatible)
         
-        // 10. Replace variable names with values from state
+        // 10. Replace variable names with values from state.
+        // Protect string literals first so identifiers inside quotes
+        // (e.g. "password" in a ternary) are not replaced.
+        const stringLiterals = [];
+        jsExpr = jsExpr.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`/g, (match) => {
+            stringLiterals.push(match);
+            return `__PSX_STR_${stringLiterals.length - 1}__`;
+        });
+        
         const replacedKeys = new Set();
         // Sort keys by length (longest first) to avoid partial replacements
         const sortedKeys = Object.keys(state).sort((a, b) => b.length - a.length);
@@ -1781,7 +1809,7 @@ class NextPyActionRuntime {
                 continue;
             }
             
-            // Word boundary match — but skip if inside a string or part of a longer identifier
+            // Word boundary match — skip if inside a placeholder or part of a longer identifier
             const regex = new RegExp(`(?<![\\w$.])${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w$])`, 'g');
             if (regex.test(jsExpr)) {
                 const valStr = typeof val === 'string' ? JSON.stringify(val) : (val === null ? 'null' : JSON.stringify(val));
@@ -1791,19 +1819,25 @@ class NextPyActionRuntime {
         }
         
         // 10. Handle remaining unknown identifiers — declare as null to avoid ReferenceError
+        // Do this BEFORE restoring string literals so identifiers inside
+        // quotes (e.g. "password") are not detected.
         const builtins = new Set(['true','false','null','undefined','NaN','Infinity','Math','JSON','String','Number','Array','Object','console','window','document']);
+        const stateKeys = new Set(Object.keys(state));
         const idRegex = /(?<![\\w$.])([a-zA-Z_][a-zA-Z0-9_]*)(?![\\w$(])/g;
         let m;
         const unknownIds = [];
         while ((m = idRegex.exec(jsExpr)) !== null) {
             const id = m[1];
-            if (!replacedKeys.has(id) && !builtins.has(id) && !id.startsWith('__')) {
+            if (!replacedKeys.has(id) && !builtins.has(id) && !stateKeys.has(id) && !id.startsWith('__')) {
                 unknownIds.push(id);
             }
         }
         
         const uniqueUnknownIds = [...new Set(unknownIds)];
         const varDecls = uniqueUnknownIds.map(id => `let ${id} = null;`).join(' ');
+        
+        // Restore string literals
+        jsExpr = jsExpr.replace(/__PSX_STR_(\d+)__/g, (_, idx) => stringLiterals[parseInt(idx)]);
         
         // 11. Evaluate
         try {
@@ -1830,6 +1864,7 @@ class NextPyActionRuntime {
             return result;
         } catch (e) {
             // If evaluation fails, return the original expression (so at least something shows)
+            console.warn('PSX expr eval failed:', expr, '→', jsExpr, 'error:', e.message);
             return expr;
         }
     }

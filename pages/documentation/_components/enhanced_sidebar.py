@@ -137,8 +137,12 @@ def EnhancedSidebar():
                     <li><Link href="/documentation/reference/config" className="block py-1.5 px-2 -mx-2 rounded-md hover:text-white hover:bg-zinc-800/50 transition-all">Configuration (nextpy.config)</Link></li>
                     <li><Link href="/documentation/reference/components" className="block py-1.5 px-2 -mx-2 rounded-md hover:text-white hover:bg-zinc-800/50 transition-all">Built-in Elements</Link></li>
                     <li><Link href="/documentation/reference/hooks" className="block py-1.5 px-2 -mx-2 rounded-md hover:text-white hover:bg-zinc-800/50 transition-all">State & Hooks</Link></li>
+                    <li><Link href="/documentation/reference/data-fetching" className="block py-1.5 px-2 -mx-2 rounded-md hover:text-white hover:bg-zinc-800/50 transition-all">Data Fetching</Link></li>
                     <li><Link href="/documentation/reference/router" className="block py-1.5 px-2 -mx-2 rounded-md hover:text-white hover:bg-zinc-800/50 transition-all">Router API</Link></li>
                     <li><Link href="/documentation/reference/events" className="block py-1.5 px-2 -mx-2 rounded-md hover:text-white hover:bg-zinc-800/50 transition-all">Event System</Link></li>
+                    <li><Link href="/documentation/reference/server-actions" className="block py-1.5 px-2 -mx-2 rounded-md hover:text-white hover:bg-zinc-800/50 transition-all">Server Actions</Link></li>
+                    <li><Link href="/documentation/reference/metadata" className="block py-1.5 px-2 -mx-2 rounded-md hover:text-white hover:bg-zinc-800/50 transition-all">Metadata & SEO</Link></li>
+                    <li><Link href="/documentation/reference/performance" className="block py-1.5 px-2 -mx-2 rounded-md hover:text-white hover:bg-zinc-800/50 transition-all">Performance</Link></li>
                     <li><Link href="/documentation/reference/utils" className="block py-1.5 px-2 -mx-2 rounded-md hover:text-white hover:bg-zinc-800/50 transition-all">Utility Modules</Link></li>
                     <li><Link href="/documentation/reference/typescript" className="block py-1.5 px-2 -mx-2 rounded-md hover:text-white hover:bg-zinc-800/50 transition-all">TypeScript Integration</Link></li>
                 </ul>

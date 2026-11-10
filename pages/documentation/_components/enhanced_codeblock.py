@@ -1,7 +1,7 @@
 import json
 import html
 import ast
-from nextpy.psx import component, psx, useState, create_onclick
+from nextpy.psx import component, psx
 
 # Ultra-robust parser to handle NextPy's stringification quirks
 def _parse_prop(prop_val, default):
@@ -52,42 +52,38 @@ def EnhancedCodeBlock(props):
 
     lang = props.get("lang", "python")
     filename = props.get("filename", None)
-    
-    [copy, setCopy] = useState(False)
 
-    
-    filename_meta = f'<span class="text-xs font-mono font-medium text-zinc-400 select-none tracking-tight">{filename}</span>' if filename else ''
+    lang_display = html.escape(str(lang))
+    code_class = f"language-{lang_display} font-mono block whitespace-pre"
 
+    filename_html = ''
+    if filename:
+        filename_html = (
+            '<span class="text-xs font-mono font-medium text-zinc-400 select-none tracking-tight">'
+            + html.escape(str(filename)) + '</span>'
+        )
+
+    # NB: <pre> puts the PSX parser in literal-text mode, so the snippet is
+    # rendered through a {snippet} expression inside <code> (whitespace-pre
+    # preserves formatting) which escapes markup as text.
     return psx(f"""
         <div class="my-6 overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-950 font-sans shadow-sm antialiased group">
             <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-800/80 bg-zinc-900/40 select-none">
                 <div class="flex items-center gap-2.5">
-                    {filename_meta}
+                    {filename_html}
                     <span class="px-1.5 py-0.5 text-[10px] font-mono font-semibold tracking-wider text-zinc-500 uppercase bg-zinc-900 rounded border border-zinc-800">
-                        {lang}
+                        {lang_display}
                     </span>
                 </div>
-                <div onclick={{lambda e: setCopy(not copy)}}>
-                    {{if copy:
-                        <button
-                            onclick="navigator.clipboard.writeText(this.closest('.group').querySelector('code').innerText)"
-                            class="text-xs text-emerald-400 transition flex items-center gap-1"
-                        >
-                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                            Copied
-                        </button>
-                    {{else:
-                        <button
-                            onclick="navigator.clipboard.writeText(this.closest('.group').querySelector('code').innerText)"
-                            class="text-xs text-zinc-400 transition hover:text-sky-400 flex items-center gap-1"
-                        >
-                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
-                            Copy
-                        </button>
-                    }}
-                </div>
+                <button
+                    class="text-xs text-zinc-400 transition hover:text-sky-400 flex items-center gap-1"
+                    onclick="navigator.clipboard.writeText(this.closest('.group').querySelector('code').innerText);var l=this.querySelector('.cb-label');l.textContent='Copied';setTimeout(()=>l.textContent='Copy',1500)"
+                >
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                    <span class="cb-label">Copy</span>
+                </button>
             </div>
-            <pre class="p-5 overflow-x-auto text-sm leading-relaxed text-zinc-200 scrollbar-thin bg-zinc-950/80"><code class="language-{lang} font-mono block whitespace-pre">{snippet}</code></pre>
+            <code class="block p-5 overflow-x-auto text-sm leading-relaxed text-zinc-200 scrollbar-thin bg-zinc-950/80 {code_class}">{{snippet}}</code>
         </div>
     """)
 
@@ -102,16 +98,18 @@ def CodeTabs(props):
     default_tab = props.get("default_tab", list(tabs.keys())[0] if tabs else "")
     
     tab_buttons_stream = ""
-    code_panels_stream = ""
-    
+    code_panels = []
+    panel_vars = {}
+
     for idx, (tab_name, tab_content) in enumerate(tabs.items()):
         is_active = tab_name == default_tab
         btn_active_styles = "border-blue-500 text-blue-400 bg-zinc-900/40" if is_active else "border-transparent text-zinc-400 hover:text-zinc-200"
-        panel_active_styles = "p-5 overflow-x-auto text-sm leading-relaxed bg-zinc-950/80" if is_active else "p-5 overflow-x-auto text-sm leading-relaxed bg-zinc-950/80 hidden"
-        
+        panel_active_styles = "" if is_active else "hidden"
+
         # Index-based onclick avoids JS parser issues with curly braces and spaces
+        tab_label = html.escape(str(tab_name).upper())
         tab_buttons_stream += f"""
-        <button 
+        <button
             class="px-4 py-2 text-xs font-semibold tracking-wide transition-all border-b-2 {btn_active_styles}"
             onclick="
                 this.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('border-blue-500', 'text-blue-400', 'bg-zinc-900/40'));
@@ -119,28 +117,45 @@ def CodeTabs(props):
                 this.classList.remove('border-transparent', 'text-zinc-400');
                 this.classList.add('border-blue-500', 'text-blue-400', 'bg-zinc-900/40');
                 let container = this.parentElement.parentElement;
-                container.querySelectorAll('pre').forEach(p => p.classList.add('hidden'));
-                let target = container.querySelectorAll('pre')[{idx}];
+                container.querySelectorAll('.code-panel').forEach(p => p.classList.add('hidden'));
+                let target = container.querySelectorAll('.code-panel')[{idx}];
                 if(target) target.classList.remove('hidden');
             "
         >
-            {tab_name.upper()}
+            {tab_label}
         </button>
         """
-        
-        lang_class = tab_name.lower().replace(' ', '').replace('/', '')
-        code_panels_stream += f"""
-        <pre class="{panel_active_styles}"><code class="language-{lang_class} font-mono block whitespace-pre">{tab_content}</code></pre>
-        """
-        
+
+        lang_class = html.escape(tab_name.lower().replace(' ', '').replace('/', ''))
+        if isinstance(tab_content, str):
+            tab_content = tab_content.replace('_RAW_CODE:', '')
+            tab_content = html.unescape(tab_content)
+            tab_content = tab_content.replace('&#10;', '\n')
+            tab_content = tab_content.replace('\\n', '\n')
+        # Each panel is its own psx() element so {content} stays an expression
+        # binding (escaped text). <pre> would force literal-text mode, so the
+        # panel is a <code> with block/whitespace-pre styling instead.
+        panel_key = f'panel_{idx}'
+        code_panels.append(
+            psx(
+                f'<code class="code-panel block p-5 overflow-x-auto text-sm leading-relaxed bg-zinc-950/80 {panel_active_styles} language-{lang_class} font-mono whitespace-pre">{{content}}</code>'.replace('  ', ' '),
+                {'content': tab_content}
+            )
+        )
+        panel_vars[panel_key] = code_panels[-1]
+
+    panel_exprs = ''.join(f'{{panel_{i}}}' for i in range(len(code_panels)))
+
     return psx(f"""
         <div class="my-6 overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-950 font-sans shadow-sm antialiased">
             <div class="flex border-b border-zinc-800/80 bg-zinc-900/20 select-none">
                 {tab_buttons_stream}
             </div>
-            {code_panels_stream}
+            <div>
+                {panel_exprs}
+            </div>
         </div>
-    """)
+    """, panel_vars)
 
 @component
 def FileTree(props):
@@ -153,10 +168,10 @@ def FileTree(props):
     file_rows_stream = ""
     for file in files:
         if isinstance(file, dict):
-            file_name = file.get("name")
+            file_name = html.escape(str(file.get("name", "")))
             is_folder = file.get("type") == "folder"
         else:
-            file_name = str(file)
+            file_name = html.escape(str(file))
             is_folder = False
             
         if is_folder:

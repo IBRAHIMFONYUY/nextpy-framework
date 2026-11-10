@@ -1018,7 +1018,21 @@ def _component_ast(func: Callable):
         transformed = preprocess_content(source)
         return ast.parse(textwrap.dedent(transformed))
     except Exception:
+        pass
+    # JSX preprocessors often require a complete module — an isolated
+    # function fragment can fail with "unclosed tag" errors.  Fall back to
+    # preprocessing the whole file the function was defined in.
+    try:
+        import inspect as _inspect
+        file_path = _inspect.getsourcefile(func) or _inspect.getfile(func)
+        if file_path and os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                file_source = f.read()
+            transformed = preprocess_content(file_source)
+            return ast.parse(transformed)
+    except Exception:
         return None
+    return None
 
 
 def _extract_state_and_derived(func: Callable) -> Tuple[List[str], Dict[str, str]]:
@@ -1076,8 +1090,42 @@ def _extract_state_and_derived(func: Callable) -> Tuple[List[str], Dict[str, str
                 expr = ast.unparse(value).strip()
             except Exception:
                 continue
-            if expr:
-                derived[name] = expr
+            # Skip expressions that can't be evaluated client-side:
+            # - props.* / props.get() — props is server-only
+            # - comprehensions/generator expressions — Python-only syntax
+            # - calls to locally-defined functions — not available in JS scope
+            if not expr:
+                continue
+            if 'props' in expr and ('props.' in expr or 'props[' in expr or 'props.get' in expr):
+                continue
+            # Python comprehensions / generator expressions use 'for ... in'
+            # inside brackets/parens — not valid JS.
+            if re.search(r'\bfor\s+\w+\s+in\b', expr):
+                continue
+            # f-strings are allowed only when every {expr} hole is a plain
+            # state variable — the client runtime evaluates f-strings, but
+            # holes referencing locals/props/comprehensions would break.
+            if re.search(r'\bf[\'"]', expr):
+                holes = re.findall(r'\{([^{}]+)\}', expr)
+                state_set = set(state_keys)
+                if not all(
+                    re.fullmatch(r'[A-Za-z_]\w*', h.strip()) and h.strip() in state_set
+                    for h in holes
+                ):
+                    continue
+            # Skip calls to functions defined inside the component (page_url,
+            # _opt, etc.) — they don't exist in the client JS scope.
+            local_funcs = {
+                n.name for n in ast.walk(node)
+                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+            }
+            has_local_call = any(
+                re.search(r'\b' + re.escape(fname) + r'\s*\(', expr)
+                for fname in local_funcs
+            )
+            if has_local_call:
+                continue
+            derived[name] = expr
         elif isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
 
@@ -1472,9 +1520,14 @@ def interactive_component(func: Callable = None, *, hydrate: str = 'eager') -> C
                 _code = _handler_body.strip()
                 # Do not feed already-compiled JavaScript back into the Python
                 # action compiler (e.g. ``this.stateManager.set(...)``).
+                # NOTE: 'window.'/'document.'/'console.' are intentionally NOT
+                # markers — PSX handlers legitimately call window.*, document.*
+                # and console.* and the action compiler resolves them as
+                # globals.  Only unambiguous JS-only syntax disqualifies a
+                # candidate (this.stateManager, executeNextPyActions, =>, etc.).
                 if any(_marker in _code for _marker in (
-                    'this.stateManager', 'executeNextPyActions', 'console.',
-                    'window.', 'document.', 'new Function(', '=>'
+                    'this.stateManager', 'executeNextPyActions',
+                    'new Function(', '=>', 'function('
                 )):
                     continue
                 _candidate = _code

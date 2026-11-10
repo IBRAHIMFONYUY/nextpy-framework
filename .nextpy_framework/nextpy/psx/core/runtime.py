@@ -527,6 +527,15 @@ class PSXRuntime:
                 
                 # Handle the result
                 if hasattr(result, 'to_html'):
+                    # Component helpers (Motion, Card, ...) build fresh
+                    # PSXElements whose _psx_context only holds the component
+                    # module's globals — page locals like ``showPassword``
+                    # are missing and child expressions fail with
+                    # "Unsafe name access".  Merge the parent render context
+                    # on top so page state wins while component helpers stay.
+                    _child_ctx = dict(getattr(result, '_psx_context', None) or {})
+                    _child_ctx.update(self.context)
+                    result._psx_context = _child_ctx
                     return result.to_html()
                 elif hasattr(result, '_ast_node'):
                     # It's a PSXElement, render it
