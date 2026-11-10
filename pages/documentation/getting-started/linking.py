@@ -54,7 +54,7 @@ def Navigation():
             <Link href="/about" class="text-white hover:text-blue-400">About</Link>
             <Link href="/contact" class="text-white hover:text-blue-400">Contact</Link>
         </nav>
-    )'
+    )
                     />
                 </div>
 
@@ -78,7 +78,7 @@ def UserList(users):
                 </Link>
             ))}
         </div>
-    )'
+    )
                     />
                 </div>
 
@@ -105,7 +105,7 @@ def LoginForm():
         <form on_submit={handle_login}>
             <button type="submit">Login</button>
         </form>
-    )'
+    )
                     />
                 </div>
 
@@ -143,7 +143,7 @@ def Navigation():
                 </Link>
             ))}
         </nav>
-    )'
+    )
                     />
                 </div>
 

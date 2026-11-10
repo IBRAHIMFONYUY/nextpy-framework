@@ -90,7 +90,7 @@ def UserSearch():
                 <p class="text-zinc-400">Loading...</p>
             }
         </div>
-    )'
+    )
                     />
                 </div>
 

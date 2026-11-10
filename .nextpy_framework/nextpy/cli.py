@@ -9,6 +9,7 @@ import time
 import secrets
 import asyncio
 import signal
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -39,6 +40,8 @@ class HotReloadHandler:
         self.debug = debug
         self.last_reload_time = 0
         self.reload_cooldown = 0.5  # 500ms cooldown between reloads
+        self._last_tailwind_build = 0.0
+        self._tailwind_build_lock = threading.Lock()
 
         # Enhanced file patterns for better JSX detection
         self.file_patterns = {
@@ -136,6 +139,47 @@ class HotReloadHandler:
             )
 
         self._trigger_reload()
+        self._schedule_tailwind_build(file_path)
+
+    def _schedule_tailwind_build(self, file_path: str = None):
+        """Rebuild Tailwind CSS in the background when source files change.
+
+        Tailwind v4 scans .py/.html sources for class candidates, so edits
+        to pages/components must regenerate public/tailwind.css — otherwise
+        new utilities only appear after a full restart.
+        """
+        if not file_path:
+            return
+        if not str(file_path).endswith(('.py', '.html', '.jsx', '.css')):
+            return
+        now = time.time()
+        if now - self._last_tailwind_build < 2.0:
+            return
+        with self._tailwind_build_lock:
+            if now - self._last_tailwind_build < 2.0:
+                return
+            self._last_tailwind_build = now
+        threading.Thread(target=self._run_tailwind_build, daemon=True).start()
+
+    def _run_tailwind_build(self):
+        """Run `npm run build:tailwind` without blocking the reload path."""
+        try:
+            proj_root = Path.cwd()
+            if not (proj_root / "package.json").exists():
+                return
+            npm_bin = shutil.which("npm")
+            if not npm_bin:
+                return
+            subprocess.run(
+                [npm_bin, "run", "build:tailwind"],
+                cwd=str(proj_root),
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=120,
+            )
+        except Exception:
+            pass  # CSS rebuild is best-effort; server reload still proceeds
 
     def on_modified(self, event):
         """Handle file modification events"""

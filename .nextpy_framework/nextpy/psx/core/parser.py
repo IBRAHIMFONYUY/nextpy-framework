@@ -29,6 +29,7 @@ Additional Fixes Applied:
 """
 
 import re
+import html as _html
 import time
 import logging
 import threading
@@ -109,6 +110,13 @@ def _match_brace(code: str, start: int) -> int:
         i += 1
 
     return n   # malformed — caller handles gracefully
+
+
+def _position(code: str, index: int) -> Tuple[int, int]:
+    """Return 1-based (line, column) of ``index`` within ``code``."""
+    line = code.count('\n', 0, index) + 1
+    last_nl = code.rfind('\n', 0, index)
+    return line, index - last_nl
 
 
 # ── PSXElement (legacy shim) ───────────────────────────────────────────────────
@@ -239,7 +247,7 @@ class PSXParser:
         timeout: float = PARSE_TIMEOUT,
     ) -> PSXNodeUnion:
         context  = context or {}
-        psx_str  = process_python_logic(psx_str, context)
+        psx_str  = process_python_logic(psx_str, context, substitute_expressions=False)
         src      = psx_str.strip()
         deadline = time.monotonic() + timeout
 
@@ -326,6 +334,7 @@ class PSXParser:
         in_pre_tag: bool = False,
     ) -> Tuple[ElementNode, int]:
         self._tick(dl)
+        pos = _position(code, index)
         index += 1
 
         tag, index = self._read_tag_name(code, index)
@@ -348,6 +357,7 @@ class PSXParser:
                 children=[],
                 self_closing=True,
                 spread_props=spread,
+                position=pos,
             ), index
 
         closing = f'</{tag}>'
@@ -361,6 +371,7 @@ class PSXParser:
             events=events,
             children=children,
             spread_props=spread,
+            position=pos,
         ), index
 
     def _parse_component(
@@ -372,6 +383,7 @@ class PSXParser:
         in_pre_tag: bool = False,
     ) -> Tuple[ComponentNode, int]:
         self._tick(dl)
+        pos = _position(code, index)
         index += 1
 
         name, index = self._read_tag_name(code, index)
@@ -386,6 +398,7 @@ class PSXParser:
                 events=events,
                 children=[],
                 spread_props=spread,
+                position=pos,
             ), index
 
         closing = f'</{name}>'
@@ -399,6 +412,7 @@ class PSXParser:
             events=events,
             children=children,
             spread_props=spread,
+            position=pos,
         ), index
 
     def _parse_children(
@@ -501,7 +515,8 @@ class PSXParser:
                     return TextNode(content=code[index:end]), end
                     
             pexpr = self.ast_parser.parse_expression(expr)
-            return ExpressionNode(expression=expr, parsed_expression=pexpr), end
+            return ExpressionNode(expression=expr, parsed_expression=pexpr,
+                                  position=_position(code, index)), end
 
         # ── Text ───────────────────────────────────────────────────────────
         start = index
@@ -578,9 +593,11 @@ class PSXParser:
                 continue
 
             # ── Value ───────────────────────────────────────────────────
+            is_expr_value = False
             if code[index] == '{':
                 end   = _match_brace(code, index)
                 value: Any = code[index:end]
+                is_expr_value = True
                 index = end
 
             elif code[index] in ('"', "'"):
@@ -607,6 +624,14 @@ class PSXParser:
                     index += 1
                 value = code[vs:index]
 
+            # Quoted/bare attribute values are HTML — decode entities once
+            # here so the renderer can escape exactly once on emit. Unquoted
+            # {expr} values above are code, not HTML, and are left untouched
+            # (a quoted "{...}" string is still an HTML value, e.g. the JSON
+            # payload of data-psx-motion).
+            if not is_expr_value:
+                value = _html.unescape(value)
+
             # ── Categorise ──────────────────────────────────────────────
             if key == 'bind':
                 raw_var = (
@@ -622,6 +647,16 @@ class PSXParser:
                     if tag.lower() == 'input' and attributes.get('type') == 'checkbox'
                     else 'value'
                 )
+
+            elif key == 'ref':
+                # ref={name} / ref="name" → data-psx-ref so the client runtime
+                # can register the DOM node for useRef/getRef lookups.
+                raw = value
+                if isinstance(raw, str) and raw.startswith('{') and raw.endswith('}'):
+                    raw = raw[1:-1].strip()
+                if isinstance(raw, str) and len(raw) >= 2 and raw[0] in ('"', "'") and raw[-1] == raw[0]:
+                    raw = raw[1:-1]
+                attributes['_psx_ref'] = raw
 
             elif key.startswith('on'):
                 events[key] = value
