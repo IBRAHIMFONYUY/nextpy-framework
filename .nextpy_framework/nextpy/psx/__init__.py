@@ -41,7 +41,12 @@ from .components.component import (
     create_ontransitionend, create_ontransitionrun, create_ontransitionstart,
     create_onwheel, create_oncopy, create_oncut, create_onpaste,
     create_onbeforeprint, create_onafterprint, create_onstorage,
-    create_onopen, create_onmessage, create_onclose, create_oninstall, create_onactivate
+    create_onopen, create_onmessage, create_onclose, create_oninstall, create_onactivate,
+    create_onfullscreenchange, create_onfullscreenerror,
+    # Context & list/conditional utilities
+    create_context, Context, Provider,
+    map_list, filter_list, reduce_list, find_list, some_list, every_list,
+    conditional, and_condition, or_condition, ternary, key_value,
 )
 from .utils.helpers import compile_psx, compile_psx_file, is_psx_file, PSXCompiler
 
@@ -937,6 +942,10 @@ __all__ = [
     'create_onwheel', 'create_oncopy', 'create_oncut', 'create_onpaste',
     'create_onbeforeprint', 'create_onafterprint', 'create_onstorage',
     'create_onopen', 'create_onmessage', 'create_onclose', 'create_oninstall', 'create_onactivate',
+    'create_onfullscreenchange', 'create_onfullscreenerror',
+    'create_context', 'Context', 'Provider',
+    'map_list', 'filter_list', 'reduce_list', 'find_list', 'some_list', 'every_list',
+    'conditional', 'and_condition', 'or_condition', 'ternary', 'key_value',
     
     # Utils
     'compile_psx', 'compile_psx_file', 'is_psx_file', 'PSXCompiler',

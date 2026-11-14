@@ -321,13 +321,282 @@ PORT = int(os.getenv("PORT", 8000))</code>
                 </div>
             </section>
             
+            <section id="asgi-deployment" class="my-12 pt-8 border-t border-zinc-800/50 scroll-mt-20">
+                <h2 class="text-2xl font-semibold text-white tracking-tight mb-6">
+                    ASGI Deployment
+                </h2>
+                <p class="text-zinc-300 mb-4">
+                    A NextPy project entry point (<code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">main.py</code>) builds and exports a standard ASGI application:
+                </p>
+
+                <div class="my-6 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900">
+                    <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-800">
+                        <span class="text-sm text-zinc-400 font-mono">main.py</span>
+                        <span class="px-2 py-0.5 text-xs font-medium text-zinc-300 uppercase bg-zinc-700 rounded">
+                            python
+                        </span>
+                    </div>
+                    <pre class="p-4 overflow-x-auto text-sm leading-relaxed">
+                        <code class="language-python">import nextpy as nx
+
+app = nx.create_app(
+    pages_dir="pages",
+    templates_dir="templates",
+    public_dir="public",
+    out_dir="out",
+    debug=settings["debug"],
+)</code>
+                    </pre>
+                </div>
+
+                <p class="text-zinc-300 mb-4">
+                    Because <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">app</code> is a plain ASGI callable, any ASGI server can host it. The project also ships an <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">asgi.py</code> entry point that compiles Tailwind CSS, initializes the database, and exposes the same <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">app</code> object for platforms that prefer it.
+                </p>
+
+                <div class="my-6 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900">
+                    <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-800">
+                        <span class="px-2 py-0.5 text-xs font-medium text-zinc-300 uppercase bg-zinc-700 rounded">
+                            bash
+                        </span>
+                    </div>
+                    <pre class="p-4 overflow-x-auto text-sm leading-relaxed">
+                        <code class="language-bash"># Uvicorn (single worker — dev/staging)
+uvicorn main:app --host 0.0.0.0 --port $PORT
+
+# Uvicorn with multiple workers (production)
+uvicorn main:app --host 0.0.0.0 --port $PORT --workers 4
+
+# Gunicorn with the Uvicorn worker class
+gunicorn main:app -k uvicorn.workers.UvicornWorker \
+    --workers 4 --bind 0.0.0.0:$PORT</code>
+                    </pre>
+                </div>
+
+                <div class="my-6 p-4 border-l-4 border-blue-500 bg-blue-900/20 rounded-r-lg">
+                    <div class="flex items-start gap-3">
+                        <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-blue-400">Note</h4>
+                            <div class="mt-1 text-sm text-zinc-300">
+                                When you run uvicorn/gunicorn directly, set <code class="text-zinc-200 font-mono text-xs">DEBUG=false</code> and <code class="text-zinc-200 font-mono text-xs">DEVELOPMENT=false</code> in your environment — otherwise the app boots in development mode. <code class="text-zinc-200 font-mono text-xs">nextpy start</code> sets these for you automatically.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="build-start-export" class="my-12 pt-8 border-t border-zinc-800/50 scroll-mt-20">
+                <h2 class="text-2xl font-semibold text-white tracking-tight mb-6">
+                    Build, Start &amp; Export
+                </h2>
+                <p class="text-zinc-300 mb-4">
+                    The CLI wraps the ASGI server and static builder for common workflows:
+                </p>
+
+                <div class="my-6 overflow-x-auto rounded-lg border border-zinc-700">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-zinc-800 text-zinc-300">
+                            <tr>
+                                <th class="px-4 py-3 font-semibold">Command</th>
+                                <th class="px-4 py-3 font-semibold">What it does</th>
+                                <th class="px-4 py-3 font-semibold">Output</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-800 text-zinc-300">
+                            <tr>
+                                <td class="px-4 py-3 font-mono text-zinc-200">nextpy build</td>
+                                <td class="px-4 py-3">Static build with optimization (minify, tree-shake report, code splitting)</td>
+                                <td class="px-4 py-3 font-mono text-xs">out/ + build manifest</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-mono text-zinc-200">nextpy start</td>
+                                <td class="px-4 py-3">Production server: uvicorn on <code class="text-zinc-200 font-mono text-xs">main:app</code> with 4 workers, debug disabled, log level warning</td>
+                                <td class="px-4 py-3 font-mono text-xs">live server on :5000</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-mono text-zinc-200">nextpy export</td>
+                                <td class="px-4 py-3">Static export for CDN/static hosting (no server)</td>
+                                <td class="px-4 py-3 font-mono text-xs">out/ static files</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="my-6 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900">
+                    <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-800">
+                        <span class="px-2 py-0.5 text-xs font-medium text-zinc-300 uppercase bg-zinc-700 rounded">
+                            bash
+                        </span>
+                    </div>
+                    <pre class="p-4 overflow-x-auto text-sm leading-relaxed">
+                        <code class="language-bash">nextpy build --out dist          # optimized static build
+nextpy export --out public_html    # plain static export
+nextpy start --port 8080           # production server (DEBUG=false forced)</code>
+                    </pre>
+                </div>
+
+                <p class="text-zinc-300 mb-4">
+                    <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy start</code> overrides your <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">.env</code>: it sets <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">DEBUG=false</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">NEXTPY_DEBUG=false</code> and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">DEVELOPMENT=false</code> before booting uvicorn with <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">workers=1</code> by default (set <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">NEXTPY_WORKERS</code> to scale out &mdash; note WebSocket channels and state sync are per-process) and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">log_level="warning"</code>. For anything more custom (different worker count, SSL, process manager), use the ASGI commands above.
+                </p>
+            </section>
+
+            <section id="production-env" class="my-12 pt-8 border-t border-zinc-800/50 scroll-mt-20">
+                <h2 class="text-2xl font-semibold text-white tracking-tight mb-6">
+                    Production Environment Variables
+                </h2>
+                <p class="text-zinc-300 mb-4">
+                    Settings are read from the project <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">.env</code> (loaded by <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy.config</code>) or real environment variables. For production, set at minimum:
+                </p>
+
+                <div class="my-6 overflow-x-auto rounded-lg border border-zinc-700">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-zinc-800 text-zinc-300">
+                            <tr>
+                                <th class="px-4 py-3 font-semibold">Variable</th>
+                                <th class="px-4 py-3 font-semibold">Production value</th>
+                                <th class="px-4 py-3 font-semibold">Why</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-800 text-zinc-300">
+                            <tr>
+                                <td class="px-4 py-3 font-mono text-zinc-200">DEBUG</td>
+                                <td class="px-4 py-3 font-mono text-xs">false</td>
+                                <td class="px-4 py-3">Sanitizes error pages — no tracebacks or file paths leak</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-mono text-zinc-200">DEVELOPMENT</td>
+                                <td class="px-4 py-3 font-mono text-xs">false</td>
+                                <td class="px-4 py-3">Disables the HMR file watcher and <code class="text-zinc-200 font-mono text-xs">/__nextpy/hmr</code></td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-mono text-zinc-200">NEXTPY_DEBUG</td>
+                                <td class="px-4 py-3 font-mono text-xs">false</td>
+                                <td class="px-4 py-3">Removes the debug panel and <code class="text-zinc-200 font-mono text-xs">/__nextpy/debug/*</code> routes</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-mono text-zinc-200">NEXTPY_HOT_RELOAD</td>
+                                <td class="px-4 py-3 font-mono text-xs">false</td>
+                                <td class="px-4 py-3">Turns off reload signaling</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-mono text-zinc-200">NEXTPY_LOG_LEVEL</td>
+                                <td class="px-4 py-3 font-mono text-xs">warning</td>
+                                <td class="px-4 py-3">Quiets framework logs (trace|debug|info|warning|error)</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-mono text-zinc-200">SECRET_KEY</td>
+                                <td class="px-4 py-3 font-mono text-xs">&lt;random secret&gt;</td>
+                                <td class="px-4 py-3">Defaults to <code class="text-zinc-200 font-mono text-xs">change-me-in-production</code> — always override</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-mono text-zinc-200">JWT_SECRET / SESSION_SECRET</td>
+                                <td class="px-4 py-3 font-mono text-xs">&lt;random secrets&gt;</td>
+                                <td class="px-4 py-3">Auth token signing — defaults are <code class="text-zinc-200 font-mono text-xs">change-me</code></td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-mono text-zinc-200">DATABASE_URL</td>
+                                <td class="px-4 py-3 font-mono text-xs">postgresql://…</td>
+                                <td class="px-4 py-3">Production database (defaults to local SQLite)</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-mono text-zinc-200">HOST / PORT</td>
+                                <td class="px-4 py-3 font-mono text-xs">0.0.0.0 / $PORT</td>
+                                <td class="px-4 py-3">Bind address and port for the ASGI server</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="my-6 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900">
+                    <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-800">
+                        <span class="text-sm text-zinc-400 font-mono">.env.production</span>
+                        <span class="px-2 py-0.5 text-xs font-medium text-zinc-300 uppercase bg-zinc-700 rounded">
+                            text
+                        </span>
+                    </div>
+                    <pre class="p-4 overflow-x-auto text-sm leading-relaxed">
+                        <code class="language-text">DEBUG=false
+DEVELOPMENT=false
+NEXTPY_DEBUG=false
+NEXTPY_HOT_RELOAD=false
+NEXTPY_LOG_LEVEL=warning
+SECRET_KEY=&lt;generate-a-long-random-string&gt;
+JWT_SECRET=&lt;generate-a-long-random-string&gt;
+SESSION_SECRET=&lt;generate-a-long-random-string&gt;
+DATABASE_URL=postgresql://user:pass@host:5432/dbname
+PORT=8000</code>
+                    </pre>
+                </div>
+
+                <div class="my-6 p-4 border-l-4 border-yellow-500 bg-yellow-900/20 rounded-r-lg">
+                    <div class="flex items-start gap-3">
+                        <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-yellow-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-yellow-400">Warning</h4>
+                            <div class="mt-1 text-sm text-zinc-300">
+                                If <code class="text-zinc-200 font-mono text-xs">SECRET_KEY</code>, <code class="text-zinc-200 font-mono text-xs">JWT_SECRET</code> or <code class="text-zinc-200 font-mono text-xs">SESSION_SECRET</code> keep their <code class="text-zinc-200 font-mono text-xs">change-me</code> defaults, sessions and tokens are forgeable. Generate real secrets and inject them via your platform's secret manager — never commit them.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section id="production-checklist" class="my-12 pt-8 border-t border-zinc-800/50 scroll-mt-20">
                 <h2 class="text-2xl font-semibold text-white tracking-tight mb-6">
                     Production Checklist
                 </h2>
                 <p class="text-zinc-300 mb-4">
-                    Before deploying to production, ensure you've completed these steps:
+                    Before deploying to production, verify each item:
                 </p>
+
+                <div class="my-6 overflow-x-auto rounded-lg border border-zinc-700">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-zinc-800 text-zinc-300">
+                            <tr>
+                                <th class="px-4 py-3 font-semibold">Check</th>
+                                <th class="px-4 py-3 font-semibold">How to verify</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-800 text-zinc-300">
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-white">Debug flags off</td>
+                                <td class="px-4 py-3">DEBUG=false, DEVELOPMENT=false, NEXTPY_DEBUG=false in env (nextpy start sets these)</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-white">Secrets configured</td>
+                                <td class="px-4 py-3">SECRET_KEY, JWT_SECRET, SESSION_SECRET set to random values, not defaults</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-white">Production database</td>
+                                <td class="px-4 py-3">DATABASE_URL points at managed Postgres/MySQL with backups enabled</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-white">Static assets built</td>
+                                <td class="px-4 py-3">nextpy build or nextpy export ran successfully; out/ is deployed or served</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-white">HTTPS enabled</td>
+                                <td class="px-4 py-3">SSL/TLS terminates at the platform or reverse proxy</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-white">Monitoring &amp; logs</td>
+                                <td class="px-4 py-3">Error tracking and log aggregation configured; NEXTPY_LOG_LEVEL=warning</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-white">Rate limiting</td>
+                                <td class="px-4 py-3">RateLimitMiddleware active on API/auth routes (enabled by default)</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-white">Smoke test</td>
+                                <td class="px-4 py-3">nextpy routes reviewed; key pages and /api routes return 200 in production mode</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
                 
                 <div class="space-y-3">
                     <div class="flex items-start gap-3 p-4 border border-zinc-700 rounded-lg">
@@ -392,6 +661,8 @@ PORT = int(os.getenv("PORT", 8000))</code>
                     <li>✅ Containerize your app with Docker</li>
                     <li>✅ Configure Vercel deployment</li>
                     <li>✅ Manage environment variables securely</li>
+                    <li>✅ Serve the app via ASGI (uvicorn/gunicorn) or nextpy start</li>
+                    <li>✅ Use nextpy build/export for static output</li>
                     <li>✅ Follow production best practices</li>
                 </ul>
                 
@@ -440,6 +711,9 @@ PORT = int(os.getenv("PORT", 8000))</code>
                         <li><a href="#docker" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Deploy with Docker</a></li>
                         <li><a href="#vercel" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Deploy to Vercel</a></li>
                         <li><a href="#environment-variables" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Environment Variables</a></li>
+                        <li><a href="#asgi-deployment" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">ASGI Deployment</a></li>
+                        <li><a href="#build-start-export" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Build, Start &amp; Export</a></li>
+                        <li><a href="#production-env" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Production Environment Variables</a></li>
                         <li><a href="#production-checklist" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Production Checklist</a></li>
                         <li><a href="#summary" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Summary</a></li>
                 </ul>

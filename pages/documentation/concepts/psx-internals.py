@@ -331,11 +331,11 @@ def Panel():
 
                 <footer class="py-12 flex items-center justify-between gap-6 border-t border-zinc-800/50 mt-12">
                     <div class="w-1/2">
-                        <Link href="/documentation/concepts/why-nextpy" className="group block p-5 rounded-xl border border-zinc-800/60 bg-zinc-950/20 hover:border-zinc-700 hover:bg-zinc-900/20 transition-all">
+                        <Link href="/documentation/concepts/architecture" className="group block p-5 rounded-xl border border-zinc-800/60 bg-zinc-950/20 hover:border-zinc-700 hover:bg-zinc-900/20 transition-all">
                             <span class="block text-xs font-medium text-zinc-500 tracking-wide uppercase mb-1">Previous</span>
                             <span class="text-base font-bold text-white group-hover:text-blue-400 flex items-center gap-1 transition-colors">
                                 <svg class="w-4 h-4 text-zinc-500 group-hover:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                                Why NextPy?
+                                Architecture Overview
                             </span>
                         </Link>
                     </div>

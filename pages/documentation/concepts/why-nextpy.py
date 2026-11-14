@@ -116,10 +116,10 @@ def Counter():
                         </Link>
                     </div>
                     <div class="w-1/2 text-right">
-                        <Link href="/documentation/concepts/psx-internals" className="group block p-5 rounded-xl border border-zinc-800/60 bg-zinc-950/20 hover:border-zinc-700 hover:bg-zinc-900/20 transition-all">
+                        <Link href="/documentation/concepts/architecture" className="group block p-5 rounded-xl border border-zinc-800/60 bg-zinc-950/20 hover:border-zinc-700 hover:bg-zinc-900/20 transition-all">
                             <span class="block text-xs font-medium text-zinc-500 tracking-wide uppercase mb-1">Next</span>
                             <span class="text-base font-bold text-white group-hover:text-blue-400 flex items-center justify-end gap-1 transition-colors">
-                                PSX Core Internals
+                                Architecture Overview
                                 <svg class="w-4 h-4 text-zinc-500 group-hover:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                             </span>
                         </Link>

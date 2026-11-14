@@ -104,6 +104,21 @@ class NextPyActionRuntime {
         return this.components.get(componentId);
     }
 
+    unregisterComponent(componentId) {
+        // Drop every per-component registry entry. DOM listeners die with
+        // the elements, but these Maps would otherwise retain closures and
+        // state forever across SPA navigations.
+        this.components.delete(componentId);
+        this.functions.delete(componentId);
+        this.dependencyMap.delete(componentId);
+        this.signals.delete(componentId);
+        this.refs.delete(componentId);
+        this._oldValues.delete(componentId);
+        if (window.nextpyComponentHandlers) {
+            delete window.nextpyComponentHandlers[componentId];
+        }
+    }
+
     _buildDependencyMap(componentId) {
         // FIX: Scan DOM and build dependency map for conditional elements
         const conditionalElements = document.querySelectorAll(`[data-if-condition]`);

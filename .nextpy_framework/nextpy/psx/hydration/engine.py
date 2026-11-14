@@ -668,10 +668,15 @@ class HydrationEngine:
 }})();
             """
         else:
-            # Generate script for all components
+            # Generate script for all components. These contexts are
+            # consumed by this call — the only caller renders them into a
+            # page immediately afterwards. Clearing prevents unbounded
+            # growth AND stops stale components from being re-emitted into
+            # every subsequent page's HTML.
             scripts = []
-            for comp_id in self.contexts:
+            for comp_id in list(self.contexts):
                 scripts.append(self.generate_hydration_script(comp_id))
+            self.contexts.clear()
             return "\n".join(scripts)
     
     def generate_cleanup_script(self, component_id: str) -> str:

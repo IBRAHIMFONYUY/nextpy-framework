@@ -158,7 +158,13 @@ class ServerAction:
             raise HTTPException(status_code=404, detail=f"Action '{name}' not found")
 
         func = getattr(action, '_original_func', action)
-        sig = inspect.signature(func)
+        sig = getattr(func, '_nextpy_signature', None)
+        if sig is None:
+            sig = inspect.signature(func)
+            try:
+                func._nextpy_signature = sig
+            except (AttributeError, TypeError):
+                pass
         kwargs = cls._filter_params(sig, params)
 
         validator = cls._validators.get(name)

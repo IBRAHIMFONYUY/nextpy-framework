@@ -28,7 +28,7 @@ def Layout(children, **props):
                             <div class="flex items-center gap-8">
                                 <Link href="/" class="flex items-center gap-2 font-bold tracking-tight text-white hover:opacity-90">
                                     <span class="text-lg font-bold text-white">NextPy</span>
-                                    <span class="text-xs font-medium px-2 py-0.5 rounded border border-zinc-800 bg-zinc-900 text-zinc-400">Docs</span>
+                                    <span class="text-xs font-medium px-2 py-0.5 rounded border border-zinc-800 bg-zinc-900 text-zinc-400">v5.1.4</span>
                                 </Link>
                                 <nav class="hidden md:flex items-center gap-6 text-[15px] font-medium text-zinc-400">
                                     <Link href="/documentation" class="text-white">Learn</Link>

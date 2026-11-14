@@ -23,29 +23,26 @@ class JSXTransformer:
             module_name = file_path.stem
         
         # Check if file contains JSX
-        if not is_jsx_file(file_path):
-            # Regular Python file - load normally
-            spec = importlib.util.spec_from_file_location(module_name, file_path)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            return module
-        
-        # Transform JSX syntax
         with open(file_path, 'r', encoding='utf-8') as f:
             original_content = f.read()
-        
-        transformed_content = preprocess_content(original_content)
-        
-        # Compile against the original filename so tracebacks point at the
-        # file the developer is editing (not a deleted temporary file).
+
         import types
 
         module = types.ModuleType(module_name)
         module.__file__ = str(file_path)
         module.__original_file__ = str(file_path)
-        module.__is_jsx__ = True
 
-        code = compile(transformed_content, str(file_path), "exec")
+        if is_jsx_file(file_path):
+            module.__is_jsx__ = True
+            source = preprocess_content(original_content, str(file_path))
+        else:
+            # Plain Python (or .psx) module — spec_from_file_location can't
+            # handle non-.py extensions, so exec the source directly.
+            source = original_content
+
+        # Compile against the original filename so tracebacks point at the
+        # file the developer is editing (not a deleted temporary file).
+        code = compile(source, str(file_path), "exec")
         exec(code, module.__dict__)
 
         sys.modules[module_name] = module

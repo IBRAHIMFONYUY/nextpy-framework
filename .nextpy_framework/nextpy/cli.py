@@ -562,12 +562,25 @@ def start(port: int, host: str):
     settings["nextpy_debug"] = False
     settings["development"] = False
 
+    # In-process singletons (websocket connections, StateManager, admin
+    # sessions, rate-limit buckets) do not span workers. Default to a single
+    # worker so realtime/state-sync features work; override with
+    # NEXTPY_WORKERS if you don't use them (or add sticky sessions + a shared
+    # backplane first).
+    workers = int(os.environ.get("NEXTPY_WORKERS", "1"))
+    if workers > 1:
+        click.echo(click.style(
+            f"  Warning: running {workers} workers — WebSocket channels, "
+            "StateManager, and rate limiting are per-process and will not "
+            "be consistent across workers.",
+            fg="yellow"))
+
     click.echo(click.style("\n  NextPy Production Server", fg="green", bold=True))
     click.echo(click.style("  ========================\n", fg="green"))
     click.echo(f"  Local:    http://localhost:{port}")
     click.echo(f"  Network:  http://{host}:{port}")
     click.echo(f"  Entry:    main.py")
-    click.echo(f"  Workers:  4")
+    click.echo(f"  Workers:  {workers}")
     click.echo(click.style("\n  Starting server...\n", fg="bright_black"))
 
     try:
@@ -575,7 +588,7 @@ def start(port: int, host: str):
             main_module,
             host=host,
             port=port,
-            workers=4,
+            workers=workers,
             app_dir=str(project_dir),
             log_level="warning",
         )
