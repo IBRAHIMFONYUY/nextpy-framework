@@ -548,7 +548,8 @@ class HydrationEngine:
                 console.warn('[NextPy] Failed to parse __PSX_DATA__ for {component_id}:', e);
             }}
         }}
-        return {json.dumps(context.initial_state).replace("</", "<\\/")};
+        const stateJson = {json.dumps(context.initial_state)};
+        return stateJson.replace(/<\//g, '<\\/');
     }}
 
     // Initialize component
