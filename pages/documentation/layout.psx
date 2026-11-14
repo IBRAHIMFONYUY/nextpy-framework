@@ -1,8 +1,10 @@
 from nextpy.psx import component, register_component, Link
 from pages.documentation._components.github_stats import get_github_stars, format_stars
 from pages.documentation._components.enhanced_sidebar import EnhancedSidebar
+from pages.documentation._components.docscroll import DocsScrollSpy
 
 register_component("EnhancedSidebar", EnhancedSidebar)
+register_component("DocsScrollSpy", DocsScrollSpy)
 
 @component
 def Layout(children, **props):
@@ -17,6 +19,7 @@ def Layout(children, **props):
                 <link href="/static/css/docs.css?v=3" rel="stylesheet" />
             </head>
             <body class="bg-[#000000] text-[#eddde3] antialiased selection:bg-blue-500/30 selection:text-blue-200">
+                <DocsScrollSpy />
                 <div class="flex flex-col w-full min-h-screen scroll-smooth">
                     
                     {/* Modern Top Header / Navbar */}
