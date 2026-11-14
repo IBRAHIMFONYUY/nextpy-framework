@@ -13,13 +13,13 @@ def StylingGuide():
 @component
 def Card():
     return (
-        &lt;div class="max-w-sm rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg hover:shadow-xl transition-shadow"&gt;
-            &lt;h3 class="text-lg font-semibold text-white"&gt;Card title&lt;/h3&gt;
-            &lt;p class="mt-2 text-sm text-zinc-400"&gt;Styled entirely with utility classes.&lt;/p&gt;
-            &lt;button class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"&gt;
+        <div class="max-w-sm rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg hover:shadow-xl transition-shadow">
+            <h3 class="text-lg font-semibold text-white">Card title</h3>
+            <p class="mt-2 text-sm text-zinc-400">Styled entirely with utility classes.</p>
+            <button class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500">
                 Action
-            &lt;/button&gt;
-        &lt;/div&gt;
+            </button>
+        </div>
     )"""
 
     state_example = """from nextpy.psx import interactive_component, useState
@@ -32,15 +32,15 @@ def Toggle():
         return active if on else inactive
 
     return (
-        &lt;button
+        <button
             onclick={lambda e: setOn(not on)}
             class={cls(
                 "bg-emerald-600 text-white",
                 "bg-zinc-800 text-zinc-400"
             )}
-        &gt;
+        >
             {"ON" if on else "OFF"}
-        &lt;/button&gt;
+        </button>
     )"""
 
     css_example = """# assets/styles/custom.css
@@ -57,12 +57,12 @@ def Toggle():
 @component
 def RootLayout(children):
     return psx(\"\"\"
-        &lt;html&gt;
-            &lt;head&gt;
-                &lt;link rel=\"stylesheet\" href=\"/static/css/custom.css\" /&gt;
-            &lt;/head&gt;
-            &lt;body&gt;{children}&lt;/body&gt;
-        &lt;/html&gt;
+        <html>
+            <head>
+                <link rel=\"stylesheet\" href=\"/static/css/custom.css\" />
+            </head>
+            <body>{children}</body>
+        </html>
     \"\"\")"""
 
     psx_style_example = """from nextpy.psx import component, psx
@@ -71,7 +71,7 @@ def RootLayout(children):
 def Page():
     cls = "bg-blue-600 text-white"
     return psx(f\"\"\"
-        &lt;button class="{cls} px-4 py-2 rounded-lg"&gt;Click&lt;/button&gt;
+        <button class="{cls} px-4 py-2 rounded-lg">Click</button>
     \"\"\")"""
 
     return (

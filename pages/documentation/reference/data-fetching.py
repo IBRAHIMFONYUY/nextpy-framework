@@ -15,11 +15,11 @@ from nextpy.db import get_session, Job
 def JobList(props):
     jobs = props.get("jobs", [])
     return (
-        &lt;ul&gt;
+        <ul>
             {for job in jobs:
-                &lt;li&gt;{job["title"]} - {job["company"]}&lt;/li&gt;
+                <li>{job["title"]} - {job["company"]}</li>
             }
-        &lt;/ul&gt;
+        </ul>
     )
 
 
@@ -49,7 +49,7 @@ def LiveStats():
     fetch = useFetch("/api/stats")
     data = fetch["data"] or {}
 
-    return &lt;p&gt;Total users: {data.get("users", 0)}&lt;/p&gt;"""
+    return <p>Total users: {data.get("users", 0)}</p>"""
 
     api_example = """# pages/api/users.py - file-based API route
 from nextpy.db import get_session, User

@@ -335,7 +335,11 @@ def LayoutsAndPages():
                     <EnhancedCodeBlock
                         lang="python"
                         filename="pages/api/post.py"
-                        snippet="from nextpy.psx import component, psx, Link&#10;from lib.posts import get_posts&#10;&#10;@component&#10;def Posts():&#10;    posts = get_posts()&#10;&#10;    return psx(f&#34;&#34;&#34;&#10;        &lt;ul&gt;&#10;            {{''.join([f'''&#10;                &lt;li key=&#34;{{p.slug}}&#34;&gt;&#10;                    &lt;Link href=&#34;/blog/{{p.slug}}&#34;&gt;{{p.title}}&lt;/Link&gt;&#10;                &lt;/li&gt;&#10;            ''' for p in posts])}}&#10;        &lt;/ul&gt;&#10;    &#34;&#34;&#34;)"
+                        snippet="from nextpy.psx import component, psx, Link&#10;from lib.posts import get_posts&#10;&#10;@component&#10;def Posts():&#10;    posts = get_posts()&#10;&#10;    return psx(f&#34;&#34;&#34;&#10;        &lt;ul&gt;&#10;            {{''.join([f'''
+                <li key=&#34;{{p.slug}}&#34;>
+                    <Link href=&#34;/blog/{{p.slug}}&#34;>{{p.title}}</Link>
+                </li>
+            ''' for p in posts])}}&#10;        &lt;/ul&gt;&#10;    &#34;&#34;&#34;)"
                     />
 
                     <div class="p-4 rounded-xl border border-zinc-800/60 bg-zinc-900/30 flex gap-3 text-sm text-zinc-400 mt-6 leading-6">

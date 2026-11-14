@@ -13,7 +13,7 @@ def RouterAPI():
 @component
 def Page():
     return (
-        &lt;Link href="/about"&gt;About&lt;/Link&gt;
+        <Link href="/about">About</Link>
     )"""
 
     router_example = """from nextpy.psx import component, Link
@@ -25,7 +25,7 @@ def Page():
         window.navigateTo("/")
 
     return (
-        &lt;button onclick={go_home}&gt;Go home&lt;/button&gt;
+        <button onclick={go_home}>Go home</button>
     )"""
 
     params_example = """from nextpy.psx import component

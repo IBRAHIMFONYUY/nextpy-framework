@@ -43,7 +43,7 @@ def Counter():
         setCount(count + 1)
     
     return (
-        &lt;button onclick={increment}&gt;Count: {count}&lt;/button&gt;
+        <button onclick={increment}>Count: {count}</button>
     )"""
 
     return (

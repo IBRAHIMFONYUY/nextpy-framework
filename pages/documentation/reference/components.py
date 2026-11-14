@@ -16,23 +16,23 @@ def ComponentsAPI():
 @component
 def Example():
     return (
-        &lt;div&gt;
-            &lt;Head&gt;
-                &lt;Title&gt;My Page&lt;/Title&gt;
-                &lt;Meta name="description" content="..." /&gt;
-            &lt;/Head&gt;
-            &lt;Link href="/about"&gt;About&lt;/Link&gt;
-            &lt;Motion initial={{"opacity": 0}} animate={{"opacity": 1}}&gt;
-                &lt;Card&gt;Hello&lt;/Card&gt;
-            &lt;/Motion&gt;
-        &lt;/div&gt;
+        <div>
+            <Head>
+                <Title>My Page</Title>
+                <Meta name="description" content="..." />
+            </Head>
+            <Link href="/about">About</Link>
+            <Motion initial={{"opacity": 0}} animate={{"opacity": 1}}>
+                <Card>Hello</Card>
+            </Motion>
+        </div>
     )"""
 
     custom_example = """from nextpy.psx import component, register_component, Props
 
 @component
 def Badge(props):
-    return &lt;span class="badge"&gt;{props.get("label", "")} &lt;/span&gt;
+    return <span class="badge">{props.get("label", "")} </span>
 
 register_component("Badge", Badge)"""
 

@@ -25,7 +25,12 @@ def DocsScrollSpy():
         def OnScroll():
             doc_height = document.documentElement.scrollHeight - window.innerHeight
             if doc_height > 0:
-                set_scroll_progress((window.scrollY / doc_height) * 100)
+                pct = (window.scrollY / doc_height) * 100
+                if pct > 100:
+                    pct = 100
+                if pct < 0:
+                    pct = 0
+                set_scroll_progress(pct)
 
             # "Last section whose top crossed the line" — robust against
             # short sections and scroll jumps (unlike top<=X<=bottom checks).
@@ -42,11 +47,20 @@ def DocsScrollSpy():
                     sec.removeAttribute("data-docs-revealed")
 
             links = document.querySelectorAll("aside a[href^='#'], nav a[href^='#']")
+            matched = False
+            first_link = None
             for a in links:
+                if not first_link:
+                    first_link = a
                 if a.getAttribute("href") == "#" + current:
                     a.setAttribute("data-docs-toc-active", "")
+                    matched = True
                 else:
                     a.removeAttribute("data-docs-toc-active")
+            # At the very top `current` is the header (no TOC entry) — keep
+            # the first link lit instead of leaving the TOC dark.
+            if not matched and first_link:
+                first_link.setAttribute("data-docs-toc-active", "")
 
             path = window.location.pathname
             nav_links = document.querySelectorAll("aside a[href^='/']")

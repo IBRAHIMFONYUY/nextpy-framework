@@ -18,10 +18,10 @@ def Counter():
         set_count(count + 1)
 
     return (
-        &lt;div&gt;
-            &lt;p&gt;Count: {count}&lt;/p&gt;
-            &lt;button onclick={increment}&gt;+1&lt;/button&gt;
-        &lt;/div&gt;
+        <div>
+            <p>Count: {count}</p>
+            <button onclick={increment}>+1</button>
+        </div>
     )"""
 
     useeffect_example = """from nextpy.psx import component, useState, useEffect
@@ -33,7 +33,7 @@ def ScrollSpy():
     def setup():
         def on_scroll():
             doc_height = document.documentElement.scrollHeight - window.innerHeight
-            if doc_height &gt; 0:
+            if doc_height > 0:
                 set_progress((window.scrollY / doc_height) * 100)
 
         window.addEventListener("scroll", on_scroll)
@@ -43,9 +43,61 @@ def ScrollSpy():
     useEffect(setup, [])
 
     progress_style = f"width: {progress}%; height: 4px; background: blue"
-    return &lt;div style={progress_style}&gt;&lt;/div&gt;"""
+    return <div style={progress_style}></div>"""
 
     server_effect_example = """useEffect(handle_result, [_server_result])"""
+
+    ref_shape = '{"current": initial}'
+    ph_ref = 'ref={"name"}'
+    ph_if_cond = "{if cond: ...}"
+
+    useref_example = """from nextpy.psx import interactive_component, useRef, useEffect
+
+@interactive_component
+def Drawer():
+    # Mutable box that survives re-renders without triggering them
+    count = useRef(0)
+
+    def setup():
+        # ref={...} renders data-psx-ref; resolve the node via getRef
+        el = window.nextpy.getRef(window.nextpy._componentId, "panel")
+        if el:
+            el.style.maxHeight = "0px"
+        return None
+
+    useEffect(setup, [])
+
+    def bump(e):
+        count["current"] += 1   # no re-render — read it imperatively
+        return None
+
+    return (
+        <div>
+            <button onclick={bump}>Clicks: {count["current"]}</button>
+            <div ref={"panel"} class="overflow-hidden">...</div>
+        </div>
+    )"""
+
+    derived_example = """from nextpy.psx import interactive_component, useState
+
+@interactive_component
+def Search():
+    [query, set_query] = useState("")
+    [items, set_items] = useState([])
+
+    # Derived values: captured at SSR, re-evaluated on the client
+    # whenever a dependency changes. Order matters — define
+    # dependencies before dependents.
+    q = query.strip().lower()
+    has_q = bool(q)
+    empty_msg = "No results" if has_q and not items else ""
+    input_cls = "border-blue-500" if has_q else "border-zinc-700"
+
+    return (
+        <input value={query} oninput={lambda e: set_query(e.target.value)}
+               class={input_cls} />
+        <p>{empty_msg}</p>
+    )"""
 
     usefetch_example = """from nextpy.psx import component, useFetch
 
@@ -55,15 +107,15 @@ def UserList():
     data = fetch["data"]
 
     return (
-        &lt;div&gt;
-            {fetch["loading"] and &lt;p&gt;Loading...&lt;/p&gt;}
-            {fetch["error"] and &lt;p&gt;{fetch["error"]}&lt;/p&gt;}
-            &lt;ul&gt;
+        <div>
+            {fetch["loading"] and <p>Loading...</p>}
+            {fetch["error"] and <p>{fetch["error"]}</p>}
+            <ul>
                 {for user in (data or []):
-                    &lt;li&gt;{user["name"]}&lt;/li&gt;
+                    <li>{user["name"]}</li>
                 }
-            &lt;/ul&gt;
-        &lt;/div&gt;
+            </ul>
+        </div>
     )"""
 
     return (
@@ -136,6 +188,33 @@ def UserList():
                     />
                 </div>
 
+                <div id="useref" class="space-y-6 pt-8 border-t border-zinc-800/50">
+                    <h2 class="text-2xl font-semibold text-white tracking-tight">useRef</h2>
+                    <p class="text-base leading-7 text-zinc-300">
+                        <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useRef(initial)</code> returns a mutable <code class="font-mono text-xs">{ref_shape}</code> box that persists across renders without triggering them — for values you mutate imperatively (counters, caches, previous values). Writing to it never re-renders; reading it in JSX gives you the SSR-time value only.
+                    </p>
+                    <p class="text-base leading-7 text-zinc-300">
+                        For DOM nodes, prefer <code class="font-mono text-xs">{ph_ref}</code> on the element — it renders <code class="font-mono text-xs">data-psx-ref</code>, and the client runtime resolves it through <code class="font-mono text-xs">window.nextpy.getRef(componentId, name)</code> inside effects and handlers.
+                    </p>
+                    <EnhancedCodeBlock lang="python" filename="components/drawer.py" snippet={useref_example} />
+                </div>
+
+                <div id="derived-values" class="space-y-6 pt-8 border-t border-zinc-800/50">
+                    <h2 class="text-2xl font-semibold text-white tracking-tight">Derived values</h2>
+                    <p class="text-base leading-7 text-zinc-300">
+                        Assignments in the component body become <em>derived expressions</em>: evaluated once at SSR, then re-evaluated on the client whenever a state variable they depend on changes — including chains resolved by fixpoint. Use them for anything bound into JSX: class strings, style strings, labels, filtered lists rendered through bindings.
+                    </p>
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
+                        <li>Every name in the expression must be state or an <strong class="text-white">earlier</strong> derived variable — order matters.</li>
+                        <li>f-string holes must be plain variable names; <code class="font-mono text-xs">props.*</code>, comprehensions and local function calls are server-only and silently drop the binding.</li>
+                        <li>For conditional rendering prefer <code class="font-mono text-xs">{ph_if_cond}</code> inline expressions or dedicated conditional components — a skipped derived variable freezes at its SSR value.</li>
+                    </ul>
+                    <EnhancedCodeBlock lang="python" filename="components/search.py" snippet={derived_example} />
+                    <p class="text-base leading-7 text-zinc-300">
+                        For the full capture rules, scroll-driven UI patterns and Motion animations, see <Link href="/documentation/concepts/psx-internals" className="text-blue-400 hover:text-blue-300 underline decoration-blue-400/30 hover:decoration-blue-400">PSX Core Internals</Link>.
+                    </p>
+                </div>
+
                 <footer class="py-12 flex items-center justify-between gap-6 border-t border-zinc-800/50 mt-12">
                     <div class="w-1/2">
                         <Link href="/documentation/reference/components" className="group block p-5 rounded-xl border border-zinc-800/60 bg-zinc-950/20 hover:border-zinc-700 hover:bg-zinc-900/20 transition-all">
@@ -166,6 +245,8 @@ def UserList():
                         <li><a href="#useeffect" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">useEffect</a></li>
                         <li><a href="#usefetch" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">useFetch</a></li>
                         <li><a href="#server-state" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Server state keys</a></li>
+                        <li><a href="#useref" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">useRef</a></li>
+                        <li><a href="#derived-values" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Derived values</a></li>
                     </ul>
                 </div>
             </aside>

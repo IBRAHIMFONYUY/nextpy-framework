@@ -13,11 +13,11 @@ def LinkingGuide():
 @component
 def Navigation():
     return (
-        &lt;nav class="flex gap-4"&gt;
-            &lt;Link href="/"&gt;Home&lt;/Link&gt;
-            &lt;Link href="/about"&gt;About&lt;/Link&gt;
-            &lt;Link href="/contact"&gt;Contact&lt;/Link&gt;
-        &lt;/nav&gt;
+        <nav class="flex gap-4">
+            <Link href="/">Home</Link>
+            <Link href="/about">About</Link>
+            <Link href="/contact">Contact</Link>
+        </nav>
     )"""
 
     dynamic_example = """from nextpy.psx import component, Link
@@ -26,13 +26,13 @@ def Navigation():
 def UserList(props):
     users = props.get("users", [])
     return (
-        &lt;div class="space-y-2"&gt;
+        <div class="space-y-2">
             {for user in users:
-                &lt;Link href={"/users/" + str(user["id"])} class="block p-2 hover:bg-zinc-800 rounded"&gt;
+                <Link href={"/users/" + str(user["id"])} class="block p-2 hover:bg-zinc-800 rounded">
                     {user["name"]}
-                &lt;/Link&gt;
+                </Link>
             }
-        &lt;/div&gt;
+        </div>
     )"""
 
     programmatic_example = """from nextpy.psx import interactive_component, useState, useEffect, callServerAction
@@ -55,11 +55,11 @@ def LoginForm():
     useEffect(handle_result, [_server_result])
 
     return (
-        &lt;form onsubmit={submit}&gt;
-            &lt;input value={email} oninput={lambda e: setEmail(e.target.value)} /&gt;
-            &lt;input type="password" value={password} oninput={lambda e: setPassword(e.target.value)} /&gt;
-            &lt;button type="submit" disabled={_server_loading}&gt;Login&lt;/button&gt;
-        &lt;/form&gt;
+        <form onsubmit={submit}>
+            <input value={email} oninput={lambda e: setEmail(e.target.value)} />
+            <input type="password" value={password} oninput={lambda e: setPassword(e.target.value)} />
+            <button type="submit" disabled={_server_loading}>Login</button>
+        </form>
     )"""
 
     active_example = """from nextpy.psx import interactive_component, useState, useEffect
@@ -83,10 +83,10 @@ def Navigation():
         return base + " text-zinc-400 hover:text-white"
 
     return (
-        &lt;nav class="flex gap-2"&gt;
-            &lt;Link href="/" class={link_class("/")}&gt;Home&lt;/Link&gt;
-            &lt;Link href="/docs" class={link_class("/docs")}&gt;Docs&lt;/Link&gt;
-        &lt;/nav&gt;
+        <nav class="flex gap-2">
+            <Link href="/" class={link_class("/")}>Home</Link>
+            <Link href="/docs" class={link_class("/docs")}>Docs</Link>
+        </nav>
     )"""
 
     return (

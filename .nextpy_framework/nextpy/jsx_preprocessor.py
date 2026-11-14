@@ -47,22 +47,41 @@ class JSXPreprocessor:
         self.return_pattern = re.compile(r'return\s*\(\s*(<.*?>)\s*\)', re.MULTILINE | re.DOTALL)
         self.simple_return_pattern = re.compile(r'return\s+(<.*?>)', re.MULTILINE | re.DOTALL)
         
+    _TRIPLE_STRING_RE = re.compile(r'""".*?"""|\'\'\'.*?\'\'\'', re.DOTALL)
+
+    @staticmethod
+    def _mask_strings(content: str) -> str:
+        """Blank out triple-quoted string bodies, preserving length and
+        newlines so match positions still map to the original source.
+
+        Snippet/docstring literals routinely contain ``return <p>…`` code
+        samples; without masking, the JSX return patterns below match inside
+        the string and corrupt it into nested ``psx(\"\"\"…)\"\"\")`` calls.
+        Only triple-quoted strings are masked — single/double quoted strings
+        are left alone because apostrophes in JSX text would create false
+        string spans and hide real JSX blocks.
+        """
+        def _blank(m):
+            s = m.group(0)
+            return ''.join('\n' if c == '\n' else ' ' for c in s)
+        return JSXPreprocessor._TRIPLE_STRING_RE.sub(_blank, content)
+
     def find_jsx_blocks(self, content: str) -> List[Tuple[int, int, str]]:
         """Find all JSX blocks in the content"""
         jsx_blocks = []
-        
-        # Find return statements with JSX
-        for match in self.return_pattern.finditer(content):
+        masked = self._mask_strings(content)
+
+        # Find return statements with JSX — positions come from the masked
+        # copy (identical length), contents are sliced from the original.
+        for match in self.return_pattern.finditer(masked):
             start, end = match.span()
-            jsx_content = match.group(1)
-            jsx_blocks.append((start, end, jsx_content))
-        
+            jsx_blocks.append((start, end, content[match.start(1):match.end(1)]))
+
         # Find simple return statements
-        for match in self.simple_return_pattern.finditer(content):
+        for match in self.simple_return_pattern.finditer(masked):
             start, end = match.span()
-            jsx_content = match.group(1)
-            jsx_blocks.append((start, end, jsx_content))
-        
+            jsx_blocks.append((start, end, content[match.start(1):match.end(1)]))
+
         return jsx_blocks
     
     def transform_jsx_to_function_call(self, jsx_str: str) -> str:
@@ -273,9 +292,11 @@ class JSXPreprocessor:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             
-            # Look for JSX patterns
-            return bool(self.return_pattern.search(content) or 
-                       self.simple_return_pattern.search(content))
+            # Look for JSX patterns — masked so `return <p>` inside
+            # triple-quoted code samples doesn't count as real JSX.
+            masked = self._mask_strings(content)
+            return bool(self.return_pattern.search(masked) or
+                       self.simple_return_pattern.search(masked))
         except:
             return False
     

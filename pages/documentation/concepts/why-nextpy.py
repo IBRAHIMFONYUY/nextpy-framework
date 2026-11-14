@@ -15,15 +15,15 @@ def Page(props):
     # Server-rendered on every request — full Python power
     posts = fetch_posts_from_db()
     return psx(f\"\"\"
-        &lt;h1&gt;{len(posts)} posts&lt;/h1&gt;
-        &lt;PostList posts={posts} /&gt;
+        <h1>{len(posts)} posts</h1>
+        <PostList posts={posts} />
     \"\"\")
 
 @interactive_component
 def Counter():
     # Hydrates in the browser — React-like state, zero reloads
     [count, setCount] = useState(0)
-    return &lt;button onclick={lambda e: setCount(count + 1)}&gt;{count}&lt;/button&gt;"""
+    return <button onclick={lambda e: setCount(count + 1)}>{count}</button>"""
 
     return (
         <div class="flex flex-col xl:flex-row items-start justify-between gap-2 w-full max-w-6xl mx-auto">

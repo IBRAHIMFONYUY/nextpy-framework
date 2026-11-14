@@ -43,12 +43,12 @@ def TodoForm():
     useEffect(handle_result, [_server_result])
 
     return (
-        &lt;form onsubmit={submit}&gt;
-            &lt;input value={title} oninput={lambda e: setTitle(e.target.value)} /&gt;
-            &lt;button type="submit" disabled={_server_loading}&gt;
+        <form onsubmit={submit}>
+            <input value={title} oninput={lambda e: setTitle(e.target.value)} />
+            <button type="submit" disabled={_server_loading}>
                 {"Saving..." if _server_loading else "Add"}
-            &lt;/button&gt;
-        &lt;/form&gt;
+            </button>
+        </form>
     )"""
 
     options_example = """@server_action(

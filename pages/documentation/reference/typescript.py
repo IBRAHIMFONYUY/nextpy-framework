@@ -25,7 +25,7 @@ def Profile(props):
     user: Optional[dict] = props.get("user")
 
     return (
-        &lt;h1&gt;{user["name"] if user else "Guest"}&lt;/h1&gt;
+        <h1>{user["name"] if user else "Guest"}</h1>
     )"""
 
     return (

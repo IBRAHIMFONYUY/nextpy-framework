@@ -40,9 +40,9 @@ def LiveSearch():
 @component
 def UserProfile():
     return (
-        &lt;Suspense fallback="Loading..."&gt;
-            &lt;UserData /&gt;
-        &lt;/Suspense&gt;
+        <Suspense fallback="Loading...">
+            <UserData />
+        </Suspense>
     )"""
 
     return (

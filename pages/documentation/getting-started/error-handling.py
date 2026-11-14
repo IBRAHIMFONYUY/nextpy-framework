@@ -16,8 +16,8 @@ from nextpy.utils import PropsResult
 def Page(props):
     post = props.get("post")
     if post is None:
-        return &lt;p&gt;Post unavailable&lt;/p&gt;
-    return &lt;article&gt;&lt;h1&gt;{post["title"]}&lt;/h1&gt;&lt;/article&gt;
+        return <p>Post unavailable</p>
+    return <article><h1>{post["title"]}</h1></article>
 
 @getServerSideProps
 
@@ -93,13 +93,13 @@ def ContactForm():
     useEffect(handle_result, [result])
 
     return (
-        &lt;form onsubmit={submit}&gt;
-            &lt;input value={email} oninput={lambda e: setEmail(e.target.value)} /&gt;
-            &lt;div style={"display: " + ("block" if error else "none")} class="text-red-600 text-sm"&gt;
+        <form onsubmit={submit}>
+            <input value={email} oninput={lambda e: setEmail(e.target.value)} />
+            <div style={"display: " + ("block" if error else "none")} class="text-red-600 text-sm">
                 {error}
-            &lt;/div&gt;
-            &lt;button type="submit"&gt;Send&lt;/button&gt;
-        &lt;/form&gt;
+            </div>
+            <button type="submit">Send</button>
+        </form>
     )"""
 
     return (

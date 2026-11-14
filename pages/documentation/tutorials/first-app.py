@@ -20,11 +20,11 @@ from nextpy.psx import component, Link
 @component
 def Home():
     return (
-        &lt;div class="p-8"&gt;
-            &lt;h1 class="text-3xl font-bold"&gt;Hello NextPy&lt;/h1&gt;
-            &lt;p&gt;Server-rendered on every request.&lt;/p&gt;
-            &lt;Link href="/about"&gt;About&lt;/Link&gt;
-        &lt;/div&gt;
+        <div class="p-8">
+            <h1 class="text-3xl font-bold">Hello NextPy</h1>
+            <p>Server-rendered on every request.</p>
+            <Link href="/about">About</Link>
+        </div>
     )
 
 default = Home"""
@@ -40,9 +40,9 @@ def Counter():
         set_count(count + 1)
 
     return (
-        &lt;button onclick={Increment} class="px-4 py-2 bg-blue-600 text-white rounded"&gt;
+        <button onclick={Increment} class="px-4 py-2 bg-blue-600 text-white rounded">
             Clicked {count} times
-        &lt;/button&gt;
+        </button>
     )"""
 
     layout_example = """# pages/about.py — inherits the root layout automatically
@@ -51,10 +51,10 @@ from nextpy.psx import component, Link
 @component
 def About():
     return (
-        &lt;div class="p-8"&gt;
-            &lt;h1&gt;About&lt;/h1&gt;
-            &lt;Link href="/"&gt;Back home&lt;/Link&gt;
-        &lt;/div&gt;
+        <div class="p-8">
+            <h1>About</h1>
+            <Link href="/">Back home</Link>
+        </div>
     )
 
 default = About"""

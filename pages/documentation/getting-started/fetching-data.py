@@ -16,11 +16,11 @@ from nextpy import getServerSideProps
 def Page(props):
     posts = props.get("posts", [])
     return (
-        &lt;ul&gt;
+        <ul>
             {for post in posts:
-                &lt;li key={post["id"]}&gt;{post["title"]}&lt;/li&gt;
+                <li key={post["id"]}>{post["title"]}</li>
             }
-        &lt;/ul&gt;
+        </ul>
     )
 
 @getServerSideProps
@@ -44,7 +44,7 @@ from nextpy.utils import PropsResult, StaticPathsResult
 @component
 def Page(props):
     post = props.get("post", {})
-    return &lt;article&gt;&lt;h1&gt;{post.get("title", "")}&lt;/h1&gt;&lt;/article&gt;
+    return <article><h1>{post.get("title", "")}</h1></article>
 
 @getStaticPaths
 def getStaticPaths():
@@ -84,8 +84,8 @@ def WeatherWidget():
     useEffect(setup, [])
 
     if loading:
-        return &lt;p&gt;Loading…&lt;/p&gt;
-    return &lt;p&gt;{data.get("temp", "?")}°C&lt;/p&gt;"""
+        return <p>Loading…</p>
+    return <p>{data.get("temp", "?")}°C</p>"""
 
     return (
         <div class="flex flex-col xl:flex-row items-start justify-between gap-2 w-full max-w-6xl mx-auto">

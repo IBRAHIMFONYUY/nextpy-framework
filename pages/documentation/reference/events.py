@@ -18,9 +18,9 @@ def Counter():
         set_count(count + 1)
 
     return (
-        &lt;button onclick={increment}&gt;
+        <button onclick={increment}>
             Count: {count}
-        &lt;/button&gt;
+        </button>
     )"""
 
     input_example = """from nextpy.psx import component, useState
@@ -30,11 +30,11 @@ def Search():
     [query, set_query] = useState("")
 
     return (
-        &lt;input
+        <input
             value={query}
             oninput={lambda e: set_query(e.target.value)}
             placeholder="Search..."
-        /&gt;
+        />
     )"""
 
     submit_example = """from nextpy.psx import component, useState, callServerAction
@@ -49,16 +49,16 @@ def LoginForm():
         callServerAction("login", {"email": email, "password": password})
 
     return (
-        &lt;form onsubmit={handle_submit}&gt;
-            &lt;input value={email} oninput={lambda e: set_email(e.target.value)} /&gt;
-            &lt;input type="password" value={password} oninput={lambda e: set_password(e.target.value)} /&gt;
-            &lt;button type="submit"&gt;Sign in&lt;/button&gt;
-        &lt;/form&gt;
+        <form onsubmit={handle_submit}>
+            <input value={email} oninput={lambda e: set_email(e.target.value)} />
+            <input type="password" value={password} oninput={lambda e: set_password(e.target.value)} />
+            <button type="submit">Sign in</button>
+        </form>
     )"""
 
-    loading_example = """&lt;button type="submit" disabled={_server_loading}&gt;
+    loading_example = """<button type="submit" disabled={_server_loading}>
     {"Signing in..." if _server_loading else "Sign in"}
-&lt;/button&gt;"""
+</button>"""
 
     return (
         <div class="flex flex-col xl:flex-row items-start justify-between gap-2 w-full max-w-6xl mx-auto">

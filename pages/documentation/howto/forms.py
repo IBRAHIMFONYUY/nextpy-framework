@@ -43,11 +43,11 @@ def ContactForm():
         callServerAction("submit_contact", {"email": email, "message": message})
     
     return (
-        &lt;form onsubmit={handle_submit}&gt;
-            &lt;input value={email} oninput={lambda e: setEmail(e.target.value)} /&gt;
-            &lt;textarea value={message} oninput={lambda e: setMessage(e.target.value)}&gt;&lt;/textarea&gt;
-            &lt;button type="submit"&gt;Submit&lt;/button&gt;
-        &lt;/form&gt;
+        <form onsubmit={handle_submit}>
+            <input value={email} oninput={lambda e: setEmail(e.target.value)} />
+            <textarea value={message} oninput={lambda e: setMessage(e.target.value)}></textarea>
+            <button type="submit">Submit</button>
+        </form>
     )"""
 
     return (

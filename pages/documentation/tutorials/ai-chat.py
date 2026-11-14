@@ -68,10 +68,10 @@ async def chat(request, message: str = ""):
 @component
 def ChatPage():
     return (
-        &lt;div class="max-w-3xl mx-auto h-[80vh] flex flex-col"&gt;
-            &lt;h1 class="text-2xl font-bold mb-4"&gt;AI Chat&lt;/h1&gt;
-            &lt;ChatWindow /&gt;
-        &lt;/div&gt;
+        <div class="max-w-3xl mx-auto h-[80vh] flex flex-col">
+            <h1 class="text-2xl font-bold mb-4">AI Chat</h1>
+            <ChatWindow />
+        </div>
     )
 
 default = ChatPage"""

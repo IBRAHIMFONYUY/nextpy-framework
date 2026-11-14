@@ -22,14 +22,14 @@ async def get_server_side_props(context):
 @component
 def SeoPage():
     return (
-        &lt;div&gt;
-            &lt;Head&gt;
-                &lt;Title&gt;Dashboard - My App&lt;/Title&gt;
-                &lt;Meta name="description" content="Your dashboard" /&gt;
-                &lt;Meta property="og:title" content="Dashboard" /&gt;
-            &lt;/Head&gt;
-            &lt;h1&gt;Dashboard&lt;/h1&gt;
-        &lt;/div&gt;
+        <div>
+            <Head>
+                <Title>Dashboard - My App</Title>
+                <Meta name="description" content="Your dashboard" />
+                <Meta property="og:title" content="Dashboard" />
+            </Head>
+            <h1>Dashboard</h1>
+        </div>
     )"""
 
     sitemap_example = """# pages/sitemap.xml.py
@@ -39,8 +39,8 @@ def get_template():
 async def get_server_side_props(context):
     from fastapi.responses import Response
     xml = '<?xml version="1.0" encoding="UTF-8"?>'
-    xml += '&lt;urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"&gt;'
-    xml += '&lt;/urlset&gt;'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+    xml += '</urlset>'
     return Response(content=xml, media_type="application/xml")"""
 
     return (

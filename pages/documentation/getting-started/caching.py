@@ -14,7 +14,7 @@ from nextpy.core.data_fetching import PropsResult
 
 @component
 def Page(props):
-    return &lt;p&gt;{props.get("generated_at", "")}&lt;/p&gt;
+    return <p>{props.get("generated_at", "")}</p>
 
 @get_server_side_props
 async def getServerSideProps(context):
@@ -32,7 +32,7 @@ revalidate = 3600  # module-level ISR default: 1 hour
 
 @component
 def Page(props):
-    return &lt;article&gt;&lt;h1&gt;{props.get("post", {}).get("title", "")}&lt;/h1&gt;&lt;/article&gt;
+    return <article><h1>{props.get("post", {}).get("title", "")}</h1></article>
 
 @get_static_paths
 def getStaticPaths():

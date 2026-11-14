@@ -18,10 +18,10 @@ def Counter():
         setCount(count + 1)
 
     return (
-        &lt;div&gt;
-            &lt;p&gt;Count: {count}&lt;/p&gt;
-            &lt;button onclick={increment}&gt;+1&lt;/button&gt;
-        &lt;/div&gt;
+        <div>
+            <p>Count: {count}</p>
+            <button onclick={increment}>+1</button>
+        </div>
     )"""
 
     server_example = """from nextpy.psx import interactive_component, useState, useEffect, callServerAction

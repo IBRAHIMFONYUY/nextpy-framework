@@ -12,9 +12,9 @@ def PsxInternals():
 @component
 def Page():
     return psx(\"\"\"
-        &lt;div class=\"p-4\"&gt;
-            &lt;h1&gt;Hello&lt;/h1&gt;
-        &lt;/div&gt;
+        <div class=\"p-4\">
+            <h1>Hello</h1>
+        </div>
     \"\"\")"""
 
     island_example = """from nextpy.psx import interactive_component, useState, useEffect
@@ -34,8 +34,111 @@ def Chart():
     useEffect(setup, [])
 
     if not data:
-        return &lt;div&gt;Loading chart…&lt;/div&gt;
-    return &lt;canvas id="chart" width="400" height="200"&gt;&lt;/canvas&gt;"""
+        return <div>Loading chart…</div>
+    return <canvas id="chart" width="400" height="200"></canvas>"""
+
+    bindings_example = """from nextpy.psx import interactive_component, useState
+
+@interactive_component
+def Nav():
+    [active, set_active] = useState("home")
+    [progress, set_progress] = useState(0)
+
+    link_base = "px-3 py-2 rounded-lg transition-colors"
+    link_on   = f"{link_base} bg-blue-600 text-white"
+    link_off  = f"{link_base} text-zinc-400 hover:text-white"
+
+    bar_style = f"width: {progress}%"
+
+    return (
+        <nav>
+            <a href="#home" class={link_on if active == "home" else link_off}>Home</a>
+            <a href="#docs" class={link_on if active == "docs" else link_off}>Docs</a>
+            <div style={bar_style} class="h-1 bg-blue-500"></div>
+        </nav>
+    )"""
+
+    derived_bad = """# WRONG — 'for' comprehensions and props are server-only;
+# the client cannot evaluate them, so the binding is dropped.
+items_html = "".join(<li>{x}</li> for x in items)
+label = props.get("title", "Untitled")"""
+
+    scrollspy_example = """from nextpy.psx import interactive_component, useState, useEffect
+
+@interactive_component
+def ScrollSpy():
+    [active, set_active] = useState("top")
+    [progress, set_progress] = useState(0)
+
+    def setup():
+        def on_scroll():
+            doc_h = document.documentElement.scrollHeight - window.innerHeight
+            if doc_h > 0:
+                set_progress((window.scrollY / doc_h) * 100)
+            # last section above the line — never misses short sections
+            current = "top"
+            for sid in ["top", "middle", "bottom"]:
+                el = document.getElementById(sid)
+                if el and el.getBoundingClientRect().top <= 160:
+                    current = sid
+            set_active(current)
+
+        window.addEventListener("scroll", on_scroll)
+        on_scroll()
+        return lambda: window.removeEventListener("scroll", on_scroll)
+
+    useEffect(setup, [])
+    # ...render nav links with class={on if active == sid else off}..."""
+
+    dom_attrs_example = """def setup():
+    def on_scroll():
+        # Mutate attributes directly when the target set is dynamic —
+        # e.g. "whatever <a> currently points at the active section".
+        for a in document.querySelectorAll("aside a[href^='#']"):
+            if a.getAttribute("href") == "#" + current:
+                a.setAttribute("data-toc-active", "")
+            else:
+                a.removeAttribute("data-toc-active")
+    window.addEventListener("scroll", on_scroll)
+    on_scroll()
+    return lambda: window.removeEventListener("scroll", on_scroll)"""
+
+    opacity_dict = '{"opacity": 0}'
+    transition_dict = '{"duration": 0.3, "easing": "ease-out", "delay": 0}'
+    ph_value = "{value}"
+    ph_class_expr = "class={expr}"
+    ph_style_expr = "style={expr}"
+    ph_style_width = 'f"width: {n}%"'
+    ph_attr_expr = "attr={expr}"
+    ph_dots = "{...}"
+    ph_link_on = 'link_on = f"{link_base} ..."'
+    ph_scroll_progress = "{scroll_progress}"
+    ph_user_name = "{user.name}"
+    ph_items0 = "{items[0]}"
+
+    motion_example = """from nextpy.psx import Motion, AnimatePresence, interactive_component, useState
+
+@interactive_component
+def Panel():
+    [open_, set_open] = useState(True)
+
+    card = Motion({
+        "initial":     {"opacity": 0, "scale": 0.9},
+        "animate":     {"opacity": 1, "scale": 1},
+        "exit":        {"opacity": 0, "scale": 0.9},
+        "transition":  {"duration": 0.25, "easing": "ease-out"},
+        "whileHover":  {"scale": 1.03},
+        "layout":      True,   # FLIP-animate position changes
+        "className":   "p-6 bg-white rounded-2xl shadow",
+        "children":    [<h3>Animated card</h3>],
+    })
+
+    return (
+        <div>
+            <button onclick={lambda e: set_open(not open_)}>Toggle</button>
+            {if open_: {AnimatePresence({"children": [card]}).to_html()}}
+        </div>
+    )"""
 
     return (
         <div class="flex flex-col xl:flex-row items-start justify-between gap-2 w-full max-w-6xl mx-auto">
@@ -115,6 +218,117 @@ def Chart():
                     </p>
                 </div>
 
+                <div id="reactive-bindings" class="space-y-6 pt-8 border-t border-zinc-800/50">
+                    <h2 class="text-2xl font-semibold text-white tracking-tight">Reactive bindings</h2>
+                    <p class="text-base leading-7 text-zinc-300">
+                        When an <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">@interactive_component</code> renders, the hydration engine rewrites dynamic expressions into <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">data-bind-*</code> attributes. On the client, a signal graph re-evaluates only the expressions that depend on changed state and writes the result straight to the DOM — text, <code class="font-mono text-xs">class</code>, <code class="font-mono text-xs">style</code>, or any other attribute — batched through <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">requestAnimationFrame</code>. No virtual DOM diff, no full re-render.
+                    </p>
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
+                        <li><code class="font-mono text-xs">{ph_value}</code> in text → <code class="font-mono text-xs">data-bind="textContent:key"</code></li>
+                        <li><code class="font-mono text-xs">{ph_class_expr}</code> → <code class="font-mono text-xs">data-bind-class="expr"</code></li>
+                        <li><code class="font-mono text-xs">{ph_style_expr}</code> → <code class="font-mono text-xs">data-bind-style="expr"</code> — pass a CSS string like <code class="font-mono text-xs">{ph_style_width}</code>, not a dict</li>
+                        <li><code class="font-mono text-xs">{ph_attr_expr}</code> on any other attribute → <code class="font-mono text-xs">data-bind-attr-name="expr"</code></li>
+                    </ul>
+                    <EnhancedCodeBlock lang="python" filename="components/nav.py" snippet={bindings_example} />
+                    <p class="text-base leading-7 text-zinc-300">
+                        The ternary inside <code class="font-mono text-xs">{ph_dots}</code> is a Python expression the client re-evaluates on every state change  the nav link swaps classes the moment <code class="font-mono text-xs">active</code> changes, and the bar's width tracks <code class="font-mono text-xs">progress</code> at 60fps.
+                    </p>
+                </div>
+
+                <div id="derived-expressions" class="space-y-6 pt-8 border-t border-zinc-800/50">
+                    <h2 class="text-2xl font-semibold text-white tracking-tight">Derived expressions</h2>
+                    <p class="text-base leading-7 text-zinc-300">
+                        Plain assignments in the component body <code class="font-mono text-xs">{ph_link_on}</code> are captured at SSR time as <em>derived expressions</em> and shipped to the browser inside the hydration payload. The client re-evaluates them whenever a state variable they depend on changes — including chains like <code class="font-mono text-xs">link_on → link_base</code>, resolved by fixpoint iteration.
+                    </p>
+                    <p class="text-base leading-7 text-zinc-300">
+                        The capture rules decide what stays reactive:
+                    </p>
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
+                        <li><strong class="text-white">Captured:</strong> literals, ternaries, f-strings, comparisons, arithmetic — as long as every name resolves to state or an <em>earlier</em> derived variable. Define dependencies before dependents.</li>
+                        <li><strong class="text-white">Skipped:</strong> anything touching <code class="font-mono text-xs">props</code>, comprehensions/generator expressions, and calls to functions defined inside the component — none of those exist in the browser.</li>
+                        <li><strong class="text-white">f-string holes</strong> must each be a plain variable name (<code class="font-mono text-xs">{ph_scroll_progress}</code> works; <code class="font-mono text-xs">{ph_user_name}</code> or <code class="font-mono text-xs">{ph_items0}</code> does not).</li>
+                    </ul>
+                    <EnhancedCodeBlock lang="python" filename="components/bad.py" snippet={derived_bad} />
+                    <p class="text-base leading-7 text-zinc-300">
+                        If a binding references a variable the client can't resolve, the runtime keeps the SSR-rendered attribute rather than writing garbage — but the element stops being reactive, which is the bug that silently strips <code class="font-mono text-xs">class</code> attributes on hydrated pages. When in doubt, compute the final string in one derived variable and bind that.
+                    </p>
+                </div>
+
+                <div id="effects-listeners" class="space-y-6 pt-8 border-t border-zinc-800/50">
+                    <h2 class="text-2xl font-semibold text-white tracking-tight">Effects and DOM listeners</h2>
+                    <p class="text-base leading-7 text-zinc-300">
+                        <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useEffect(setup, deps)</code> runs after hydration. The setup function may return a cleanup callable that runs before re-runs and on unmount — always unsubscribe there.
+                    </p>
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
+                        <li><code class="font-mono text-xs">useEffect(fn, [])</code> — once on mount (scroll listeners, timers, measurements).</li>
+                        <li><code class="font-mono text-xs">useEffect(fn, [dep])</code> — re-run when <code class="font-mono text-xs">dep</code> changes.</li>
+                        <li>High-frequency events <code class="font-mono text-xs">scroll</code>, <code class="font-mono text-xs">mousemove</code>, <code class="font-mono text-xs">input</code> are rAF-batched by the runtime — set state freely, updates coalesce per frame.</li>
+                        <li>Listen for <code class="font-mono text-xs">"nextpy:navigate"</code> on <code class="font-mono text-xs">document</code> to re-sync after SPA navigations.</li>
+                    </ul>
+                    <EnhancedCodeBlock lang="python" filename="components/scrollspy.py" snippet={scrollspy_example} />
+                </div>
+
+                <div id="scroll-patterns" class="space-y-6 pt-8 border-t border-zinc-800/50">
+                    <h2 class="text-2xl font-semibold text-white tracking-tight">Scroll-driven UI: bindings vs direct DOM</h2>
+                    <p class="text-base leading-7 text-zinc-300">
+                        There are two ways to react to scroll, and they solve different problems:
+                    </p>
+                    <div class="overflow-hidden rounded-xl border border-zinc-800/80 mt-4">
+                        <table class="w-full text-sm">
+                            <thead class="bg-zinc-900/60 text-zinc-400">
+                                <tr><th class="text-left px-4 py-2.5 font-medium">Pattern</th><th class="text-left px-4 py-2.5 font-medium">Use when</th><th class="text-left px-4 py-2.5 font-medium">Mechanism</th></tr>
+                            </thead>
+                            <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
+                                <tr>
+                                    <td class="px-4 py-2.5 font-medium text-white">Reactive state + bindings</td>
+                                    <td class="px-4 py-2.5">A fixed set of elements whose class/style/text depends on scroll position — nav highlight, progress bar, section titles</td>
+                                    <td class="px-4 py-2.5"><code class="font-mono text-xs">useState</code> + <code class="font-mono text-xs">{ph_dots}</code>/<code class="font-mono text-xs">style={ph_dots}</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-2.5 font-medium text-white">Direct DOM writes</td>
+                                    <td class="px-4 py-2.5">The target set is dynamic or attribute-shaped — "whatever link points at the active section", reveal-on-scroll markers, third-party widgets</td>
+                                    <td class="px-4 py-2.5"><code class="font-mono text-xs">setAttribute</code>/<code class="font-mono text-xs">classList</code> inside the scroll handler; CSS keys off the attributes</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-base leading-7 text-zinc-300">
+                        Prefer bindings for anything the framework can express — they stay declarative and diff-free. Drop to direct DOM writes when the update is "find elements matching a selector and toggle an attribute" — that's exactly what the docs layout's <code class="font-mono text-xs">DocsScrollSpy</code> does for TOC links, sidebar routes and section reveals, and it lives once in <code class="font-mono text-xs">pages/documentation/layout.psx</code> instead of every page.
+                    </p>
+                    <EnhancedCodeBlock lang="python" filename="components/direct.py" snippet={dom_attrs_example} />
+                    <p class="text-base leading-7 text-zinc-300">
+                        Whichever pattern you pick, compute the active section as <strong class="text-white">the last section whose top crossed your threshold</strong> — never require <code class="font-mono text-xs">rect.top &lt;= X and rect.bottom &gt;= X</code>, which silently fails on short sections and programmatic scroll jumps.
+                    </p>
+                </div>
+
+                <div id="motion" class="space-y-6 pt-8 border-t border-zinc-800/50">
+                    <h2 class="text-2xl font-semibold text-white tracking-tight">Motion and animations</h2>
+                    <p class="text-base leading-7 text-zinc-300">
+                        <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">Motion</code> wraps an element with a JSON config emitted as <code class="font-mono text-xs">data-psx-motion</code>; the client runtime plays it with the Web Animations API — no animation library, no JS bundle.
+                    </p>
+                    <div class="overflow-hidden rounded-xl border border-zinc-800/80 mt-4">
+                        <table class="w-full text-sm">
+                            <thead class="bg-zinc-900/60 text-zinc-400">
+                                <tr><th class="text-left px-4 py-2.5 font-medium">Prop</th><th class="text-left px-4 py-2.5 font-medium">Effect</th></tr>
+                            </thead>
+                            <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
+                                <tr><td class="px-4 py-2.5 font-mono text-xs text-blue-400">initial</td><td class="px-4 py-2.5">Styles applied before mount e.g. <code class="font-mono text-xs">{opacity_dict}</code></td></tr>
+                                <tr><td class="px-4 py-2.5 font-mono text-xs text-blue-400">animate</td><td class="px-4 py-2.5">Target styles — scalars or <code class="font-mono text-xs">[from, to]</code> keyframe arrays</td></tr>
+                                <tr><td class="px-4 py-2.5 font-mono text-xs text-blue-400">exit</td><td class="px-4 py-2.5">Played before a conditional removes the element</td></tr>
+                                <tr><td class="px-4 py-2.5 font-mono text-xs text-blue-400">transition</td><td class="px-4 py-2.5"><code class="font-mono text-xs">{transition_dict}</code> (seconds)</td></tr>
+                                <tr><td class="px-4 py-2.5 font-mono text-xs text-blue-400">whileHover / whileTap</td><td class="px-4 py-2.5">Pointer-state styles, auto-reverted on leave</td></tr>
+                                <tr><td class="px-4 py-2.5 font-mono text-xs text-blue-400">layout</td><td class="px-4 py-2.5"><code class="font-mono text-xs">True</code> → FLIP-animate position/size changes (e.g. sidebar toggles)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <EnhancedCodeBlock lang="python" filename="components/panel.py" snippet={motion_example} />
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
+                        <li><strong class="text-white">AnimatePresence</strong> marks a subtree so exit animations play before conditional removal — wrap conditionally-rendered Motion trees in it.</li>
+                        <li>Motion elements injected later (conditional swaps, innerHTML) are picked up automatically by a MutationObserver.</li>
+                        <li>Entrance animations commit their end state as inline styles on finish — that's why <code class="font-mono text-xs">getAnimations()</code> reads empty afterwards; it doesn't mean they didn't run.</li>
+                    </ul>
+                </div>
+
                 <footer class="py-12 flex items-center justify-between gap-6 border-t border-zinc-800/50 mt-12">
                     <div class="w-1/2">
                         <Link href="/documentation/concepts/why-nextpy" className="group block p-5 rounded-xl border border-zinc-800/60 bg-zinc-950/20 hover:border-zinc-700 hover:bg-zinc-900/20 transition-all">
@@ -145,6 +359,11 @@ def Chart():
                         <li><a href="#server-side" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Server-side rendering</a></li>
                         <li><a href="#hydration" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Hydration islands</a></li>
                         <li><a href="#state-bridge" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">The state bridge</a></li>
+                        <li><a href="#reactive-bindings" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Reactive bindings</a></li>
+                        <li><a href="#derived-expressions" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Derived expressions</a></li>
+                        <li><a href="#effects-listeners" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Effects and DOM listeners</a></li>
+                        <li><a href="#scroll-patterns" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Scroll-driven UI</a></li>
+                        <li><a href="#motion" class="block pl-4 -ml-px border-l border-transparent hover:text-white hover:border-zinc-500 transition-colors">Motion and animations</a></li>
                     </ul>
                 </div>
             </aside>
