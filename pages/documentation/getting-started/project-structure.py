@@ -64,9 +64,9 @@ def ProjectStructure():
                 <!-- Page Header -->
                 <header id="header">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
-                        Project structure <br/> and organization
+                        Project structure and organization
                     </h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         This page provides an overview of <strong class="text-white">all</strong> the folder and file conventions in NextPy, and recommendations for organizing your project.
                     </p>
                 </header>
@@ -491,7 +491,7 @@ def ProjectStructure():
                                 <svg class="w-6 h-6 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                             </div>
                             <div class="w-full md:flex-1">
-                                <div class="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden shadow-xl p-5 font-mono text-sm leading-relaxed text-zinc-400">
+                                <div class="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden shadow-xl p-5 font-mono text-sm leading-relaxed text-zinc-300">
                                     <div class="text-blue-400">&lt;Layout&gt;</div>
                                     <div class="pl-4 text-zinc-500">&lt;Template&gt;</div>
                                     <div class="pl-8 text-rose-400">&lt;ErrorBoundary fallback=&#123;&lt;Error /&gt;&#125;&gt;</div>
@@ -941,7 +941,7 @@ def ProjectStructure():
             </article>
 
             <!-- RIGHT SIDEBAR (ON THIS PAGE) -->
-            <aside class="hidden xl:block w-64 shrink-0 sticky top-24 pt-4 pl-8 pb-24 h-[calc(100vh-6rem)] overflow-y-auto">
+            <aside class="hidden xl:block w-64 shrink-0 sticky top-24 pt-4 pl-8 pb-24 h-[calc(100vh-6rem)] overflow-y-auto scrollbar-none">
                 <div class="text-sm">
                     <h4 class="font-semibold text-white mb-4 tracking-wide">On this page</h4>
                     

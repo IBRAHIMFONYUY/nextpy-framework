@@ -54,14 +54,14 @@ nextpy start --port 5000 --host 0.0.0.0
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Deploying</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         A NextPy app is a standard ASGI server plus static assets &mdash; it runs anywhere Python and a reverse proxy can. This page covers production builds, environment configuration, and platform options.
                     </p>
                 </header>
 
                 <div id="production-build" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Production build</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy build</code> bundles and minifies your JS/CSS assets into <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">out/</code> &mdash; or a custom directory via the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">--out</code> flag. <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy start</code> then serves the app with reload and debug disabled:
                     </p>
                     <EnhancedCodeBlock lang="bash" filename="terminal" snippet={prod_example} />
@@ -69,11 +69,11 @@ nextpy start --port 5000 --host 0.0.0.0
 
                 <div id="environment" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Environment &amp; configuration</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Settings resolve from <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy.config</code>, environment variables, and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">.env</code> files. Never commit secrets &mdash; inject them per environment:
                     </p>
                     <EnhancedCodeBlock lang="bash" filename=".env" snippet={env_example} />
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         Access config at runtime via <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">from nextpy.config import settings</code> &mdash; <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">settings.get("key", default)</code>.
                     </p>
                 </div>
@@ -102,7 +102,7 @@ nextpy start --port 5000 --host 0.0.0.0
 
                 <div id="checklist" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Pre-deploy checklist</h2>
-                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-300">
                         <li>Set <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">DEBUG=false</code> and a strong <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">SECRET_KEY</code>.</li>
                         <li>Point the database at a managed instance; run migrations before deploy.</li>
                         <li>Run <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy build</code> so Tailwind scans production classes.</li>

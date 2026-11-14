@@ -85,14 +85,14 @@ async def get(request, params):
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Route Handlers</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Create REST API endpoints by adding Python files to the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/api</code> directory. The file path maps directly to the URL — no router configuration needed.
                     </p>
                 </header>
 
                 <div id="convention" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">File-system convention</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Any <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">.py</code> file inside <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/api/</code> is served as an endpoint. Folders create path segments and bracketed names capture parameters:
                     </p>
 
@@ -131,11 +131,11 @@ async def get(request, params):
 
                 <div id="basic-handler" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Basic handler</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Handlers are plain async functions — no decorator needed. They receive the FastAPI <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">request</code> and a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">params</code> dict, and return a JSON-serializable value:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/api/hello.py" snippet={hello_example} />
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         Return a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">(body, status_code)</code> tuple to set the HTTP status, a FastAPI <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">Response</code> for full control, or raise <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">HTTPException</code> for errors:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/api/posts.py" snippet={create_example} />
@@ -143,7 +143,7 @@ async def get(request, params):
 
                 <div id="http-methods" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">HTTP methods</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Define lowercase <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">get</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">post</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">put</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">patch</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">delete</code>, or <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">head</code> functions to handle specific verbs. A module-level <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">handler</code> acts as a catch-all.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/api/items.py" snippet={methods_example} />
@@ -151,7 +151,7 @@ async def get(request, params):
 
                 <div id="database" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Database access</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         API routes share the app's SQLAlchemy session. Use <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">get_session()</code> for reads and writes — always close the session when done:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/api/posts.py" snippet={posts_example} />
@@ -159,7 +159,7 @@ async def get(request, params):
 
                 <div id="dynamic-routes" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Dynamic segments</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Bracketed filename segments become path parameters. <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/api/posts/[id].py</code> serves <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">/api/posts/42</code> with <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">params["id"] == "42"</code>:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/api/posts/[id].py" snippet={dynamic_example} />

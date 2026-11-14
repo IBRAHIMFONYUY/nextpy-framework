@@ -59,21 +59,21 @@ def getStaticPaths():
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                         Public & Static Pages
                     </h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Learn how to serve static assets and generate static pages in NextPy.
                     </p>
                 </header>
 
                 <div id="overview" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Overview</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
         Two mechanisms cover "static" content: the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">public/</code> folder serves assets verbatim, and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getStaticProps</code> / <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getStaticPaths</code> pre-render pages with build-time data.
                     </p>
                 </div>
 
                 <div id="public-folder" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">The public folder</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Anything in <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">public/</code> is mounted under <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">/static</code> and served as-is — no processing, no caching headers managed by the framework:
                     </p>
                     <EnhancedCodeBlock lang="text" filename="project tree" snippet={tree_example} />
@@ -82,7 +82,7 @@ def getStaticPaths():
 
                 <div id="static-generation" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Static generation (SSG)</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getStaticProps</code> fetches data once at build time (or per revalidation window); <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getStaticPaths</code> enumerates the dynamic routes to pre-render:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/blog/[slug].py" snippet={ssg_example} />
@@ -90,7 +90,7 @@ def getStaticPaths():
 
                 <div id="when-ssr" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">When to use SSR instead</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Pages that depend on the request — cookies, auth, per-user data — belong in <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getServerSideProps</code>, which runs on every request:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/dashboard.py" snippet={ssr_example} />

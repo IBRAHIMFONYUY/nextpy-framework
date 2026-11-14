@@ -40,14 +40,14 @@ db_url = settings["database_url"]"""
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Configuration</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         NextPy configuration lives in a <code class="font-mono text-sm">.env</code> file and is exposed through <code class="font-mono text-sm">nextpy.config.settings</code>.
                     </p>
                 </header>
 
                 <div id="env-file" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">The .env file</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Every setting can be overridden with an environment variable. Values are read at startup via <code class="font-mono text-xs">python-dotenv</code>.
                     </p>
                     <EnhancedCodeBlock lang="bash" filename=".env" snippet={env_example} />
@@ -86,7 +86,7 @@ db_url = settings["database_url"]"""
                 <div id="accessing" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Accessing settings</h2>
                     <EnhancedCodeBlock lang="python" filename="pages/example.py" snippet={code_example} />
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Settings are only available on the server. Never pass secrets into page props or client state.
                     </p>
                 </div>

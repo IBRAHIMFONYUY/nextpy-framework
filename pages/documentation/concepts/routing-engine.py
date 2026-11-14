@@ -53,14 +53,14 @@ def RoutingEngine():
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Routing Engine</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         NextPy's router has two halves: a server-side scanner that turns the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/</code> directory into a route table, and a client-side router that swaps pages without reloads.
                     </p>
                 </header>
 
                 <div id="route-table" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Building the route table</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         At startup the server walks <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/</code> recursively. Every <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">.py</code>/<code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">.psx</code> file becomes a route; <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">index.py</code> maps to its folder's path; brackets declare dynamic segments:
                     </p>
                     <EnhancedCodeBlock lang="text" filename="pages/ tree" snippet={tree_example} />
@@ -68,17 +68,17 @@ def RoutingEngine():
 
                 <div id="matching" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Matching &amp; layouts</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Static segments beat dynamic ones; dynamic beats catch-all. For a matched route the server walks <em>up</em> the directory tree collecting <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">layout.psx</code> files into a chain — root layout outermost, page innermost. Layouts are cached by file mtime, so edits hot-reload without a restart.
                     </p>
                 </div>
 
                 <div id="client-router" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">The client router</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         The server injects a small router runtime into every page. Internal links are auto-marked with <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">data-nextpy-link</code>; clicks are intercepted, the target HTML is fetched and swapped into the layout chain, and the URL updates via <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">history.pushState</code>. Layouts above the changed segment are preserved — their state and event listeners survive navigation.
                     </p>
-                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-300">
                         <li><code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">window.navigateTo(path)</code> / <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">window.__nextpyRouter.navigate(path)</code> — programmatic navigation.</li>
                         <li><code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy:navigate</code> DOM event — fires after every client-side navigation.</li>
                         <li>Back/forward restores scroll position from the history entry.</li>
@@ -87,7 +87,7 @@ def RoutingEngine():
 
                 <div id="dynamic-segments" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Dynamic segments</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">[param].py</code> captures one segment, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">[...slug].py</code> captures the rest. Values arrive in <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">context["params"]</code> inside data-fetching functions and as props/handler params elsewhere.
                     </p>
                 </div>

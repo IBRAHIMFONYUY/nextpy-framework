@@ -79,25 +79,25 @@ async def get(request):
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Data Fetching</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Three ways to get data into a NextPy page: server-side props, static generation, and client-side fetching.
                     </p>
                 </header>
 
                 <div id="getserversideprops" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">getServerSideProps (SSR)</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Define a module-level <code class="font-mono text-xs">getServerSideProps(context)</code> function. It runs on every request; its <code class="font-mono text-xs">props</code> dict is passed to your component. Use it for per-user or live data.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/jobs/index.py" snippet={ssr_example} />
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         The <code class="font-mono text-xs">context</code> dict exposes <code class="font-mono text-xs">params</code>, <code class="font-mono text-xs">query</code>, and <code class="font-mono text-xs">request</code>. Pages using SSR are never served from the static cache.
                     </p>
                 </div>
 
                 <div id="getstaticprops" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">getStaticProps (SSG / ISR)</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         <code class="font-mono text-xs">getStaticProps(context)</code> runs at build time and caches the result. Add <code class="font-mono text-xs">revalidate</code> (seconds) for Incremental Static Regeneration.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/blog/[slug].py" snippet={ssg_example} />
@@ -105,7 +105,7 @@ async def get(request):
 
                 <div id="client-fetching" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Client-side fetching</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Use <code class="font-mono text-xs">useFetch(url)</code> inside a component to load JSON from an API route after hydration. Returns <code class="font-mono text-xs">data</code>, <code class="font-mono text-xs">loading</code>, <code class="font-mono text-xs">error</code>, and <code class="font-mono text-xs">refetch</code>.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/stats.py" snippet={client_example} />
@@ -113,7 +113,7 @@ async def get(request):
 
                 <div id="api-routes" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">API routes</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Files under <code class="font-mono text-xs">pages/api/</code> become HTTP endpoints. Define async <code class="font-mono text-xs">get</code>, <code class="font-mono text-xs">post</code>, <code class="font-mono text-xs">put</code>, <code class="font-mono text-xs">patch</code>, <code class="font-mono text-xs">delete</code>, or <code class="font-mono text-xs">head</code> functions; handlers receive <code class="font-mono text-xs">request</code> and <code class="font-mono text-xs">params</code> for dynamic segments.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/api/users.py" snippet={api_example} />

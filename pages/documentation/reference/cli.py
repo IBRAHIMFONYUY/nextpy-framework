@@ -26,14 +26,14 @@ def CLIReference():
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                         CLI Reference
                     </h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Complete reference for the NextPy command-line interface.
                     </p>
                 </header>
 
                 <div id="overview" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Overview</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         The NextPy CLI provides commands for creating, building, and running your applications.
                     </p>
                 </div>

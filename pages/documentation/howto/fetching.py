@@ -64,21 +64,21 @@ def UserProfile():
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                         Adopting Partial Fetching
                     </h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Learn how to use Suspense and Streaming for partial data fetching.
                     </p>
                 </header>
 
                 <div id="overview" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Overview</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         NextPy supports Suspense boundaries and streaming for progressive loading of content.
                     </p>
                 </div>
 
                 <div id="suspense" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Suspense</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Use Suspense to show loading states:
                     </p>
                     
@@ -87,7 +87,7 @@ def UserProfile():
 
                 <div id="server-fetching" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Server-side fetching</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Most data loads on the server via <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getServerSideProps</code> / <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getStaticProps</code> — the page arrives with data already in the HTML:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/dashboard.py" snippet={gssp_example} />
@@ -95,7 +95,7 @@ def UserProfile():
 
                 <div id="client-fetching" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Client-side fetching</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         For post-hydration loads — search-as-you-type, infinite scroll — call a server action or an <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/api/</code> route and update state in the result handler:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="components/live_search.py" snippet={client_example} />

@@ -80,14 +80,14 @@ async def getStaticProps(context):
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Caching & Revalidation</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         NextPy caches rendered pages and revalidates them on a timer — Incremental Static Regeneration. A stale page is served instantly while a fresh copy is generated in the background.
                     </p>
                 </header>
 
                 <div id="how-it-works" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">How it works</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         When a page's data functions return a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">revalidate</code> value (in seconds), the renderer stores the result and serves it from cache until the TTL expires. Responses carry <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">stale-while-revalidate</code> cache headers so browsers and CDNs cooperate.
                     </p>
                     <div class="p-8 rounded-xl border border-zinc-800/60 bg-zinc-950 bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:24px_24px] flex items-center justify-center gap-6 mt-6">
@@ -105,7 +105,7 @@ async def getStaticProps(context):
 
                 <div id="setting-ttl" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Setting the TTL</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Three ways to control revalidation, checked in order — return value first, then module attribute:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/posts.py" snippet={ssr_ttl_example} />
@@ -114,7 +114,7 @@ async def getStaticProps(context):
 
                 <div id="guidelines" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Guidelines</h2>
-                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-300">
                         <li><strong>User-specific data</strong> — never cache; use <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">revalidate=0</code> or fetch client-side.</li>
                         <li><strong>Public content</strong> (posts, docs, products) — cache for minutes to hours.</li>
                         <li><strong>API routes</strong> — caching applies to page renders; API responses are not ISR-cached.</li>

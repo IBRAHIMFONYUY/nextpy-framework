@@ -60,21 +60,21 @@ def UpgradeBanner():
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                         Redirecting & Rewrites
                     </h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Learn how to handle redirects and URL rewrites in NextPy.
                     </p>
                 </header>
 
                 <div id="overview" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Overview</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
         NextPy resolves redirects in three places: <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getServerSideProps</code> / <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getStaticProps</code> return values (HTTP-level, SEO-safe), <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">window.navigateTo</code> in the browser (SPA navigation, no reload), and the <code class="font-mono text-xs">not_found</code> key set to True for missing resources.
                     </p>
                 </div>
 
                 <div id="server-redirects" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Server-side redirects</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Return a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">redirect</code> key from any data function. <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">permanent: True</code> sends a 301 (cached by browsers and search engines); <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">False</code> sends a 307:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/blog/[slug].py" snippet={gssp_example} />
@@ -82,7 +82,7 @@ def UpgradeBanner():
 
                 <div id="client-navigation" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Client-side navigation</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Inside interactive components, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">window.navigateTo(path)</code> performs SPA navigation through the client router — the new page streams in without a full reload. Server actions can also return a destination that the component forwards:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="components/upgrade_banner.py" snippet={client_example} />
@@ -90,7 +90,7 @@ def UpgradeBanner():
 
                 <div id="not-found" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">404 handling</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Return the <code class="font-mono text-xs">not_found</code> key set to True when a dynamic segment doesn't resolve — NextPy renders the not-found page with a real 404 status:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/blog/[slug].py" snippet={notfound_example} />

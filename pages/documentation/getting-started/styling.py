@@ -106,14 +106,14 @@ def Page():
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Styling</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         NextPy ships with Tailwind CSS out of the box. Write utility classes directly in your markup — the JIT compiler scans your pages, components, and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">psx()</code> strings and generates only the CSS you use.
                     </p>
                 </header>
 
                 <div id="utility-classes" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Utility classes</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Every element accepts a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">class</code> attribute. Combine layout, spacing, color, and state utilities — responsive prefixes like <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">sm:</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">md:</code>, and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">dark:</code> work as usual:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="components/card.py" snippet={tailwind_example} />
@@ -121,7 +121,7 @@ def Page():
 
                 <div id="conditional-styles" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Conditional styles</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">class</code> accepts expressions, so state-driven styling is just a Python ternary or helper function. When state changes, only the class attribute updates — no re-render of the whole page:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="components/toggle.py" snippet={state_example} />
@@ -129,7 +129,7 @@ def Page():
 
                 <div id="custom-css" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Custom CSS</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         For styles Tailwind can't express, drop a stylesheet in <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">assets/styles/</code> and link it from your root layout. Custom classes compose with utilities — use <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">!important</code> sparingly:
                     </p>
                     <EnhancedCodeBlock lang="css" filename="assets/styles/custom.css" snippet={css_example} />
@@ -138,7 +138,7 @@ def Page():
 
                 <div id="psx-strings" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Styling inside psx() strings</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         The Tailwind scanner also reads class attributes inside <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">psx()</code> template strings, so dynamically built markup gets its utilities generated too. Dynamic class fragments are safe — the scanner matches complete utility tokens:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/index.py" snippet={psx_style_example} />

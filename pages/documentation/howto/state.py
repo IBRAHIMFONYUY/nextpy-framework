@@ -65,21 +65,21 @@ def Counter():
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                         State Architecture
                     </h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Learn how to manage state in your NextPy application.
                     </p>
                 </header>
 
                 <div id="overview" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Overview</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         NextPy provides useState for component state and server actions for server state.
                     </p>
                 </div>
 
                 <div id="component-state" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Component State</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Use useState for local component state:
                     </p>
                     
@@ -88,7 +88,7 @@ def Counter():
 
                 <div id="effects" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Effects &amp; dependencies</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useEffect(fn, deps)</code> runs after render and re-runs when a dependency changes. Return a cleanup function and it runs before the next effect or on unmount:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="components/search_box.py" snippet={effects_example} />
@@ -96,7 +96,7 @@ def Counter():
 
                 <div id="server-state" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Server &amp; prop state</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Two more state sources merge into the same reactive graph: props from <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getServerSideProps</code>, read via <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">props.get()</code>, and the reserved <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">_server_*</code> keys filled by <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">callServerAction</code>:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="components/widget.py" snippet={server_example} />

@@ -75,21 +75,21 @@ async def set_locale(request: Request, response: Response, locale: str):
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                         Internationalization (i18n)
                     </h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Learn how to add multi-language support to your NextPy application.
                     </p>
                 </header>
 
                 <div id="overview" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Overview</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
         NextPy doesn't ship a dedicated i18n module — the idiomatic pattern is locale detection in <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getServerSideProps</code>, a translation table in <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">lib/</code>, and translated strings passed down as props. Because strings arrive via SSR, SEO and first paint stay correct in every language.
                     </p>
                 </div>
 
                 <div id="strings" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Translation tables</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Keep a nested dict per locale with a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">t()</code> helper that falls back to the default language for missing keys:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="lib/i18n.py" snippet={strings_example} />
@@ -97,7 +97,7 @@ async def set_locale(request: Request, response: Response, locale: str):
 
                 <div id="detection" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Detecting the locale</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Resolve the locale per request — a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">locale</code> cookie set by the switcher wins; otherwise parse <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">Accept-Language</code>; otherwise fall back to the default:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/index.py" snippet={detect_example} />
@@ -105,7 +105,7 @@ async def set_locale(request: Request, response: Response, locale: str):
 
                 <div id="switching" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Switching languages</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         A small interactive component calls a server action that sets the cookie, then the app reloads so every page re-renders in the new locale:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="components/locale_switcher.py" snippet={switch_example} />

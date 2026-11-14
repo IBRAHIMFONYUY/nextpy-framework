@@ -62,7 +62,7 @@ from nextpy.psx import component, psx       # canonical
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Upgrading NextPy</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         NextPy keeps strong backward compatibility — most upgrades are a dependency bump. This page covers the upgrade flow and the compatibility guarantees that matter.
                     </p>
                 </header>
@@ -74,7 +74,7 @@ from nextpy.psx import component, psx       # canonical
 
                 <div id="compatibility" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">What stays compatible</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         The framework accepts both camelCase and snake_case names for data-fetching exports, legacy page components without a default export, and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">psx()</code> string templates alongside JSX:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/posts.py" snippet={compat_example} />
@@ -82,7 +82,7 @@ from nextpy.psx import component, psx       # canonical
 
                 <div id="breaking" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Things to check after upgrading</h2>
-                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-300">
                         <li><strong>Layout caching</strong> — layouts are cached by file mtime; restart the dev server if a layout edit doesn't appear.</li>
                         <li><strong>New routes</strong> — pages added while the server runs need a restart for route discovery.</li>
                         <li><strong>PSX hydration</strong> — interactive components hydrate on <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">interactive_component</code> or <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useState</code> usage; static pages stay pure SSR.</li>

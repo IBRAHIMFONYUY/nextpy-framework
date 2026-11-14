@@ -53,14 +53,14 @@ register_component("Badge", Badge)"""
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Components API</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Reference for NextPy built-in components, custom components, and the hooks they expose.
                     </p>
                 </header>
 
                 <div id="builtins" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Built-in components</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Import everything from <code class="font-mono text-xs">nextpy.psx</code>. All HTML elements are available as tags; these are the framework-provided components:
                     </p>
                     <div class="overflow-x-auto rounded-xl border border-zinc-800/60">
@@ -87,7 +87,7 @@ register_component("Badge", Badge)"""
 
                 <div id="custom-components" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Custom components</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Define components with <code class="font-mono text-xs">@component</code>, receive props as a dict, and register them for use in JSX:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="components/badge.py" snippet={custom_example} />
@@ -95,14 +95,14 @@ register_component("Badge", Badge)"""
 
                 <div id="hooks" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Hooks</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         React-style hooks are exported from <code class="font-mono text-xs">nextpy.psx</code>:
                     </p>
-                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
                         <li><strong class="text-zinc-200">Core:</strong> <code class="font-mono text-xs">useState</code>, <code class="font-mono text-xs">useEffect</code>, <code class="font-mono text-xs">useRef</code>, <code class="font-mono text-xs">useMemo</code>, <code class="font-mono text-xs">useCallback</code>, <code class="font-mono text-xs">useReducer</code>, <code class="font-mono text-xs">useContext</code></li>
                         <li><strong class="text-zinc-200">Custom:</strong> <code class="font-mono text-xs">useCounter</code>, <code class="font-mono text-xs">useToggle</code>, <code class="font-mono text-xs">useLocalStorage</code>, <code class="font-mono text-xs">useFetch</code>, <code class="font-mono text-xs">useAction</code>, <code class="font-mono text-xs">useDebounce</code>, <code class="font-mono text-xs">useInterval</code>, <code class="font-mono text-xs">usePrevious</code>, <code class="font-mono text-xs">useAsync</code>, <code class="font-mono text-xs">useMediaQuery</code>, <code class="font-mono text-xs">useGeolocation</code>, <code class="font-mono text-xs">usePerformance</code></li>
                     </ul>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         See the <Link href="/documentation/reference/hooks" className="text-blue-400 hover:text-blue-300 underline underline-offset-4">Hooks API</Link> page for details.
                     </p>
                 </div>

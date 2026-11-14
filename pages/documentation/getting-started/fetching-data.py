@@ -120,7 +120,7 @@ def WeatherWidget():
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Fetching Data</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         NextPy fetches data at three layers: server-side props for page loads, static generation for build-time content, and client-side hooks for interactive updates. Pick the layer that matches how fresh the data must be.
                     </p>
                 </header>
@@ -145,18 +145,18 @@ def WeatherWidget():
 
                 <div id="server-side-props" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Server-side props</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Export <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getServerSideProps</code> (snake_case <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">get_server_side_props</code> also works) alongside your page component. It runs on the server for every request, receives a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">PageContext</code>, and returns props that become the component's <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">props</code> argument:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/posts.py" snippet={ssr_example} />
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         The <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">context</code> object exposes <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">params</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">query</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">req</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">res</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">preview</code>, and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">locale</code>.
                     </p>
                 </div>
 
                 <div id="static-generation" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Static generation</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         For dynamic routes that can be pre-rendered, combine <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getStaticPaths</code> with <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getStaticProps</code>. Paths are enumerated at build time; unknown params are handled per the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">fallback</code> mode:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/posts/[slug].py" snippet={ssg_example} />
@@ -176,11 +176,11 @@ def WeatherWidget():
 
                 <div id="client-side" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Client-side fetching</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Inside an <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">@interactive_component</code>, fetch from your own <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">/api</code> routes in a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useEffect</code>. State updates re-render only the component — no page reload:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="components/weather.py" snippet={client_example} />
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         For declarative fetching use the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useFetch(url)</code> hook, which returns <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">{'{'}data, loading, error, refetch{'}'}</code>.
                     </p>
                 </div>

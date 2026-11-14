@@ -57,18 +57,18 @@ def validate(payload):
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Utilities</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Server-side helpers shipped with NextPy: the database session layer, caching, server actions, and security utilities.
                     </p>
                 </header>
 
                 <div id="database" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Database (nextpy.db)</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         SQLAlchemy-backed session management with pagination, filtering, and helper queries. Built-in models include <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">User</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">Post</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">Todo</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">Job</code>, and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">Application</code>.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/index.py" snippet={db_example} />
-                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
                         <li><code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">get_session()</code> / <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">session()</code> &mdash; scoped DB session.</li>
                         <li><code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">paginate(query, page, per_page)</code> &mdash; returns <code class="font-mono text-xs">&#123;items, total, page, pages, has_next, has_prev&#125;</code>.</li>
                         <li><code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">apply_filters(query, model, filters, allowed, search, search_fields)</code> &mdash; safe dynamic filtering.</li>
@@ -79,13 +79,13 @@ def validate(payload):
 
                 <div id="cache" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Caching (nextpy.cache)</h2>
-                    <p class="text-base leading-7 text-zinc-400">An in-process TTL cache with decorator and manual invalidation:</p>
+                    <p class="text-base leading-7 text-zinc-300">An in-process TTL cache with decorator and manual invalidation:</p>
                     <EnhancedCodeBlock lang="python" filename="pages/dashboard.py" snippet={cache_example} />
                 </div>
 
                 <div id="server-actions" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Server actions (nextpy.server_actions)</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Named actions invoked from the client via <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">callServerAction</code>. Actions can declare validators and return JSON-safe payloads.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/actions/auth_actions.py" snippet={actions_example} />
@@ -93,7 +93,7 @@ def validate(payload):
 
                 <div id="security" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Security & auth helpers</h2>
-                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
                         <li><code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy.security</code> &mdash; password hashing, token helpers, and request guards.</li>
                         <li><code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy.auth</code> &mdash; session cookies, current-user resolution, and OAuth helpers.</li>
                     </ul>

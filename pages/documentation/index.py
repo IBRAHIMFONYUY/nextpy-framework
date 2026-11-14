@@ -41,7 +41,7 @@ def DocumentationPage():
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                         Welcome to NextPy
                     </h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         NextPy is a highly optimized Python framework for building modern full-stack web applications.
                         By utilizing pre-compiled structures, it unifies user interfaces, routing patterns, and data persistence models under a single clean execution layer.
                     </p>
@@ -52,7 +52,7 @@ def DocumentationPage():
                     <h2 class="text-2xl font-semibold text-white tracking-tight">
                         What is NextPy?
                     </h2>
-                    <div class="space-y-4 text-base leading-7 text-zinc-400">
+                    <div class="space-y-4 text-base leading-7 text-zinc-300">
                         <p>
                             <strong class="text-zinc-200 font-semibold">NextPy bridges the division between Python computation speed and JavaScript-style reactive interfaces.</strong> It abstracts complex configurations away entirely, allowing you to focus on logic orchestration rather than asset scaffolding.
                         </p>
@@ -74,7 +74,7 @@ The central idea: Bring the developer experience of modern full-stack frameworks
                     <h2 class="text-2xl font-semibold text-white tracking-tight">
                         How to use the documentation
                     </h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         The documentation is structured systematically into distinct segments tailored to your immediate project milestones:
                     </p>
                     
@@ -128,7 +128,7 @@ The central idea: Bring the developer experience of modern full-stack frameworks
                     <h2 class="text-2xl font-semibold text-white tracking-tight">
                         Version handling
                     </h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         NextPy manages dependencies through standard Python tooling. The framework ships with a pre-configured <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">requirements.txt</code> or <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pyproject.toml</code> that pins the core runtime and client library versions to ensure maximum compatibility across your deployment environments.
                     </p>
                 </div>
@@ -138,10 +138,10 @@ The central idea: Bring the developer experience of modern full-stack frameworks
                     <h2 class="text-2xl font-semibold text-white tracking-tight">
                         Pre-requisite knowledge
                     </h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         While NextPy provides a clean developer abstraction pattern, you will find it beneficial to maintain basic engineering familiarity with these core paradigms:
                     </p>
-                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-400 marker:text-zinc-600">
+                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-300 marker:text-zinc-600">
                         <li><strong class="text-zinc-200 font-semibold">Python 3.11+ Programming:</strong> Standard structural objects, async context execution loops, and package manager environments.</li>
                         <li><strong class="text-zinc-200 font-semibold">Component State Trees:</strong> Understanding data distribution flow across nested visualization layouts.</li>
                         <li><strong class="text-zinc-200 font-semibold">Web Basics:</strong> High-level knowledge of request-response operations, network routes, and style grids.</li>
@@ -153,7 +153,7 @@ The central idea: Bring the developer experience of modern full-stack frameworks
                     <h2 class="text-2xl font-semibold text-white tracking-tight">
                         Accessibility
                     </h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Our reference structures are formatted to conform tightly to clean semantic markup matrices. For optimal audio readout feedback cycles, we suggest relying on modern screen reader applications such as VoiceOver or NVDA.
                     </p>
                 </div>
@@ -163,7 +163,7 @@ The central idea: Bring the developer experience of modern full-stack frameworks
                     <h2 class="text-2xl font-semibold text-white tracking-tight">
                         Join our Community
                     </h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Stuck on an architectural layout configuration or searching for design performance patterns? Reach out to the global development circle on our active tracking boards:
                     </p>
                     <div class="flex flex-wrap gap-6 text-sm font-medium pt-2">
@@ -187,7 +187,7 @@ The central idea: Bring the developer experience of modern full-stack frameworks
                     <h2 class="text-2xl font-semibold text-white tracking-tight">
                         Next Steps
                     </h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Now that you understand the core philosophy of NextPy, you're ready to set up your environment and create your first application.
                     </p>
                 </div>

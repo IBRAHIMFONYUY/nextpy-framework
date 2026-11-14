@@ -82,18 +82,18 @@ def UserList():
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Hooks API</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Reference for NextPy hooks: <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useState</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useEffect</code>, and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useFetch</code>.
                     </p>
                 </header>
 
                 <div id="usestate" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">useState</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Declares reactive state. Destructure into a value and a setter &mdash; updates re-render only the bound DOM nodes, not the whole page.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/counter.py" snippet={usestate_example} />
-                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
                         <li>Initial value can be any JSON-serializable Python value.</li>
                         <li>Setters accept a value or an updater function: <code class="font-mono text-xs">set_count(lambda c: c + 1)</code>.</li>
                         <li>Multiple <code class="font-mono text-xs">useState</code> calls per component are fine &mdash; each is tracked independently.</li>
@@ -102,11 +102,11 @@ def UserList():
 
                 <div id="useeffect" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">useEffect</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Runs side effects after render. Pass a dependency list to control re-runs; return a cleanup function to unsubscribe.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/clock.py" snippet={useeffect_example} />
-                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
                         <li><code class="font-mono text-xs">useEffect(fn, [])</code> &mdash; run once on mount.</li>
                         <li><code class="font-mono text-xs">useEffect(fn, [dep])</code> &mdash; re-run when <code class="font-mono text-xs">dep</code> changes.</li>
                         <li>Great for timers, scroll listeners, WebSockets, and DOM measurements.</li>
@@ -115,7 +115,7 @@ def UserList():
 
                 <div id="usefetch" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">useFetch</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Fetches JSON from an API route on mount and stores the response in component state. Returns a dict with <code class="font-mono text-xs">data</code>, <code class="font-mono text-xs">loading</code>, <code class="font-mono text-xs">error</code>, and a <code class="font-mono text-xs">refetch</code> action.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/users.py" snippet={usefetch_example} />
@@ -123,10 +123,10 @@ def UserList():
 
                 <div id="server-state" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Server state keys</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Server actions write results into reserved state keys you can bind directly:
                     </p>
-                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
                         <li><code class="font-mono text-xs">_server_result</code> &mdash; the JSON payload returned by the last <code class="font-mono text-xs">callServerAction</code>.</li>
                         <li><code class="font-mono text-xs">_server_loading</code> &mdash; boolean, true while the request is in flight.</li>
                     </ul>

@@ -200,6 +200,38 @@ CLIENT_ROUTER_SCRIPT = r"""
         scanLinks();
     }
 
+    function syncHead(newHead) {
+        // Full-page navigations replace <body> but leave <head> untouched, so
+        // stylesheets that only exist in the target layout (e.g. docs.css)
+        // would never load. Add any stylesheet/style the new page declares.
+        if (!newHead) return;
+        var hrefs = {};
+        document.head.querySelectorAll('link[rel="stylesheet"]').forEach(function (l) {
+            var h = l.getAttribute('href');
+            if (h) hrefs[h] = true;
+        });
+        newHead.querySelectorAll('link[rel="stylesheet"]').forEach(function (l) {
+            var h = l.getAttribute('href');
+            if (h && !hrefs[h]) {
+                var link = document.createElement('link');
+                link.setAttribute('rel', 'stylesheet');
+                link.setAttribute('href', h);
+                document.head.appendChild(link);
+            }
+        });
+        var styles = {};
+        document.head.querySelectorAll('style').forEach(function (s) {
+            styles[s.textContent] = true;
+        });
+        newHead.querySelectorAll('style').forEach(function (s) {
+            if (!styles[s.textContent]) {
+                var style = document.createElement('style');
+                style.textContent = s.textContent;
+                document.head.appendChild(style);
+            }
+        });
+    }
+
     function applyEntry(entry, href, opts) {
         if (entry.fragment) {
             // Fragments only contain page content, not the layout. Applying a
@@ -223,8 +255,10 @@ CLIENT_ROUTER_SCRIPT = r"""
         var parsed = new DOMParser().parseFromString(entry.html, 'text/html');
         if (!parsed.body) throw new Error('Navigation returned invalid HTML');
         document.body.replaceWith(parsed.body);
-        if (parsed.title && parsed.title.textContent) {
-            document.title = parsed.title.textContent;
+        syncHead(parsed.head);
+        // parsed.title is already a string (document.title IDL), not an element.
+        if (parsed.title) {
+            document.title = parsed.title;
         }
         var meta = parsed.querySelector('meta[name="nextpy-layout"]');
         if (meta) updateLayoutSig(meta.getAttribute('content'));

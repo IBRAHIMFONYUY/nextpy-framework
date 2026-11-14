@@ -69,21 +69,21 @@ def Chart():
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">PSX Core Internals</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         PSX (Python JSX) is the layer that turns your Python components into fast HTML on the server and reactive islands in the browser. This page explains what happens between <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">psx()</code> and the pixels.
                     </p>
                 </header>
 
                 <div id="what-is-psx" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">What PSX is</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         PSX has two halves. On the server, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">psx()</code> evaluates Python f-string expressions inside an HTML template and returns a string — your markup is built with full Python power. In the browser, the hydration engine scans the rendered HTML for interactive components, replays their state into a signal graph, and binds events — no virtual DOM diffing of the whole page.
                     </p>
                 </div>
 
                 <div id="server-side" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Server-side rendering</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         A plain <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">@component</code> runs entirely on the server. Expressions inside <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">psx()</code> — conditionals, comprehensions, function calls — evaluate in Python before any bytes reach the client:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/index.py" snippet={pipeline_example} />
@@ -91,7 +91,7 @@ def Chart():
 
                 <div id="hydration" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Hydration islands</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         An <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">@interactive_component</code> still renders on the server — the client receives real HTML, not a blank div. The runtime then attaches behavior to that DOM in place. The <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">hydrate</code> strategy controls when:
                     </p>
                     <div class="overflow-hidden rounded-xl border border-zinc-800/80 mt-4">
@@ -112,7 +112,7 @@ def Chart():
 
                 <div id="state-bridge" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">The state bridge</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Initial state is serialized into the page as <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">__PSX_DATA__</code> JSON. On hydration, each <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useState</code> becomes a signal; expressions that depend on state are re-evaluated through a pub-sub graph and batched with <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">requestAnimationFrame</code> — scroll and mouse handlers never trigger layout thrash.
                     </p>
                 </div>

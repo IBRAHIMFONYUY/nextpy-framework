@@ -77,14 +77,14 @@ def LoginForm():
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Events API</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Attach Python handlers to DOM events with <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">on*</code> attributes. Handlers run client-side, update state reactively, and can call server actions.
                     </p>
                 </header>
 
                 <div id="basics" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Basics</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Any attribute starting with <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">on</code> is compiled into a delegated event listener. The handler receives the DOM event as its argument:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/counter.py" snippet={click_example} />
@@ -92,7 +92,7 @@ def LoginForm():
 
                 <div id="forms" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Forms & inputs</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Controlled inputs bind <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">value</code> to state and update it via <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">oninput</code>. Submit handlers should call <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">e.preventDefault()</code> to avoid a full page reload:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/login.py" snippet={submit_example} />
@@ -101,7 +101,7 @@ def LoginForm():
 
                 <div id="supported" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Supported events</h2>
-                    <p class="text-base leading-7 text-zinc-400">Common DOM events map directly to attributes:</p>
+                    <p class="text-base leading-7 text-zinc-300">Common DOM events map directly to attributes:</p>
                     <div class="overflow-hidden rounded-xl border border-zinc-800/80 mt-4">
                         <table class="w-full text-sm">
                             <thead class="bg-zinc-900/60 text-zinc-400">
@@ -122,7 +122,7 @@ def LoginForm():
 
                 <div id="server-actions" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Calling server actions</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Use <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">callServerAction(name, payload)</code> inside a handler to invoke a server-side function. The result lands in the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">_server_result</code> state key, and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">_server_loading</code> toggles while the request is in flight &mdash; bind it to disable submit buttons:
                     </p>
                     <EnhancedCodeBlock
@@ -134,7 +134,7 @@ def LoginForm():
 
                 <div id="best-practices" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Best practices</h2>
-                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-300">
                         <li>Keep handlers small &mdash; they compile to client-side JavaScript.</li>
                         <li>Use <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useEffect</code> for subscriptions (scroll, timers, sockets) instead of inline listeners.</li>
                         <li>Prefer state-driven UI via data-state bindings and ternary expressions over manual DOM writes.</li>

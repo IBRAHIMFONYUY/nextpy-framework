@@ -135,14 +135,14 @@ def ContactForm():
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Error Handling</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Errors surface at four layers &mdash; data fetching, API routes, server actions, and the client. Each has its own mechanism; this page covers all of them.
                     </p>
                 </header>
 
                 <div id="data-fetching-errors" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Data fetching errors</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Catch failures inside <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getServerSideProps</code> and return graceful props &mdash; an unhandled exception produces a 500. Use <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">PropsResult(notFound=True)</code> for missing resources and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">PropsResult(redirect=...)</code> for auth gates:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/posts/[slug].py" snippet={gssp_example} />
@@ -151,7 +151,7 @@ def ContactForm():
 
                 <div id="api-errors" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">API route errors</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Raise FastAPI's <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">HTTPException</code> for proper status codes, or send a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">(body, status)</code> tuple:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/api/posts/[id].py" snippet={api_example} />
@@ -159,7 +159,7 @@ def ContactForm():
 
                 <div id="server-action-errors" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Server action errors</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Raise <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">ValidationError(field, message)</code> for field-level failures or <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">ServerActionError(message, code)</code> for general failures. The client receives a structured <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">&#123;success: False, error: ...&#125;</code> result:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="lib/actions.py" snippet={action_example} />
@@ -167,7 +167,7 @@ def ContactForm():
 
                 <div id="client-errors" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Client-side display</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Keep error elements mounted but hidden &mdash; toggle visibility from state so screen readers and CSS transitions behave predictably:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="components/contact_form.py" snippet={client_example} />

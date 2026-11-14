@@ -123,21 +123,21 @@ def Navigation():
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                         Linking and Navigation
                     </h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         NextPy uses file-system routing: every file under <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/</code> becomes a URL. This page covers the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">Link</code> component, dynamic hrefs, programmatic navigation, and active-link states.
                     </p>
                 </header>
 
                 <div id="overview" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Overview</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Clicking a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">Link</code> does not reload the page. The client router prefetches the target, swaps the content inside your layouts, updates the URL with <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">history.pushState</code>, and restores scroll position on back/forward navigation.
                     </p>
                 </div>
 
                 <div id="link-component" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">The Link Component</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Import <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">Link</code> from <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy.psx</code>. It renders a real anchor tag — SEO-friendly and middle-clickable — while intercepting internal navigations for SPA transitions. External URLs and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">target="_blank"</code> links fall through to normal browser behavior.
                     </p>
 
@@ -163,7 +163,7 @@ def Navigation():
 
                 <div id="dynamic-links" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Dynamic Links</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Build hrefs from data with f-strings or concatenation inside a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">{'{for ...}'}</code> loop. Dynamic segments like <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/users/[id].py</code> receive their values through the same URL shape:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/users.py" snippet={dynamic_example} />
@@ -171,7 +171,7 @@ def Navigation():
 
                 <div id="programmatic-navigation" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Programmatic Navigation</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         After a server action succeeds — login, form submit, delete — navigate with <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">window.navigateTo(path)</code>. The alias <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">window.__nextpyRouter.navigate(path)</code> does the same. Both go through the client router: history entry, scroll reset, and layout-preserving page swap.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/login.py" snippet={programmatic_example} />
@@ -179,7 +179,7 @@ def Navigation():
 
                 <div id="active-links" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Active Link States</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Read the current path from <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">window.location.pathname</code> and listen for the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy:navigate</code> DOM event to re-evaluate after every client-side navigation:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="components/navbar.py" snippet={active_example} />

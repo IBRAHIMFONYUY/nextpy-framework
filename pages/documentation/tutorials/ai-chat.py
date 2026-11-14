@@ -95,14 +95,14 @@ default = ChatPage"""
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                         AI Chat App
                     </h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Build an AI-powered chat application with NextPy.
                     </p>
                 </header>
 
                 <div id="overview" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Overview</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         This tutorial builds a chat UI where the browser owns the message list and a server action proxies requests to an LLM API. The API key never reaches the client — it stays in the server action's environment.
                     </p>
                 </div>
@@ -127,7 +127,7 @@ default = ChatPage"""
 
                 <div id="chat-ui" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">The chat component</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Messages live in <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useState</code> — each update re-renders only the bound nodes. <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">_server_result</code> and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">_server_loading</code> are the reserved keys the runtime fills after the action returns. A <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useRef</code> pins the scroll container to the newest message.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="components/chat_window.py" snippet={chat_ui_example} />
@@ -135,7 +135,7 @@ default = ChatPage"""
 
                 <div id="server-action" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">The server action</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">@server_action()</code> functions are async Python that run on the server. Return a plain dict — it is serialized to JSON and lands in <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">_server_result</code>:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="lib/chat_actions.py" snippet={action_example} />
@@ -143,11 +143,11 @@ default = ChatPage"""
 
                 <div id="wiring" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Wiring the page</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         The page stays a plain <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">@component</code> — only the interactive island hydrates:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/chat.py" snippet={page_example} />
-                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
                         <li>Set <code class="font-mono text-xs">OPENAI_API_KEY</code> (or your provider's key) in the environment — never in source.</li>
                         <li>Swap the endpoint for any OpenAI-compatible API, or call a local model over <code class="font-mono text-xs">httpx</code>.</li>
                         <li>For multi-turn chat, persist messages with <code class="font-mono text-xs">nextpy.db</code> and pass history into the action.</li>

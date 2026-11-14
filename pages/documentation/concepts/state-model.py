@@ -61,25 +61,25 @@ def TodoForm():
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                         State Management Model
                     </h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         How state flows through a NextPy page: server props, hydration, signals, and server actions.
                     </p>
                 </header>
 
                 <div id="overview" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Overview</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         NextPy state has three layers. <strong class="text-zinc-200">Server props</strong> come from <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getServerSideProps</code> and render into the initial HTML. <strong class="text-zinc-200">Client state</strong> is declared with <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useState</code> inside <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">@interactive_component</code> and updates the DOM without a reload. <strong class="text-zinc-200">Server actions</strong> mutate server data and report back through reserved state keys.
                     </p>
                 </div>
 
                 <div id="component-state" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Component State</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useState(initial)</code> returns a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">[value, setter]</code> pair. Each setter updates a per-key signal, and only the DOM nodes bound to that key re-render &mdash; the rest of the page is untouched.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="components/counter.py" snippet={state_example} />
-                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
                         <li>Initial values must be JSON-serializable &mdash; they are embedded in the page as hydration state.</li>
                         <li>Expressions like <code class="font-mono text-xs">&#123;count + 1&#125;</code> in JSX become reactive bindings evaluated in the browser.</li>
                     </ul>
@@ -87,10 +87,10 @@ def TodoForm():
 
                 <div id="server-state" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Server Action State</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">callServerAction</code> writes into reserved keys you can bind and watch:
                     </p>
-                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
                         <li><code class="font-mono text-xs">_server_result</code> &mdash; the JSON response from the last action call.</li>
                         <li><code class="font-mono text-xs">_server_loading</code> &mdash; true while the request is in flight; use it to disable buttons.</li>
                     </ul>
@@ -99,7 +99,7 @@ def TodoForm():
 
                 <div id="props-state" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Props Become State</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         JSON-safe props passed to a component are merged into its hydration state, so <code class="font-mono text-xs">props.get("title")</code> values are readable in event handlers and bindings after hydration. Keep props JSON-safe &mdash; never pass DB sessions, request objects, or other server-only values.
                     </p>
                 </div>

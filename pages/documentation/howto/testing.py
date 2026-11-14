@@ -71,21 +71,21 @@ def test_homepage_renders(page: Page):
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                         Testing (Unit & E2E)
                     </h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Learn how to test your NextPy application with unit tests and E2E tests.
                     </p>
                 </header>
 
                 <div id="overview" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Overview</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         NextPy supports pytest for unit tests and Playwright for E2E testing.
                     </p>
                 </div>
 
                 <div id="unit-tests" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Unit tests</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Plain Python modules — pricing helpers, validators, formatters — test directly with pytest:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="tests/test_pricing.py" snippet={unit_example} />
@@ -93,7 +93,7 @@ def test_homepage_renders(page: Page):
 
                 <div id="action-tests" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Testing server actions</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Actions are async functions — call them with mocked <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">request</code>/<code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">response</code> objects under <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pytest-asyncio</code>:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="tests/test_actions.py" snippet={action_example} />
@@ -101,7 +101,7 @@ def test_homepage_renders(page: Page):
 
                 <div id="api-tests" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Testing API routes</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         The app is a standard FastAPI instance — drive it in-process with <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">httpx.ASGITransport</code>, no running server needed:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="tests/test_api.py" snippet={api_example} />
@@ -109,7 +109,7 @@ def test_homepage_renders(page: Page):
 
                 <div id="e2e-tests" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">E2E tests</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         For browser-level coverage, Playwright drives the dev server (<code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy dev</code> on port 5000) and asserts on real rendered pages:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="tests/e2e/test_home.py" snippet={e2e_example} />

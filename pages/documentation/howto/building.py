@@ -69,14 +69,14 @@ nextpy flushdb'''
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                         Production Building
                     </h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Learn how to build and optimize your NextPy application for production.
                     </p>
                 </header>
 
                 <div id="overview" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Overview</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
         The NextPy CLI covers the whole lifecycle: <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy dev</code> for development with hot reload, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy build</code> for an optimized production bundle, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy start</code> to serve it, and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy export</code> for fully static output.
                     </p>
                 </div>
@@ -84,7 +84,7 @@ nextpy flushdb'''
                 <div id="commands" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">The four commands</h2>
                     <EnhancedCodeBlock lang="bash" filename="terminal" snippet={cli_example} />
-                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
                         <li><strong>dev</strong> — reload and debug on by default; pass <code class="font-mono text-xs">--no-reload</code> or <code class="font-mono text-xs">--no-debug</code> to disable.</li>
                         <li><strong>build</strong> — writes optimized assets to <code class="font-mono text-xs">out/</code>; every optimization can be toggled.</li>
                         <li><strong>start</strong> — production server; reload and debug are off.</li>
@@ -94,7 +94,7 @@ nextpy flushdb'''
 
                 <div id="build-options" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Build options</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Tune the optimizer per deploy — e.g. disable code splitting for a single-file bundle:
                     </p>
                     <EnhancedCodeBlock lang="bash" filename="terminal" snippet={options_example} />
@@ -102,7 +102,7 @@ nextpy flushdb'''
 
                 <div id="environment" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Production environment</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Settings resolve from environment variables — set them in <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">.env</code> locally and in your host's secret store in production:
                     </p>
                     <EnhancedCodeBlock lang="bash" filename=".env" snippet={env_example} />

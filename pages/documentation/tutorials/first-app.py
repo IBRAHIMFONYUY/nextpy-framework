@@ -78,21 +78,21 @@ default = About"""
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                         Your First App
                     </h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Learn how to build your first NextPy application from scratch.
                     </p>
                 </header>
 
                 <div id="overview" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Overview</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         In this tutorial, you'll create a simple NextPy application with routing and interactivity.
                     </p>
                 </div>
 
                 <div id="setup" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Setup</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Scaffold the project and start the dev server — hot reload picks up every file change:
                     </p>
                     <EnhancedCodeBlock
@@ -104,7 +104,7 @@ default = About"""
 
                 <div id="first-page" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Your first page</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Files under <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/</code> become routes — <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/index.py</code> serves <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">/</code>. Write JSX directly in the component; the framework compiles it:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/index.py" snippet={page_example} />
@@ -112,7 +112,7 @@ default = About"""
 
                 <div id="navigation" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Navigation</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         The <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">Link</code> component with an <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">href</code> prop navigates client-side — the router fetches the new page and swaps the content without a full reload:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/about.py" snippet={layout_example} />
@@ -120,7 +120,7 @@ default = About"""
 
                 <div id="interactivity" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Adding interactivity</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Mark a component <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">@interactive_component</code> and it hydrates in the browser — state updates re-render only that island:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="components/counter.py" snippet={island_example} />

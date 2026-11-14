@@ -75,18 +75,18 @@ def TodoForm():
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Server Actions</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Call Python functions from the browser without writing an API route. Actions are registered with <code class="font-mono text-sm">@server_action</code> and invoked via <code class="font-mono text-sm">callServerAction</code>.
                     </p>
                 </header>
 
                 <div id="defining" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Defining an action</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Put actions in <code class="font-mono text-xs">pages/actions/</code> (or any imported module). The decorator registers the function under a name; params are filtered to the function signature and validated.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/actions/todo_actions.py" snippet={action_example} />
-                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
                         <li><code class="font-mono text-xs">ValidationError(field, message)</code> &mdash; returned to the client as a structured error.</li>
                         <li><code class="font-mono text-xs">ServerActionError(message, code)</code> &mdash; for domain failures like "not found".</li>
                         <li>Every result is wrapped as <code class="font-mono text-xs">{"{success, data, timestamp}"}</code> or <code class="font-mono text-xs">{"{success: false, error}"}</code>.</li>
@@ -96,7 +96,7 @@ def TodoForm():
                 <div id="options" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Options</h2>
                     <EnhancedCodeBlock lang="python" filename="pages/actions/profile.py" snippet={options_example} />
-                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
                         <li><code class="font-mono text-xs">schema</code> &mdash; a Pydantic model or <code class="font-mono text-xs">ActionSchema</code> for input validation.</li>
                         <li><code class="font-mono text-xs">auth=True</code> &mdash; rejects unauthenticated calls.</li>
                         <li><code class="font-mono text-xs">roles</code> &mdash; tuple of allowed roles.</li>
@@ -105,7 +105,7 @@ def TodoForm():
 
                 <div id="calling" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Calling from a component</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         <code class="font-mono text-xs">callServerAction(name, params)</code> POSTs to <code class="font-mono text-xs">/__nextpy/actions/execute</code> and writes the result into reserved state keys: <code class="font-mono text-xs">_server_result</code> and <code class="font-mono text-xs">_server_loading</code>. React to results with <code class="font-mono text-xs">useEffect(..., [_server_result])</code>.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/jobs/create.py" snippet={client_example} />

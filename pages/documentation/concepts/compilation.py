@@ -68,14 +68,14 @@ return (
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Compilation Pipeline</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         NextPy compiles your Python components in two stages — a JSX-to-PSX transform at module load, then a PSX parse that produces HTML on the server and a reactive action graph in the browser.
                     </p>
                 </header>
 
                 <div id="stage-1-jsx" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Stage 1 — JSX to PSX</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         When a page module loads, the JSX preprocessor finds <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">return (...)</code> blocks containing markup and wraps them in a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">psx()</code> template call. Expressions inside <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">&#123;expr&#125;</code> stay as interpolations — Python evaluates them on the server, the client runtime re-evaluates the reactive ones after hydration.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/index.py" snippet={jsx_example} />
@@ -84,14 +84,14 @@ return (
 
                 <div id="stage-2-parse" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Stage 2 — PSX parse &amp; render</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">psx()</code> parses the template into an element tree, resolves <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">&#123;expr&#125;</code> against the function's locals, and produces an HTML string. Static pages ship as pure HTML — no JavaScript payload beyond the router.
                     </p>
                 </div>
 
                 <div id="stage-3-hydration" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Stage 3 — hydration payload</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">@interactive_component</code> functions additionally emit a JSON payload: initial state, effect definitions compiled to action ASTs, and derived expressions. The client runtime, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">js_actions_runtime</code>, replays the actions in the browser, wiring <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useState</code> signals to the DOM.
                     </p>
                     <EnhancedCodeBlock lang="json" filename="__PSX_DATA__" snippet={actions_example} />
@@ -99,7 +99,7 @@ return (
 
                 <div id="hot-reload" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Development vs production</h2>
-                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-300">
                         <li><strong>Dev mode, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy dev</code>,</strong> — modules reload on file change; layouts re-cache by mtime; the HMR runtime patches the page without a full refresh.</li>
                         <li><strong>Prod mode, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy start</code>,</strong> — same pipeline, reload and debug disabled; <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy build</code> minifies assets into <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">out/</code>.</li>
                     </ul>

@@ -67,21 +67,21 @@ async def dashboard_stats(request, period: str = "7d"):
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                         Dashboard App
                     </h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Build a comprehensive dashboard application with NextPy.
                     </p>
                 </header>
 
                 <div id="overview" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Overview</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         A dashboard is mostly static markup plus a few interactive widgets. Load the initial data with <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getServerSideProps</code> so the first paint already has numbers, then hydrate only the widgets that need live updates.
                     </p>
                 </div>
 
                 <div id="data-loading" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Loading initial data</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getServerSideProps</code> runs on the server per request (or per revalidation window for cached pages). Return JSON-safe values under <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">props</code> — they arrive as the component's initial props:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/dashboard.py" snippet={data_example} />
@@ -89,7 +89,7 @@ async def dashboard_stats(request, period: str = "7d"):
 
                 <div id="interactive-widgets" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Interactive widgets</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Filters, refresh buttons, and live counters belong in <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">@interactive_component</code> islands. Each widget hydrates independently — the static charts around them never re-render:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="components/stat_card.py" snippet={widget_example} />
@@ -97,7 +97,7 @@ async def dashboard_stats(request, period: str = "7d"):
 
                 <div id="refresh-action" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Refreshing data</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Period switches and manual refreshes call a server action that re-queries the database. The result lands in <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">_server_result</code> — no page reload:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="lib/dashboard_actions.py" snippet={action_example} />

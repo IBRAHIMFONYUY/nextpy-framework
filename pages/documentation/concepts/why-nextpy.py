@@ -57,21 +57,21 @@ def Counter():
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Why NextPy?</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         NextPy is a full-stack Python framework that delivers React-grade interactivity with Python-grade simplicity — one language, one deployable, from database to pixel.
                     </p>
                 </header>
 
                 <div id="the-problem" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">The problem it solves</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Traditional Python web apps force a choice: server-rendered pages that feel dated, or a JavaScript frontend that duplicates your backend logic in a second language. NextPy removes the split — your pages, components, API routes, and business logic are all Python, compiled to the same fast paths modern JS frameworks use.
                     </p>
                 </div>
 
                 <div id="architecture" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">One runtime, three rendering modes</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Every page picks its rendering strategy automatically or explicitly — server-rendered for fresh data, static for cached content, and hydrated islands for interactivity:
                     </p>
                     <div class="p-8 rounded-xl border border-zinc-800/60 bg-zinc-950 bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:24px_24px] flex items-center justify-center gap-6 mt-6">
@@ -89,7 +89,7 @@ def Counter():
 
                 <div id="key-benefits" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Key benefits</h2>
-                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-300">
                         <li><strong>Full-stack Python</strong> — pages, components, API routes, auth, and ORM models share one language and one runtime.</li>
                         <li><strong>React-like reactivity</strong> — <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useState</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useEffect</code>, and fine-grained signals update the DOM without reloads.</li>
                         <li><strong>File-system routing</strong> — folders and files under <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/</code> become URLs; layouts nest automatically.</li>
@@ -101,7 +101,7 @@ def Counter():
 
                 <div id="example" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">What it looks like</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Server-rendered page and hydrated interactive component in the same file — no build step, no JSX toolchain, no second language:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/index.py" snippet={example} />

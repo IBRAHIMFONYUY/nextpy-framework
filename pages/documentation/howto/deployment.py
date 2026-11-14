@@ -10,7 +10,7 @@ def DeploymentGuide():
         <DocsScrollSpy />
                         <!-- Top Breadcrumb & Actions -->
             <div class="flex items-center justify-between border-b border-zinc-800/50 pb-4">
-                <div class="flex items-center gap-2 text-sm font-medium text-zinc-400">
+                <div class="flex items-center gap-2 text-sm font-medium text-zinc-300">
                     <span>Documentation</span>
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                     <span class="text-white">Deploy Your NextPy App</span>
@@ -37,19 +37,19 @@ def DeploymentGuide():
                 <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                     Deploy Your NextPy App
                 </h1>
-                <p class="leading-relaxed text-zinc-400">
+                <p class="leading-relaxed text-zinc-300">
                     Learn how to deploy your NextPy application to production using various platforms like Render, Vercel, Docker, and more.
                 </p>
             </header>
             
             <div class="my-6 p-4 border border-zinc-700 bg-zinc-800 rounded-lg">
                 <div class="flex items-start gap-3">
-                    <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-zinc-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-zinc-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                     </svg>
                     <div class="flex-1">
                         <h4 class="font-semibold text-zinc-200">Prerequisites</h4>
-                        <ul class="mt-2 space-y-1 text-sm text-zinc-400">
+                        <ul class="mt-2 space-y-1 text-sm text-zinc-300">
                             <li class="flex items-center gap-2">
                                 <svg class="w-3 h-3 text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -335,7 +335,7 @@ PORT = int(os.getenv("PORT", 8000))</code>
                         <input type="checkbox" class="mt-1 w-5 h-5 rounded" />
                         <div>
                             <span class="font-medium text-white">Set DEBUG=False</span>
-                            <p class="text-sm text-zinc-400">Disable debug mode in production</p>
+                            <p class="text-sm text-zinc-300">Disable debug mode in production</p>
                         </div>
                     </div>
                     
@@ -343,7 +343,7 @@ PORT = int(os.getenv("PORT", 8000))</code>
                         <input type="checkbox" class="mt-1 w-5 h-5 rounded" />
                         <div>
                             <span class="font-medium text-white">Use HTTPS</span>
-                            <p class="text-sm text-zinc-400">Enable SSL/TLS for secure connections</p>
+                            <p class="text-sm text-zinc-300">Enable SSL/TLS for secure connections</p>
                         </div>
                     </div>
                     
@@ -351,7 +351,7 @@ PORT = int(os.getenv("PORT", 8000))</code>
                         <input type="checkbox" class="mt-1 w-5 h-5 rounded" />
                         <div>
                             <span class="font-medium text-white">Secure environment variables</span>
-                            <p class="text-sm text-zinc-400">Use platform's secret management</p>
+                            <p class="text-sm text-zinc-300">Use platform's secret management</p>
                         </div>
                     </div>
                     
@@ -359,7 +359,7 @@ PORT = int(os.getenv("PORT", 8000))</code>
                         <input type="checkbox" class="mt-1 w-5 h-5 rounded" />
                         <div>
                             <span class="font-medium text-white">Database backups</span>
-                            <p class="text-sm text-zinc-400">Set up automated backups</p>
+                            <p class="text-sm text-zinc-300">Set up automated backups</p>
                         </div>
                     </div>
                     
@@ -367,7 +367,7 @@ PORT = int(os.getenv("PORT", 8000))</code>
                         <input type="checkbox" class="mt-1 w-5 h-5 rounded" />
                         <div>
                             <span class="font-medium text-white">Monitoring and logging</span>
-                            <p class="text-sm text-zinc-400">Set up error tracking and logging</p>
+                            <p class="text-sm text-zinc-300">Set up error tracking and logging</p>
                         </div>
                     </div>
                     
@@ -375,7 +375,7 @@ PORT = int(os.getenv("PORT", 8000))</code>
                         <input type="checkbox" class="mt-1 w-5 h-5 rounded" />
                         <div>
                             <span class="font-medium text-white">Rate limiting</span>
-                            <p class="text-sm text-zinc-400">Implement rate limiting to prevent abuse</p>
+                            <p class="text-sm text-zinc-300">Implement rate limiting to prevent abuse</p>
                         </div>
                     </div>
                 </div>

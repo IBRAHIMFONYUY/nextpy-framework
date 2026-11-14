@@ -25,14 +25,14 @@ def PerformanceAPI():
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Performance</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         How NextPy renders, caches, hydrates, and hot-reloads &mdash; and how to keep your app fast.
                     </p>
                 </header>
 
                 <div id="rendering" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Rendering model</h2>
-                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
                         <li><strong class="text-zinc-200">SSR by default</strong> &mdash; every page is server-rendered to HTML on each request (or served from cache when safe).</li>
                         <li><strong class="text-zinc-200">Selective hydration</strong> &mdash; only components marked interactive hydrate in the browser; static markup stays untouched.</li>
                         <li><strong class="text-zinc-200">Fine-grained bindings</strong> &mdash; state updates patch bound DOM nodes via <code class="font-mono text-xs">data-bind</code> attributes instead of re-rendering the page.</li>
@@ -42,28 +42,28 @@ def PerformanceAPI():
 
                 <div id="caching" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">HTTP caching</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         The server computes an ETag for every page. Requests without cookies or auth headers on cacheable routes get <code class="font-mono text-xs">Cache-Control: private, max-age=30, stale-while-revalidate=120</code> and support <code class="font-mono text-xs">304 Not Modified</code>. Pages with <code class="font-mono text-xs">getServerSideProps</code> always send <code class="font-mono text-xs">no-store</code>.
                     </p>
                 </div>
 
                 <div id="static-generation" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Static generation &amp; ISR</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Use <code class="font-mono text-xs">getStaticProps</code> to render at build time and <code class="font-mono text-xs">revalidate</code> for Incremental Static Regeneration. See <Link href="/documentation/reference/data-fetching" className="text-blue-400 hover:text-blue-300 underline underline-offset-4">Data Fetching</Link>.
                     </p>
                 </div>
 
                 <div id="hot-reload" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Hot reload &amp; HMR</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         With <code class="font-mono text-xs">NEXTPY_HOT_RELOAD=True</code> (default), file changes reload modules and the client router picks up the new page without a full refresh. JSX syntax errors render a dedicated error page with the offending file and line.
                     </p>
                 </div>
 
                 <div id="tips" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Performance tips</h2>
-                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-2 text-base leading-7 text-zinc-300">
                         <li>Keep server-only objects (DB sessions, request) out of component props &mdash; only JSON-safe values hydrate.</li>
                         <li>Prefer <code class="font-mono text-xs">getStaticProps</code> for content that changes rarely; add <code class="font-mono text-xs">revalidate</code> instead of SSR when possible.</li>
                         <li>Use <code class="font-mono text-xs">useFetch</code> for data that only matters after interaction instead of blocking SSR.</li>

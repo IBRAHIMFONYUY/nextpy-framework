@@ -67,14 +67,14 @@ def getServerSideProps(context):
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Router API</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Reference for NextPy routing: the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">Link</code> component, programmatic navigation, dynamic segments, and the request context.
                     </p>
                 </header>
 
                 <div id="link" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Link</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">Link</code> renders an anchor tag with client-side navigation, prefetching, and layout preservation. External URLs automatically fall back to full page loads.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/index.py" snippet={link_example} />
@@ -94,7 +94,7 @@ def getServerSideProps(context):
 
                 <div id="programmatic" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Programmatic navigation</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Call <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">window.navigateTo(url)</code> inside a handler for client-side navigation that preserves the layout. Pass <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">true</code> as the second argument to replace the history entry, or use <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">window.__nextpyRouter.navigate(url, replace, scroll)</code> for finer control:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/dashboard.py" snippet={router_example} />
@@ -102,7 +102,7 @@ def getServerSideProps(context):
 
                 <div id="dynamic-segments" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Dynamic segments & context</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         File names like <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/blog/[slug].py</code> create dynamic routes. Read params and query strings in <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getServerSideProps</code>:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/blog/[slug].py" snippet={params_example} />
@@ -110,7 +110,7 @@ def getServerSideProps(context):
 
                 <div id="redirects" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Redirects</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Return a redirect from <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">getServerSideProps</code> to send users elsewhere &mdash; useful for auth guards and moved pages:
                     </p>
                     <EnhancedCodeBlock

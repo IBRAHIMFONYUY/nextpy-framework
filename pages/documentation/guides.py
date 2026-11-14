@@ -35,7 +35,7 @@ def GuidesHub():
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">How-to Guides</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Task-oriented guides for building real features with NextPy &mdash; from auth and databases to testing and deployment.
                     </p>
                 </header>

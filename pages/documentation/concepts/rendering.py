@@ -59,7 +59,7 @@ def getStaticProps(context):
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Rendering</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         NextPy renders pages on the server by default — real HTML for fast first paint and SEO — then layers client-side reactivity on top through hydration.
                     </p>
                 </header>
@@ -88,7 +88,7 @@ def getStaticProps(context):
 
                 <div id="pipeline" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">The render pipeline</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         For each request the server resolves the route, builds the layout chain, runs data-fetching functions, renders components to an HTML string, injects the router/HMR runtime and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">__PSX_DATA__</code>, and streams the result. Interactive components are wrapped with hydration markers so the client knows which islands to activate.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/posts.py" snippet={modes_example} />
@@ -96,7 +96,7 @@ def getStaticProps(context):
 
                 <div id="choosing" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Choosing per page</h2>
-                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-300">
                         <li><strong>Dashboard / account pages</strong> — SSR with user context; never cache.</li>
                         <li><strong>Blog posts, docs, products</strong> — SSG paths + ISR revalidate.</li>
                         <li><strong>Live feeds, carts</strong> — SSR shell + client-side fetching islands.</li>

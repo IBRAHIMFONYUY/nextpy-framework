@@ -60,14 +60,14 @@ async def get_server_side_props(context):
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Metadata &amp; SEO</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Control page titles, meta tags, sitemaps, and robots.txt in NextPy.
                     </p>
                 </header>
 
                 <div id="page-props" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Page props</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Return <code class="font-mono text-xs">title</code> and <code class="font-mono text-xs">description</code> from <code class="font-mono text-xs">get_server_side_props</code> or <code class="font-mono text-xs">getServerSideProps</code>. Templates render them through the <code class="font-mono text-xs">title</code> variable and the <code class="font-mono text-xs">title</code> block in <code class="font-mono text-xs">_page.html</code>.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/about.py" snippet={props_example} />
@@ -75,7 +75,7 @@ async def get_server_side_props(context):
 
                 <div id="head-components" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Head components</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         In PSX pages, wrap <code class="font-mono text-xs">Title</code>, <code class="font-mono text-xs">Meta</code>, and <code class="font-mono text-xs">Script</code> inside <code class="font-mono text-xs">Head</code> to inject tags into the document head.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/dashboard.py" snippet={head_example} />
@@ -83,11 +83,11 @@ async def get_server_side_props(context):
 
                 <div id="sitemap-robots" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">sitemap.xml &amp; robots.txt</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         File routes ending in <code class="font-mono text-xs">.xml.py</code> / <code class="font-mono text-xs">.txt.py</code> can serve raw content. Use <code class="font-mono text-xs">get_template()</code> to pick the template and return a FastAPI <code class="font-mono text-xs">Response</code> for full control.
                     </p>
                     <EnhancedCodeBlock lang="python" filename="pages/sitemap.xml.py" snippet={sitemap_example} />
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         This project ships working examples at <code class="font-mono text-xs">pages/sitemap.xml.py</code> and <code class="font-mono text-xs">pages/robots.txt.py</code>.
                     </p>
                 </div>

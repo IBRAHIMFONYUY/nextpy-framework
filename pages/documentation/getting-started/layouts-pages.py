@@ -50,7 +50,7 @@ def LayoutsAndPages():
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                         Layouts and Pages
                     </h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         NextPy uses file-system based routing, meaning you can use folders and files to define routes. This page will guide you through how to create layouts and pages, and link between them.
                     </p>
                 </header>
@@ -58,7 +58,7 @@ def LayoutsAndPages():
                 <!-- Section: Creating a page -->
                 <div id="creating-a-page" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Creating a page</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         A page is UI that is rendered on a specific route. To create a page, add an <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">index.py</code> file inside the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages</code> directory and default export a React component. For example, to create an index page <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">/</code>:
                     </p>
 
@@ -87,13 +87,13 @@ def LayoutsAndPages():
                 <!-- Section: Creating a layout -->
                 <div id="creating-a-layout" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Creating a layout</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         A layout is UI that is <strong>shared</strong> between multiple pages. On navigation, layouts preserve state, remain interactive, and do not rerender.
                     </p>
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         You can define a layout by creating a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">layout.psx</code> file. The component should accept a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">children</code> prop which can be a page or another layout.
                     </p>
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         For example, to create a layout that accepts your index page as child, add a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">layout.psx</code> file inside the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages</code> directory:
                     </p>
 
@@ -119,7 +119,7 @@ def LayoutsAndPages():
                         snippet="from nextpy.psx import component, psx&#10;&#10;@component&#10;def DashboardLayout(children):&#10;    return psx(&#34;&#34;&#34;&#10;        &lt;html lang=&#34;en&#34;&gt;&#10;            &lt;body&gt;&#10;                &lt;!-- Layout UI --&gt;&#10;                &lt;!-- Place children where you want to render a page or nested layout --&gt;&#10;                &lt;main&gt;{children}&lt;/main&gt;&#10;            &lt;/body&gt;&#10;        &lt;/html&gt;&#10;    &#34;&#34;&#34;)"
                     />
 
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         The layout above is called a <strong>root layout</strong> because it's defined at the root of the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages</code> directory. The root layout is required and must contain <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">html</code> and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">body</code> tags.
                     </p>
                 </div>
@@ -127,24 +127,24 @@ def LayoutsAndPages():
                 <!-- Section: Creating a nested route -->
                 <div id="creating-a-nested-route" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Creating a nested route</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         A nested route is a route composed of multiple URL segments. For example, the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">/blog/&#91;slug&#93;</code> route is composed of three segments:
                     </p>
-                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-400 mt-2">
+                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-300 mt-2">
                         <li><code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">/</code> (Root Segment)</li>
                         <li><code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">blog</code> (Segment)</li>
                         <li><code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">&#91;slug&#93;</code> (Leaf Segment)</li>
                     </ul>
                     
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         In NextPy:
                     </p>
-                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-300">
                         <li><strong>Folders</strong> are used to define the route segments that map to URL segments.</li>
                         <li><strong>Files</strong> like <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">index.py</code> and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">layout.psx</code> are used to create UI that is shown for a segment.</li>
                     </ul>
                     
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         To create nested routes, you can nest folders inside each other. For example, to add a route for <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">/blog</code>, create a folder called <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">blog</code> in the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages</code> directory. Then, to make <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">/blog</code> publicly accessible, add a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">index.py</code> file:
                     </p>
 
@@ -176,7 +176,7 @@ def LayoutsAndPages():
                         snippet="from nextpy.psx import component, psx&#10;&#10;# Dummy imports&#10;from lib.posts import get_posts&#10;from components.post import Post&#10;&#10;@component&#10;def Page():&#10;    posts = get_posts()&#10;&#10;    return psx(f&#34;&#34;&#34;&#10;        &lt;ul&gt;&#10;            {{''.join([f'&lt;li&gt;&lt;Post id=&#34;{{p.id}}&#34; post=&#34;{{p.title}}&#34; /&gt;&lt;/li&gt;' for p in posts])}}&#10;        &lt;/ul&gt;&#10;    &#34;&#34;&#34;)"
                     />
 
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         You can continue nesting folders to create nested routes. For example, to create a route for a specific blog post, create a new <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">&#91;slug&#93;</code> folder inside <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">blog</code> and add a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">index.py</code> file:
                     </p>
 
@@ -213,7 +213,7 @@ def LayoutsAndPages():
                         snippet="from nextpy.psx import component, psx&#10;&#10;@component&#10;def Page(params):&#10;    return psx(&#34;&lt;h1&gt;Hello, Blog Post Page!&lt;/h1&gt;&#34;)"
                     />
 
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         Wrapping a folder name in square brackets <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">&#91;slug&#93;</code> creates a dynamic route segment which is used to generate multiple pages from data. e.g. blog posts, product pages, etc.
                     </p>
                 </div>
@@ -221,10 +221,10 @@ def LayoutsAndPages():
                 <!-- Section: Nesting layouts -->
                 <div id="nesting-layouts" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Nesting layouts</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         By default, layouts in the folder hierarchy are also nested, which means they wrap child layouts via their <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">children</code> prop. You can nest layouts by adding <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">layout.psx</code> inside specific route segments folders.
                     </p>
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         For example, to create a layout for the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">/blog</code> route, add a new <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">layout.psx</code> file inside the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">blog</code> folder.
                     </p>
 
@@ -262,7 +262,7 @@ def LayoutsAndPages():
                         snippet="from nextpy.psx import component, psx&#10;&#10;@component&#10;def BlogLayout(children):&#10;    return psx(f&#34;&lt;section&gt;{children}&lt;/section&gt;&#34;)"
                     />
 
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         If you were to combine the two layouts above, the root layout (<code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/layout.psx</code> would wrap the blog layout (<code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/blog/layout.psx</code>, which would wrap the blog (<code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/blog/index.py</code> and blog post page (<code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/blog/&#91;slug&#93;/index.py</code>.
                     </p>
                 </div>
@@ -270,10 +270,10 @@ def LayoutsAndPages():
                 <!-- Section: Creating a dynamic segment -->
                 <div id="creating-a-dynamic-segment" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Creating a dynamic segment</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Dynamic segments allow you to create routes that are generated from data. For example, instead of manually creating a route for each individual blog post, you can create a dynamic segment to generate the routes based on blog post data.
                     </p>
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         To create a dynamic segment, wrap the segment (folder) name in square brackets: <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">&#91;segmentName&#93;</code>. For example, in the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">pages/blog/&#91;slug&#93;/index.py</code> route, the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">&#91;slug&#93;</code> is the dynamic segment.
                     </p>
 
@@ -283,10 +283,10 @@ def LayoutsAndPages():
                         snippet="from nextpy.psx import component, psx&#10;&#10;@component&#10;def BlogPostPage(params):&#10;    slug = params.get(&#34;slug&#34;)&#10;    post = get_post(slug)&#10;&#10;    return psx(f&#34;&#34;&#34;&#10;        &lt;div&gt;&#10;            &lt;h1&gt;{post.title}&lt;/h1&gt;&#10;            &lt;p&gt;{post.content}&lt;/p&gt;&#10;        &lt;/div&gt;&#10;    &#34;&#34;&#34;)"
                     />
 
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         Learn more about <a href="#" class="text-blue-400 hover:underline">Dynamic Segments</a> and the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">params</code> props.
                     </p>
-                    <p class="text-base leading-7 text-zinc-400 mt-2">
+                    <p class="text-base leading-7 text-zinc-300 mt-2">
                         Nested <a href="#" class="text-blue-400 hover:underline">layouts within Dynamic Segments</a> can also access the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">params</code> props.
                     </p>
                 </div>
@@ -294,7 +294,7 @@ def LayoutsAndPages():
                 <!-- Section: Rendering with search params -->
                 <div id="rendering-with-search-params" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Rendering with search params</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         In a Server Component page, you can access search parameters using the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">searchParams</code> prop:
                     </p>
 
@@ -304,13 +304,13 @@ def LayoutsAndPages():
                         snippet="from nextpy.psx import component, psx&#10;&#10;@component&#10;def Page(searchParams):&#10;    filters = searchParams.get(&#34;filters&#34;)&#10;    return psx(&#34;&lt;div&gt;Filtered Results&lt;/div&gt;&#34;)"
                     />
 
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         Using <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">searchParams</code> opts your page into <a href="#" class="text-blue-400 hover:underline">dynamic rendering</a> because it requires an incoming request to read the search parameters from.
                     </p>
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         Client Components can read search params using the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useSearchParams</code> hook.
                     </p>
-                    <p class="text-base leading-7 text-zinc-400 mt-2">
+                    <p class="text-base leading-7 text-zinc-300 mt-2">
                         Learn more about <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useSearchParams</code> in <a href="#" class="text-blue-400 hover:underline">prerendered</a> and <a href="#" class="text-blue-400 hover:underline">dynamically rendered</a> routes.
                     </p>
                 </div>
@@ -318,7 +318,7 @@ def LayoutsAndPages():
                 <!-- Section: What to use and when -->
                 <div id="what-to-use-and-when" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">What to use and when</h2>
-                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-300">
                         <li>Use the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">searchParams</code> prop when you need search parameters to load data for the page pagination, filtering from a database.</li>
                         <li>Use <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">useSearchParams</code> when search parameters are used only on the client filtering a list already loaded via props.</li>
                         <li>As a small optimization, you can use <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">new URLSearchParams(window.location.search)</code> in callbacks or event handlers to read search params without triggering re-renders.</li>
@@ -328,10 +328,10 @@ def LayoutsAndPages():
                 <!-- Section: Linking between pages -->
                 <div id="linking-between-pages" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Linking between pages</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         You can use the <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">&lt;Link&gt;</code> component to navigate between routes. <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">&lt;Link&gt;</code> is a built-in NextPy component that extends the HTML <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">&lt;a&gt;</code> tag to provide <a href="#" class="text-blue-400 hover:underline">prefetching</a> and <a href="#" class="text-blue-400 hover:underline">client-side navigation</a>.
                     </p>
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         For example, to generate a list of blog posts, import <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">&lt;Link&gt;</code> from <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy.psx</code> and pass a <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">href</code> prop to the component:
                     </p>
 
@@ -355,14 +355,14 @@ def LayoutsAndPages():
                 <!-- Section: Route Props Helpers -->
                 <div id="route-props-helpers" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Route Props Helpers</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         NextPy exposes utility types that infer <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">params</code> and named slots from your route structure:
                     </p>
-                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-300">
                         <li><strong>PageProps:</strong> Props for <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">index.py</code> components, including <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">params</code> and <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">searchParams</code>.</li>
                         <li><strong>LayoutProps:</strong> Props for <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">layout.psx</code> components, including <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">children</code> and any named slots folders like <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">@analytics</code></li>
                     </ul>
-                    <p class="text-base leading-7 text-zinc-400 mt-4">
+                    <p class="text-base leading-7 text-zinc-300 mt-4">
                         These are globally available helpers, generated when running either <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy dev</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy build</code> or <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy typegen</code>.
                     </p>
 
@@ -382,7 +382,7 @@ def LayoutsAndPages():
                 <!-- Section: API Reference -->
                 <div id="api-reference" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">API Reference</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         For a complete reference of NextPy routing APIs, see the <a href="#" class="text-blue-400 hover:underline">Routing API Reference</a>.
                     </p>
                 </div>

@@ -10,7 +10,7 @@ def TodoAppTutorial():
         <DocsScrollSpy />
                         <!-- Top Breadcrumb & Actions -->
             <div class="flex items-center justify-between border-b border-zinc-800/50 pb-4">
-                <div class="flex items-center gap-2 text-sm font-medium text-zinc-400">
+                <div class="flex items-center gap-2 text-sm font-medium text-zinc-300">
                     <span>Documentation</span>
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                     <span class="text-white">Build a Todo App</span>
@@ -37,19 +37,19 @@ def TodoAppTutorial():
                 <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">
                     Build a Todo App
                 </h1>
-                <p class="leading-relaxed text-zinc-400">
+                <p class="leading-relaxed text-zinc-300">
                     Learn to build a complete todo application with state management, forms, and CRUD operations in NextPy.
                 </p>
             </header>
             
             <div class="my-6 p-4 border border-zinc-700 bg-zinc-800 rounded-lg">
                 <div class="flex items-start gap-3">
-                    <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-zinc-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-zinc-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                     </svg>
                     <div class="flex-1">
                         <h4 class="font-semibold text-zinc-200">Prerequisites</h4>
-                        <ul class="mt-2 space-y-1 text-sm text-zinc-400">
+                        <ul class="mt-2 space-y-1 text-sm text-zinc-300">
                             <li class="flex items-center gap-2">
                                 <svg class="w-3 h-3 text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -195,7 +195,7 @@ def TodoApp():
             {if len(todos) > 0:
                 &lt;button 
                     create_onclick="handle_clear_completed"
-                    class="mt-6 px-4 py-2 font-semibold text-zinc-400 bg-zinc-800 rounded-lg hover:bg-zinc-700"
+                    class="mt-6 px-4 py-2 font-semibold text-zinc-300 bg-zinc-800 rounded-lg hover:bg-zinc-700"
                 &gt;
                     Clear Completed
                 &lt;/button&gt;
@@ -422,7 +422,7 @@ def TodoApp():
                     &lt;/p&gt;
                     &lt;button 
                         create_onclick="handle_clear_completed"
-                        class="px-4 py-2 text-sm font-medium text-zinc-400 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition"
+                        class="px-4 py-2 text-sm font-medium text-zinc-300 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition"
                     &gt;
                         Clear Completed
                     &lt;/button&gt;

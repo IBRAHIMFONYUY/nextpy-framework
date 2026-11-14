@@ -35,7 +35,7 @@ def ApiReferenceHub():
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">API Reference</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         Complete reference for every NextPy API surface &mdash; CLI, config, components, hooks, routing, events, data, and utilities.
                     </p>
                 </header>

@@ -89,21 +89,21 @@ async def create_job(request: Request, response: Response, title: str, ...):
 
                 <header id="header" class="mb-12">
                     <h1 class="text-2xl sm:text-2xl font-bold tracking-tight text-white mb-6">Security & Sandboxing</h1>
-                    <p class="leading-relaxed text-zinc-400">
+                    <p class="leading-relaxed text-zinc-300">
                         NextPy runs on FastAPI with server-rendered escaping by default. This page covers the auth primitives, action guards, and deployment settings that keep an app safe.
                     </p>
                 </header>
 
                 <div id="output-escaping" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Output escaping</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Text interpolated into <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">psx()</code> templates and JSX expressions is HTML-escaped by the renderer — user content can't inject markup. Raw HTML requires an explicit opt-in, so stored XSS is off by default.
                     </p>
                 </div>
 
                 <div id="passwords" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Passwords &amp; sessions</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">nextpy.auth</code> provides salted password hashing, session creation, and cookie helpers. Sessions are opaque tokens stored server-side — clear the cookie on logout:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="lib/auth.py" snippet={password_example} />
@@ -111,7 +111,7 @@ async def create_job(request: Request, response: Response, title: str, ...):
 
                 <div id="guards" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Auth guards</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Wrap sensitive API handlers with <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">require_auth</code>, <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">require_user</code>, or <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">require_role</code> — they work on request-first functions and raise 401/403 before your code runs. Server actions instead resolve identity with <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">get_user_id_from_request</code>:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="lib/actions.py" snippet={auth_example} />
@@ -119,7 +119,7 @@ async def create_job(request: Request, response: Response, title: str, ...):
 
                 <div id="action-security" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Server action security</h2>
-                    <p class="text-base leading-7 text-zinc-400">
+                    <p class="text-base leading-7 text-zinc-300">
                         Declare <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">auth=True</code> and optional <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">roles</code> on <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">@server_action</code>. Validate input with <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">ValidationError</code> — never trust client-supplied IDs without checking they belong to the session user:
                     </p>
                     <EnhancedCodeBlock lang="python" filename="lib/actions.py" snippet={action_example} />
@@ -127,7 +127,7 @@ async def create_job(request: Request, response: Response, title: str, ...):
 
                 <div id="deployment" class="space-y-6 pt-8 border-t border-zinc-800/50">
                     <h2 class="text-2xl font-semibold text-white tracking-tight">Deployment hardening</h2>
-                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-400">
+                    <ul class="list-disc pl-6 space-y-3 text-base leading-7 text-zinc-300">
                         <li>Set <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">DEBUG=false</code> — stack traces and debug endpoints are disabled in production.</li>
                         <li>Use a strong <code class="text-zinc-200 font-mono text-sm px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">SECRET_KEY</code> from the environment, never committed.</li>
                         <li>Terminate TLS at your reverse proxy; set secure cookie flags for session cookies.</li>
