@@ -293,6 +293,14 @@ def Home(props=None):
                             <h3 class="mt-5 text-lg font-bold text-gray-900">Jobs App</h3>
                             <p class="mt-1 text-sm text-gray-600">A real full-stack app: auth, CRUD, dashboards and animations</p>
                         </Link>
+
+                        <Link href="/animation-playground" className="block p-8 transition-all bg-white border border-gray-200 rounded-2xl hover:shadow-lg hover:-translate-y-1">
+                            <div class="flex items-center justify-center w-12 h-12 text-white rounded-xl shadow-lg bg-gradient-to-br from-rose-500 to-pink-600">
+                                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.63 8.41m5.96 5.96a14.926 14.926 0 01-5.96 2.58m-.38-13.9a5.976 5.976 0 00-4.24 1.76 5.976 5.976 0 00-1.76 4.24m11.14-6.14a5.976 5.976 0 014.24 1.76 5.976 5.976 0 011.76 4.24" /></svg>
+                            </div>
+                            <h3 class="mt-5 text-lg font-bold text-gray-900">Animation Playground</h3>
+                            <p class="mt-1 text-sm text-gray-600">Every Motion primitive live: entrances, gestures, FLIP, exits</p>
+                        </Link>
                     </div>
                 </div>
             </section>

@@ -366,7 +366,7 @@ class JSXPreprocessor:
                     imports_to_add.append('component')
                 
                 # Add psx function if JSX syntax is detected
-                if '<' in content and '>' in content and 'from nextpy.psx import psx' not in content and 'import psx' not in content:
+                if '<' in content and '>' in content and 'from nextpy.psx import psx' not in content and not re.search(r'\bimport\s+psx\b', content):
                     imports_to_add.append('psx')
                 
                 # Add the imports
@@ -435,7 +435,7 @@ class JSXPreprocessor:
                     imports_to_add.append('component')
 
                 # Add psx function if JSX syntax is detected
-                if '<' in content and '>' in content and 'from nextpy.psx import psx' not in content and 'import psx' not in content:
+                if '<' in content and '>' in content and 'from nextpy.psx import psx' not in content and not re.search(r'\bimport\s+psx\b', content):
                     imports_to_add.append('psx')
 
                 # Add the imports
