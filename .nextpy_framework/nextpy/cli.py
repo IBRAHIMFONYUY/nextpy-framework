@@ -1612,171 +1612,10 @@ module.exports = {
         _create_psx_about_page(project_dir)
         _create_psx_examples(project_dir)
         _create_framework_showcase(project_dir)
+        _create_additional_pages(project_dir)
         _create_vscode_settings(project_dir)
     else:
         _create_traditional_homepage(project_dir)
-
-    (project_dir / "pages" / "layout.psx").write_text('''
-from nextpy.psx import component
-"""App Layout"""
-@component
-def Layout(children, **props):
-    return (
-        <html>
-            <head>
-                <title>{props.get('title', 'My App')}</title>
-                
-                <link href="/tailwind.css" rel="stylesheet">
-            </head>
-            <body>
-                {children}  
-            </body>
-        </html>
-    )
-
-    ''')
-    click.echo("  Created: pages/layout.psx ")
-
-    (project_dir / "pages" / "index.psx").write_text('''
-"""Interactive Homepage """
-
-from nextpy.psx import interactive_component as component
-
-
-@component
-def Home(props=None):
-    props = props or {}
-    title = props.get("title", "Welcome to NextPy!")
-    message = props.get("message", "Build amazing web apps with Python and True JSX")
-
-    return (
-        <div class="flex flex-col items-center justify-between min-h-screen p-8 font-sans antialiased text-black bg-white selection:bg-gray-200">
-            <head>
-            {/* optionally load a stylesheet from public/css <link rel="stylesheet" href="static/css/styles.css" /> */}
-            </head>
-            {/* Top spacer to perfectly center the main content vertically */}
-            <div class=""></div>
-
-            {/* Main Centered Content */}
-            <div class="flex flex-col items-center max-w-xl gap-8 text-center">
-                {/* Logo Section */}
-                <h1 class="text-[56px] font-extrabold tracking-tighter leading-none select-none font-mono flex items-baseline">
-                    <img src="static/images/logo.png" alt="NextPy Logo" class="w-auto h-16" />
-
-                </h1>
-
-                {/* Step-by-Step Instructions */}
-                <ol class="list-decimal list-inside text-left text-[16px] font-mono text-gray-800 space-y-2.5">
-                    <li>
-                        Get started by editing
-                        <code class="bg-black/[0.05] px-1.5 py-0.5 rounded font-bold text-black text-[13px]">
-                            pages/index.py
-                        </code>
-                        .
-                    </li>
-                    <li>Save and see your changes instantly.</li>
-                </ol>
-
-                {/* Call To Action Buttons */}
-                <div class="flex flex-col items-center gap-4 mt-2 sm:flex-row">
-                
-                    <a
-                        href="https://nextpy-framework.onrender.com/deploy"
-                        class="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-full text-[14px] font-medium transition-colors hover:bg-[#2c2c2c] shadow-sm"
-                        
-                    >
-                        <svg
-                            class="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M7 18a4 4 0 010-8 5 5 0 019.7-1.2A3.5 3.5 0 0117.5 18H7z"
-                            />
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M12 14V8m0 0l-3 3m3-3l3 3"
-                            />
-                        </svg>
-                        
-                        Deploy now
-                    </a>
-                    
-                    <a
-                        href="https://nextpy-framework.onrender.com/"
-                        class="flex items-center justify-center border border-black/[0.08] bg-white text-black px-6 py-3 rounded-full text-[14px] font-medium transition-colors hover:bg-gray-50 hover:border-black/[0.15] min-w-[140px]"
-                        
-                    >
-                        Read our docs
-                    </a>
-                </div>
-                
-                <div class="flex flex-wrap items-center justify-center gap-x-8 text-[14px] font-medium text-gray-600 w-full max-w-2xl py-4 border-t border-gray-100 sm:border-none">
-                    <a
-                    href="https://nextpy-framework.onrender.com/learn"
-                    class="flex items-center gap-2 transition-colors hover:underline hover:text-black"
-                    
-                >
-                    {/* Document Icon */}
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Learn
-                </a>
-
-                <a
-                    href="https://nextpy-framework.onrender.com/templates"
-                    class="flex items-center gap-2 transition-colors hover:underline hover:text-black"
-                    
-                >
-                    {/* Window Layout Icon */}
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 7a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm10 0a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z"/>
-                    </svg>
-                    Examples
-                </a>
-
-                <a
-                    href="https://nextpy-framework.onrender.com/"
-                    class="flex items-center gap-1.5 hover:underline hover:text-black transition-colors"
-                    
-                >
-                    {/* Globe Icon */}
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
-                    </svg>
-                    Go to nextpy.org
-                </a>
-                </div>
-
-            </div>
-            
-            <footer class="flex flex-wrap items-center justify-center text-[14px] font-medium text-gray-600 w-full max-w-2xl py-4 border-t border-gray-100 sm:border-none">
-               The Python Web Framework for Everyone
-            </footer>
-        </div>
-    )
-
-
-def getServerSideProps(context):
-    return {
-        "props": {
-            "title": "Welcome to NextPy!",
-            "message": "Build amazing web apps with Python and True JSX"
-        }
-    }
-
-
-default = Home
-
-
-''')
-    click.echo("  Created: pages/index.psx ")
 
 
     (project_dir / "components" / "ui" / "Button.psx").write_text(
@@ -1823,7 +1662,7 @@ default = Button
     click.echo("  Created: components/ui/Button.psx(enhanced interactive)")
     
     # Create comprehensive API examples
-    (project_dir / "pages" / "api" / "hello.psx").write_text(
+    (project_dir / "pages" / "api" / "hello.py").write_text(
         '''
 """API example - Hello endpoint"""
 
@@ -1839,7 +1678,7 @@ async def post(request: Request):
     return {"message": "POST request received", "data": data, "status": "success"}
 '''
     )
-    click.echo("  Created: pages/api/hello.psx")
+    click.echo("  Created: pages/api/hello.py")
 
     (project_dir / "pages" / "api" / "users" / "index.py").write_text(
         '''"""API example - Users index"""
@@ -1982,12 +1821,18 @@ app = nx.create_app(
 # Initialize the database at import time so it also runs inside uvicorn's
 # reload worker (which imports ``main:app`` rather than executing __main__).
 db_url = settings["database_url"]
-if db_url.startswith("sqlite:///"):
-    db_path = db_url.replace("sqlite:///", "")
-    if not os.path.isabs(db_path):
-        project_dir = Path(__file__).parent
-        abs_path = str(project_dir / db_path)
-        db_url = f"sqlite:///{abs_path}"
+if db_url.startswith("sqlite://"):
+    # Normalize SQLite URL format
+    parts = db_url.split("://", 1)
+    if len(parts) == 2:
+        scheme, path = parts
+        if path.startswith("/"):
+            # Absolute path - ensure three slashes
+            path = path.lstrip("/")
+            db_url = f"{scheme}:///{path}"
+        else:
+            # Relative path - use sqlite:///./path format
+            db_url = f"{scheme}:///./{path}"
 
 init_db(db_url)
 
@@ -2115,9 +1960,9 @@ default = BlogIndex
     (project_dir / "pages" / "blog" / "[slug].py").write_text('''
 """Dynamic blog post page – accessed via /blog/{slug}"""
 
-from nextpy.psx import interactive_component
+from nextpy.psx import component
 
-@interactive_component
+@component
 def BlogPost(props):
     props = props or {}
     post = props.get("post", {})
@@ -2325,7 +2170,10 @@ def get_task_log():
 
 
 # Auth actions (register / login / logout / get_me) — cookie sessions.
-from . import auth_actions  # noqa: F401,E402
+try:
+    from . import auth_actions  # noqa: F401,E402
+except ImportError:
+    pass  # Auth actions not available
 ''')
     click.echo("  Created: pages/actions/__init__.py (server actions)")
 
@@ -2441,9 +2289,9 @@ The framework now adds a set of security headers by default (CSP, X-Frame-Option
     click.echo("  Created: docs/README.md")
 
     (project_dir / "requirements.txt").write_text("""fastapi>=0.104.0
-nextpy-framework>=2.5.0
 uvicorn[standard]>=0.24.0
 pydantic>=2.0.0
+pydantic-settings>=2.0.0
 email-validator>=2.0.0
 SQLAlchemy>=2.0.0
 PyJWT>=2.8.0
@@ -2452,6 +2300,11 @@ watchdog>=2.3.0
 click>=8.1.0
 python-multipart>=0.0.6
 aiofiles>=23.0.0
+python-dotenv>=1.0.0
+httpx>=0.28.1
+websockets>=12.0
+pillow>=10.0.0
+markdown>=3.5.0
 
 # PSX Language Server Dependencies (optional)
 pygls>=0.12.0
@@ -2514,6 +2367,12 @@ out/
 build/
 dist/
 
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
 # IDE
 .vscode/
 .idea/
@@ -2538,6 +2397,39 @@ Thumbs.db
     _jwt_secret = secrets.token_urlsafe(48)
     _session_secret = secrets.token_urlsafe(48)
 
+    # Create .env.example file (without secrets)
+    (project_dir / ".env.example").write_text("""# NextPy Development Environment
+DEVELOPMENT=true
+DEBUG=true
+NEXTPY_DEBUG=true
+
+# Server Configuration
+HOST=0.0.0.0
+PORT=8000
+
+# Database Configuration
+DATABASE_URL=sqlite:///nextpy.db
+
+# Secrets (generate your own - see .env for example)
+SECRET_KEY=your-secret-key-here
+JWT_SECRET=your-jwt-secret-here
+SESSION_SECRET=your-session-secret-here
+JWT_ALGORITHM=HS256
+JWT_EXPIRATION_HOURS=24
+
+# Security
+CSRF_PROTECTION=true
+RATE_LIMIT_ENABLED=true
+CORS_ORIGINS=
+
+# NextPy Settings
+NEXTPY_DEBUG_ICON=true
+NEXTPY_HOT_RELOAD=true
+NEXTPY_HMR=true
+NEXTPY_LOG_LEVEL=info
+""")
+
+    # Create .env file with generated secrets (gitignored)
     (project_dir / ".env").write_text(f"""# NextPy Development Environment
 DEVELOPMENT=true
 DEBUG=true
@@ -2547,7 +2439,7 @@ NEXTPY_DEBUG=true
 HOST=0.0.0.0
 PORT=8000
 
-# Database Configuration 
+# Database Configuration
 DATABASE_URL=sqlite:///nextpy.db
 
 # Secrets (generated for this project)
@@ -2569,6 +2461,7 @@ NEXTPY_HMR=true
 NEXTPY_LOG_LEVEL=info
 """)
 
+    click.echo("  Created: .env.example")
     click.echo("  Created: .env")
 
     # Install Node.js dependencies
@@ -2743,6 +2636,69 @@ def Card(props=None):
     )
 ''')
     click.echo("  Created: components/Card.py")
+
+    # Create PSX homepage
+    (project_dir / "pages" / "index.py").write_text('''"""Interactive Homepage with PSX"""
+
+from nextpy.psx import component, useState
+
+@component
+def Home(props=None):
+    props = props or {}
+    title = props.get("title", "Welcome to NextPy!")
+    message = props.get("message", "Build amazing web apps with Python and True JSX")
+    [count, setCount] = useState(0)
+
+    return (
+        <div class="flex flex-col items-center justify-between min-h-screen p-8 font-sans antialiased text-black bg-white selection:bg-gray-200">
+            <div class=""></div>
+
+            <div class="flex flex-col items-center max-w-xl gap-8 text-center">
+                <h1 class="text-[56px] font-extrabold tracking-tighter leading-none select-none font-mono flex items-baseline">
+                    <img src="/static/images/logo.png" alt="NextPy Logo" class="w-auto h-16" />
+                </h1>
+
+                <h2 class="text-4xl font-bold">{title}</h2>
+                <p class="text-xl text-gray-600">{message}</p>
+
+                <div class="flex items-center gap-4">
+                    <button onclick={lambda e: setCount(count + 1)} class="px-6 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                        Count: {count}
+                    </button>
+                    <a href="/features" class="px-6 py-3 font-semibold text-blue-600 bg-white border border-blue-600 rounded-lg hover:bg-blue-50">
+                        Features
+                    </a>
+                </div>
+
+                <ol class="list-decimal list-inside text-left text-[16px] font-mono text-gray-800 space-y-2.5">
+                    <li>
+                        Get started by editing
+                        <code class="bg-black/[0.05] px-1.5 py-0.5 rounded font-bold text-black text-[13px]">
+                            pages/index.py
+                        </code>
+                        .
+                    </li>
+                    <li>Save and see your changes instantly.</li>
+                </ol>
+            </div>
+
+            <footer class="flex flex-wrap items-center justify-center text-[14px] font-medium text-gray-600 w-full max-w-2xl py-4 border-t border-gray-100 sm:border-none">
+               The Python Web Framework for Everyone
+            </footer>
+        </div>
+    )
+
+def getServerSideProps(context):
+    return {
+        "props": {
+            "title": "Welcome to NextPy!",
+            "message": "Build amazing web apps with Python and True JSX"
+        }
+    }
+
+default = Home
+''')
+    click.echo("  Created: pages/index.py (PSX homepage)")
 
 
 def _create_psx_about_page(project_dir: Path):
@@ -3670,6 +3626,263 @@ default = LivePage
 })();
 ''')
     click.echo("  Created: public/js/live-feed.js")
+
+
+def _create_additional_pages(project_dir: Path):
+    """Create additional pages: features, contact, sitemap, robots.txt, layout"""
+    click.echo("  Creating additional pages...")
+
+    # Create layout file
+    (project_dir / "pages" / "layout.psx").write_text('''from nextpy.psx import component
+"""App Layout"""
+
+@component
+def Layout(children, **props):
+    return (
+        <html>
+            <head>
+                <title>{props.get('title', 'My App')}</title>
+                <link href="/tailwind.css" rel="stylesheet">
+            </head>
+            <body class="bg-gray-50">
+                <nav class="bg-white shadow-sm">
+                    <div class="container px-4 py-4 mx-auto">
+                        <div class="flex items-center justify-between">
+                            <a href="/" class="text-2xl font-bold text-gray-900">NextPy</a>
+                            <div class="space-x-4">
+                                <a href="/" class="text-gray-600 hover:text-gray-900">Home</a>
+                                <a href="/features" class="text-gray-600 hover:text-gray-900">Features</a>
+                                <a href="/examples" class="text-gray-600 hover:text-gray-900">Examples</a>
+                                <a href="/about" class="text-gray-600 hover:text-gray-900">About</a>
+                                <a href="/contact" class="text-gray-600 hover:text-gray-900">Contact</a>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+                <main class="min-h-screen">
+                    {children}
+                </main>
+                <footer class="py-8 mt-16 bg-white border-t">
+                    <div class="container px-4 mx-auto text-center text-gray-600">
+                        <p>&copy; 2024 NextPy. Built with Python.</p>
+                    </div>
+                </footer>
+            </body>
+        </html>
+    )
+''')
+    click.echo("  Created: pages/layout.psx")
+
+    # Features page
+    (project_dir / "pages" / "features.py").write_text('''"""Features showcase page"""
+
+from nextpy.psx import component
+
+@component
+def Features(props=None):
+    props = props or {}
+    features = [
+        {
+            "icon": "page",
+            "title": "File-Based Routing",
+            "description": "Create pages by adding Python files to pages/",
+            "link": "/documentation"
+        },
+        {
+            "icon": "rocket",
+            "title": "Server-Side Rendering",
+            "description": "Render pages on the server with get_server_side_props",
+            "link": "/documentation"
+        },
+        {
+            "icon": "lightning",
+            "title": "Static Generation",
+            "description": "Pre-render pages at build time with get_static_props",
+            "link": "/documentation"
+        },
+        {
+            "icon": "database",
+            "title": "Database Integration",
+            "description": "SQLAlchemy ORM with SQLite, PostgreSQL, MySQL",
+            "link": "/db_example"
+        },
+        {
+            "icon": "wrench",
+            "title": "API Routes",
+            "description": "Create REST APIs with FastAPI in pages/api/",
+            "link": "/api/hello"
+        },
+        {
+            "icon": "palette",
+            "title": "Components",
+            "description": "20+ pre-built UI components",
+            "link": "/examples"
+        },
+        {
+            "icon": "fire",
+            "title": "Live Reload",
+            "description": "Instant updates during development",
+            "link": "/documentation"
+        },
+        {
+            "icon": "shield",
+            "title": "Authentication",
+            "description": "Built-in auth with cookie sessions",
+            "link": "/login"
+        }
+    ]
+
+    return (
+        <div class="min-h-screen py-8 bg-gray-50">
+            <div class="container px-4 mx-auto">
+                <div class="max-w-6xl mx-auto">
+                    <h1 class="mb-12 text-4xl font-bold text-center">Features</h1>
+                    <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                        {for feature in features:
+                            <a href={feature["link"]} class="block p-6 bg-white rounded-lg shadow-lg transition-shadow hover:shadow-xl">
+                                <div class="flex items-center mb-4">
+                                    <span class="text-2xl">{feature["icon"]}</span>
+                                    <h3 class="ml-3 text-xl font-semibold">{feature["title"]}</h3>
+                                </div>
+                                <p class="text-gray-600">{feature["description"]}</p>
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+
+def getServerSideProps(context):
+    return {"props": {"title": "Features"}}
+
+default = Features
+''')
+    click.echo("  Created: pages/features.py")
+
+    # Contact page
+    (project_dir / "pages" / "contact.py").write_text('''"""Contact page with form"""
+
+from nextpy.psx import component
+
+@component
+def Contact(props=None):
+    props = props or {}
+    title = props.get("title", "Contact Us")
+    description = props.get("description", "Get in touch with NextPy team")
+
+    return (
+        <div class="min-h-screen py-8 bg-gray-50">
+            <div class="container px-4 mx-auto">
+                <div class="max-w-2xl mx-auto text-center">
+                    <h1 class="mb-4 text-4xl font-bold">{title}</h1>
+                    <p class="mb-8 text-xl text-gray-600">{description}</p>
+                    <form class="space-y-6">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">Name</label>
+                            <input type="text" name="name" class="w-full px-4 py-2 border rounded-lg" required />
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">Email</label>
+                            <input type="email" name="email" class="w-full px-4 py-2 border rounded-lg" required />
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">Message</label>
+                            <textarea name="message" rows="4" class="w-full px-4 py-2 border rounded-lg" required></textarea>
+                        </div>
+                        <button type="submit" class="w-full px-6 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                            Send Message
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    )
+
+def getServerSideProps(context):
+    return {
+        "props": {
+            "title": "Contact Us",
+            "description": "Get in touch with NextPy team"
+        }
+    }
+
+default = Contact
+''')
+    click.echo("  Created: pages/contact.py")
+
+    # Sitemap XML page
+    (project_dir / "pages" / "sitemap.xml.py").write_text('''"""Sitemap page for SEO"""
+
+def get_template():
+    return "sitemap.xml"
+
+async def get_server_side_props(context):
+    """Generate sitemap with all important pages"""
+    import os
+    from datetime import datetime
+    from fastapi.responses import Response
+
+    base_url = os.getenv("FRONTEND_URL", "http://localhost:8000")
+
+    pages = [
+        {"loc": f"{base_url}/", "lastmod": datetime.now().strftime("%Y-%m-%d"), "changefreq": "daily", "priority": "1.0"},
+        {"loc": f"{base_url}/documentation", "lastmod": datetime.now().strftime("%Y-%m-%d"), "changefreq": "weekly", "priority": "0.9"},
+        {"loc": f"{base_url}/examples", "lastmod": datetime.now().strftime("%Y-%m-%d"), "changefreq": "weekly", "priority": "0.8"},
+        {"loc": f"{base_url}/features", "lastmod": datetime.now().strftime("%Y-%m-%d"), "changefreq": "weekly", "priority": "0.8"},
+        {"loc": f"{base_url}/about", "lastmod": datetime.now().strftime("%Y-%m-%d"), "changefreq": "monthly", "priority": "0.7"},
+        {"loc": f"{base_url}/blog", "lastmod": datetime.now().strftime("%Y-%m-%d"), "changefreq": "weekly", "priority": "0.7"},
+        {"loc": f"{base_url}/contact", "lastmod": datetime.now().strftime("%Y-%m-%d"), "changefreq": "monthly", "priority": "0.6"},
+    ]
+
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\\n'
+
+    for page in pages:
+        xml += f"""  <url>
+    <loc>{page['loc']}</loc>
+    <lastmod>{page['lastmod']}</lastmod>
+    <changefreq>{page['changefreq']}</changefreq>
+    <priority>{page['priority']}</priority>
+  </url>
+"""
+
+    xml += '\\n</urlset>'
+
+    return Response(content=xml, media_type="application/xml")
+''')
+    click.echo("  Created: pages/sitemap.xml.py")
+
+    # Robots.txt page
+    (project_dir / "pages" / "robots.txt.py").write_text('''"""Robots.txt page for SEO"""
+
+def get_template():
+    return "robots.txt"
+
+async def get_server_side_props(context):
+    """Generate robots.txt"""
+    import os
+    from fastapi.responses import Response
+
+    base_url = os.getenv("FRONTEND_URL", "http://localhost:8000")
+
+    robots_content = f"""User-agent: *
+Allow: /
+
+# Block common non-content or sensitive paths
+Disallow: /api/
+Disallow: /_nextpy_debug/
+Disallow: /static/
+Disallow: *.py$
+Disallow: *.html$
+
+# Sitemap location
+Sitemap: {base_url}/sitemap.xml
+"""
+
+    return Response(content=robots_content, media_type="text/plain")
+''')
+    click.echo("  Created: pages/robots.txt.py")
 
 
 def _create_vscode_settings(project_dir: Path):

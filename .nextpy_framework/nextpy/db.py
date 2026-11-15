@@ -27,18 +27,23 @@ class DatabaseConfig:
     
     def __init__(self, database_url: Optional[str] = None):
         self.database_url = database_url or os.getenv("DATABASE_URL", "sqlite:///./nextpy.db")
-        # Convert relative SQLite path to absolute path to ensure consistency
-        if self.database_url.startswith("sqlite:///"):
-            db_path = self.database_url.replace("sqlite:///", "")
-            if not os.path.isabs(db_path):
-                # Make it relative to the current working directory
-                abs_path = os.path.abspath(db_path)
-                # Ensure the path doesn't contain characters that SQLAlchemy interprets as port
-                # Remove any leading ./ or ../ and normalize the path
-                abs_path = os.path.normpath(abs_path)
-                # Use forward slashes for consistency
-                abs_path = abs_path.replace('\\', '/')
-                self.database_url = f"sqlite:///{abs_path}"
+        # For SQLite, ensure we have the correct format with three slashes
+        if self.database_url.startswith("sqlite://"):
+            # Remove any extra slashes to ensure proper format
+            # sqlite:///path -> sqlite:///path (three slashes for absolute path)
+            # sqlite://path -> sqlite:///path (add missing slash)
+            # sqlite:////path -> sqlite:///path (remove extra slash)
+            parts = self.database_url.split("://", 1)
+            if len(parts) == 2:
+                scheme, path = parts
+                # Normalize the path to have exactly the right number of slashes
+                if path.startswith("/"):
+                    # Absolute path - ensure three slashes after sqlite:
+                    path = path.lstrip("/")
+                    self.database_url = f"{scheme}:///{path}"
+                else:
+                    # Relative path - use sqlite:///./path format
+                    self.database_url = f"{scheme}:///./{path}"
         self.echo = os.getenv("DB_ECHO", "false").lower() == "true"
         self.pool_size = int(os.getenv("DB_POOL_SIZE", "5"))
         self.max_overflow = int(os.getenv("DB_MAX_OVERFLOW", "10"))
