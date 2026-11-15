@@ -87,17 +87,21 @@ from nextpy.db import init_db
 from nextpy.config import settings
 import os
 
-# Ensure database URL is absolute path for consistency
+# Get database URL from settings
 db_url = settings["database_url"]
-if db_url.startswith("sqlite:///"):
-    db_path = db_url.replace("sqlite:///", "")
-    if not os.path.isabs(db_path):
-        # Make it relative to the project directory
-        project_dir = Path(__file__).parent
-        abs_path = str(project_dir / db_path)
-        db_url = f"sqlite:///{abs_path}"
 
-init_db(db_url)
+# Initialize database with error handling
+try:
+    init_db(db_url)
+except Exception as e:
+    print(f"⚠️  Database initialization failed: {e}")
+    print("🔄 Using fallback database configuration...")
+    # Try with a simple SQLite database
+    try:
+        init_db("sqlite:///./nextpy_fallback.db")
+    except Exception as fallback_error:
+        print(f"❌ Fallback database also failed: {fallback_error}")
+        print("⚠️  Continuing without database - some features may not work")
 
 admin_site = AdminSite()
 admin_site.register(User)
