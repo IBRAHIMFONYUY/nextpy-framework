@@ -33,6 +33,11 @@ class DatabaseConfig:
             if not os.path.isabs(db_path):
                 # Make it relative to the current working directory
                 abs_path = os.path.abspath(db_path)
+                # Ensure the path doesn't contain characters that SQLAlchemy interprets as port
+                # Remove any leading ./ or ../ and normalize the path
+                abs_path = os.path.normpath(abs_path)
+                # Use forward slashes for consistency
+                abs_path = abs_path.replace('\\', '/')
                 self.database_url = f"sqlite:///{abs_path}"
         self.echo = os.getenv("DB_ECHO", "false").lower() == "true"
         self.pool_size = int(os.getenv("DB_POOL_SIZE", "5"))
