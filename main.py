@@ -51,13 +51,14 @@ try:
                     print(f"Warning: npm install failed: {e}")
                     print("You can try running 'npm install' manually.")
 
-            # Run Tailwind CSS build
+            # Run Tailwind CSS build with pinned version 4.3.3
             try:
-                subprocess.run([npm_bin, "run", "build:tailwind"], cwd=str(proj_root), check=True)
-                print("Tailwind CSS compiled successfully.")
+                # Use npx with specific version to ensure v4.3.3 is used
+                subprocess.run([npm_bin, "exec", "--", "tailwindcss@4.3.3", "-i", "./styles/styles.css", "-o", "./public/tailwind.css", "--minify"], cwd=str(proj_root), check=True)
+                print("Tailwind CSS v4.3.3 compiled successfully.")
             except subprocess.CalledProcessError as e:
                 print(f"Error compiling Tailwind CSS: {e}")
-                print("You can try running 'npm run build:tailwind' manually.")
+                print("You can try running 'npx tailwindcss@4.3.3 -i ./styles/styles.css -o ./public/tailwind.css --minify' manually.")
         else:
             print("Warning: package.json not found in project root. Skipping Tailwind compilation.")
             print("Create a package.json with Tailwind CSS dependencies to enable Tailwind.")
